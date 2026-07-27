@@ -1,0 +1,494 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectId": "11111111-1111-4111-8111-111111111111",
+  "hotelId": "22222222-2222-4222-8222-222222222222",
+  "template": {
+    "id": "hotel.host-broll",
+    "version": "1.0.0"
+  },
+  "seed": 20260727,
+  "brief": {
+    "id": "15151515-1515-4515-8515-151515151515",
+    "title": "云栖酒店周末短片",
+    "platform": "douyin",
+    "durationFrames": 900,
+    "tone": "温暖高级",
+    "language": "zh-CN",
+    "objective": "提升周末预订",
+    "targetAudience": "周末城市度假客群"
+  },
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "frameRate": 30,
+    "durationFrames": 900,
+    "audioSampleRate": 48000,
+    "backgroundColor": "#101820"
+  },
+  "brandTokens": [
+    {
+      "key": "brand.primary",
+      "type": "color",
+      "value": "#C69B55"
+    },
+    {
+      "key": "brand.onPrimary",
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    {
+      "key": "brand.captionBackground",
+      "type": "color",
+      "value": "#101820CC"
+    },
+    {
+      "key": "brand.headingFont",
+      "type": "font",
+      "family": "Noto Sans SC",
+      "weight": 700,
+      "style": "normal"
+    },
+    {
+      "key": "brand.bodyFont",
+      "type": "font",
+      "family": "Noto Sans SC",
+      "weight": 500,
+      "style": "normal"
+    }
+  ],
+  "safeAreas": [
+    {
+      "id": "safe.title",
+      "name": "标题安全区",
+      "kind": "content",
+      "x": 0.08,
+      "y": 0.08,
+      "width": 0.84,
+      "height": 0.18
+    },
+    {
+      "id": "safe.caption",
+      "name": "字幕安全区",
+      "kind": "caption",
+      "x": 0.08,
+      "y": 0.7,
+      "width": 0.84,
+      "height": 0.16
+    },
+    {
+      "id": "safe.cta",
+      "name": "行动按钮安全区",
+      "kind": "cta",
+      "x": 0.12,
+      "y": 0.82,
+      "width": 0.76,
+      "height": 0.1
+    }
+  ],
+  "cta": {
+    "id": "14141414-1414-4414-8414-141414141414",
+    "startFrame": 720,
+    "durationFrames": 180,
+    "text": "立即预订",
+    "action": "booking",
+    "destination": "hotelcut://booking",
+    "safeAreaId": "safe.cta",
+    "fontToken": "brand.headingFont",
+    "textColorToken": "brand.onPrimary",
+    "backgroundColorToken": "brand.primary"
+  },
+  "media": [
+    {
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "kind": "video",
+      "durationFrames": 1800,
+      "tags": ["host", "presenter", "speech"],
+      "scoreBasisPoints": 9200,
+      "metadata": {
+        "source": "fixed-m4-fixture"
+      },
+      "availability": "ready",
+      "contentFingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 800,
+        "qualityBasisPoints": 9200
+      },
+      "segments": [
+        {
+          "id": "11000000-0000-4000-8000-000000000001",
+          "kind": "speech",
+          "startFrame": 0,
+          "durationFrames": 400,
+          "label": "开场",
+          "tags": ["welcome"],
+          "scoreBasisPoints": 9400,
+          "transcript": "欢迎来到云栖酒店，这里让每一次周末停留都更从容。",
+          "words": []
+        },
+        {
+          "id": "11000000-0000-4000-8000-000000000002",
+          "kind": "speech",
+          "startFrame": 450,
+          "durationFrames": 600,
+          "label": "客房介绍",
+          "tags": ["room"],
+          "scoreBasisPoints": 9300,
+          "transcript": "宽敞客房、舒适床品和城市景观，为您留出真正放松的空间。",
+          "words": []
+        },
+        {
+          "id": "11000000-0000-4000-8000-000000000003",
+          "kind": "speech",
+          "startFrame": 1100,
+          "durationFrames": 500,
+          "label": "结尾",
+          "tags": ["booking"],
+          "scoreBasisPoints": 9100,
+          "transcript": "这个周末，欢迎住进云栖酒店，立即预订您的理想房间。",
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "kind": "video",
+      "durationFrames": 1800,
+      "tags": ["host", "presenter", "speech"],
+      "scoreBasisPoints": 6100,
+      "metadata": {
+        "source": "duplicate-fixture"
+      },
+      "availability": "ready",
+      "contentFingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 1200,
+        "qualityBasisPoints": 6200
+      },
+      "segments": [
+        {
+          "id": "12000000-0000-4000-8000-000000000001",
+          "kind": "speech",
+          "startFrame": 0,
+          "durationFrames": 900,
+          "label": "重复口播",
+          "tags": [],
+          "scoreBasisPoints": 6000,
+          "transcript": "这是重复素材，不应进入最终选择。",
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "kind": "video",
+      "durationFrames": 750,
+      "tags": ["exterior", "wide", "day"],
+      "scoreBasisPoints": 8800,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "3333333333333333333333333333333333333333333333333333333333333333",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 5000,
+        "qualityBasisPoints": 9000
+      },
+      "segments": [
+        {
+          "id": "13000000-0000-4000-8000-000000000001",
+          "kind": "scene",
+          "startFrame": 30,
+          "durationFrames": 600,
+          "label": "酒店外观",
+          "tags": ["exterior", "wide"],
+          "scoreBasisPoints": 9200,
+          "transcript": null,
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "kind": "video",
+      "durationFrames": 650,
+      "tags": ["lobby", "bright", "wide"],
+      "scoreBasisPoints": 8700,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "4444444444444444444444444444444444444444444444444444444444444444",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 7000,
+        "qualityBasisPoints": 8800
+      },
+      "segments": [
+        {
+          "id": "14000000-0000-4000-8000-000000000001",
+          "kind": "scene",
+          "startFrame": 20,
+          "durationFrames": 500,
+          "label": "大堂全景",
+          "tags": ["lobby", "bright"],
+          "scoreBasisPoints": 9000,
+          "transcript": null,
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "kind": "video",
+      "durationFrames": 900,
+      "tags": ["room", "window", "clean", "bed"],
+      "scoreBasisPoints": 9100,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 6500,
+        "qualityBasisPoints": 9300
+      },
+      "segments": [
+        {
+          "id": "15000000-0000-4000-8000-000000000001",
+          "kind": "scene",
+          "startFrame": 50,
+          "durationFrames": 700,
+          "label": "客房主镜头",
+          "tags": ["room", "window"],
+          "scoreBasisPoints": 9500,
+          "transcript": null,
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000006",
+      "kind": "image",
+      "durationFrames": null,
+      "tags": ["bathroom", "clean", "detail"],
+      "scoreBasisPoints": 8500,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": null,
+        "hasAudio": false,
+        "silenceRatioBasisPoints": 10000,
+        "qualityBasisPoints": 8600
+      },
+      "segments": []
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "kind": "video",
+      "durationFrames": 700,
+      "tags": ["facility", "gym", "pool"],
+      "scoreBasisPoints": 8200,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "7777777777777777777777777777777777777777777777777777777777777777",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 7200,
+        "qualityBasisPoints": 8400
+      },
+      "segments": [
+        {
+          "id": "17000000-0000-4000-8000-000000000001",
+          "kind": "scene",
+          "startFrame": 20,
+          "durationFrames": 600,
+          "label": "健身房",
+          "tags": ["facility", "gym"],
+          "scoreBasisPoints": 8500,
+          "transcript": null,
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "kind": "video",
+      "durationFrames": 700,
+      "tags": ["service", "staff", "welcome"],
+      "scoreBasisPoints": 8600,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "8888888888888888888888888888888888888888888888888888888888888888",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 5000,
+        "qualityBasisPoints": 8800
+      },
+      "segments": [
+        {
+          "id": "18000000-0000-4000-8000-000000000001",
+          "kind": "scene",
+          "startFrame": 40,
+          "durationFrames": 560,
+          "label": "前台服务",
+          "tags": ["service", "staff"],
+          "scoreBasisPoints": 9000,
+          "transcript": null,
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000009",
+      "kind": "image",
+      "durationFrames": null,
+      "tags": ["detail", "amenity", "design"],
+      "scoreBasisPoints": 8400,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "9999999999999999999999999999999999999999999999999999999999999999",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": null,
+        "hasAudio": false,
+        "silenceRatioBasisPoints": 10000,
+        "qualityBasisPoints": 8700
+      },
+      "segments": []
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "kind": "video",
+      "durationFrames": 700,
+      "tags": ["promotion", "food", "weekend"],
+      "scoreBasisPoints": 8900,
+      "metadata": {},
+      "availability": "ready",
+      "contentFingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 6000,
+        "qualityBasisPoints": 9000
+      },
+      "segments": [
+        {
+          "id": "1a000000-0000-4000-8000-000000000001",
+          "kind": "scene",
+          "startFrame": 50,
+          "durationFrames": 550,
+          "label": "周末套餐",
+          "tags": ["promotion", "food"],
+          "scoreBasisPoints": 9200,
+          "transcript": null,
+          "words": []
+        }
+      ]
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000011",
+      "kind": "audio",
+      "durationFrames": 600,
+      "tags": ["music", "warm", "bright", "energetic", "weekend", "travel", "hotel"],
+      "scoreBasisPoints": 9000,
+      "metadata": {
+        "license": "fixture-only"
+      },
+      "availability": "ready",
+      "contentFingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "analysis": {
+        "width": null,
+        "height": null,
+        "frameRate": null,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 0,
+        "qualityBasisPoints": 9100
+      },
+      "segments": []
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000012",
+      "kind": "video",
+      "durationFrames": 900,
+      "tags": ["room", "window", "clean"],
+      "scoreBasisPoints": 10000,
+      "metadata": {
+        "failure": "analysis interrupted"
+      },
+      "availability": "failed",
+      "contentFingerprint": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 0,
+        "qualityBasisPoints": 10000
+      },
+      "segments": []
+    },
+    {
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "kind": "video",
+      "durationFrames": 800,
+      "tags": ["room", "bed", "warm"],
+      "scoreBasisPoints": 7600,
+      "metadata": {
+        "alternate": true
+      },
+      "availability": "ready",
+      "contentFingerprint": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "analysis": {
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "hasAudio": true,
+        "silenceRatioBasisPoints": 6000,
+        "qualityBasisPoints": 7800
+      },
+      "segments": [
+        {
+          "id": "1d000000-0000-4000-8000-000000000001",
+          "kind": "scene",
+          "startFrame": 40,
+          "durationFrames": 650,
+          "label": "备用客房",
+          "tags": ["room", "bed"],
+          "scoreBasisPoints": 7800,
+          "transcript": null,
+          "words": []
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "fixture": "m4"
+  },
+  "previousProject": null,
+  "lockedClipIds": []
+}

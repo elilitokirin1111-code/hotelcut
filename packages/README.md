@@ -11,8 +11,10 @@ Shared domain packages are introduced by their owning milestone:
 - `timeline`: renderer-independent project schema, validation, migration, stable JSON and OTIO
   export
 - `template-sdk`: deterministic template input/output contracts and execution context
-- M4-M6: timeline compiler, templates, renderers and quality control
+- `compiler`: automatic filtering, scoring, selection, layout, manifest and regeneration
+- `templates`: three declarative hotel slot templates and golden fixtures
+- M5-M6: preview/editing, renderers and quality control
 - M8: OpenCut adapter
 
-The M1, M2 and M3 packages are implemented. Later package boundaries remain unimplemented until
+The M1 through M4 packages are implemented. Later package boundaries remain unimplemented until
 their owning milestone.

@@ -1,6 +1,6 @@
 # Template authoring
 
-Status: M3 SDK implemented; product templates begin in M4.
+Status: M3 SDK and M4 product templates implemented.
 
 Templates receive validated business input and media candidates. They return a validated,
 renderer-independent `HotelVideoProject` and structured warnings.
@@ -60,3 +60,26 @@ Each M4 template must:
 
 Initial product templates are host presentation with B-roll, room selling-point montage and
 hotel promotion video. Templates never invoke renderers directly.
+
+## Declarative M4 templates
+
+Product templates use `defineCompilationTemplate`. A definition declares:
+
+- stable ID, semantic version and supported duration range
+- main/B-roll slot, role and basis-point frame range
+- accepted media kinds, required/preferred tags and reuse policy
+- A-roll keep-audio or B-roll/montage mute policy
+- deterministic transition intent
+- optional caption, title, CTA and music layouts
+
+Slots on the same track cannot overlap. Basis points are resolved against the project duration,
+then all downstream logic uses integer frames.
+
+Implemented IDs:
+
+- `hotel.host-broll`
+- `hotel.room-montage`
+- `hotel.promotion`
+
+Changing slot timing, selection requirements or layout behavior requires a template version
+bump and reviewed golden fixture changes.

@@ -1,0 +1,2652 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": {
+    "schemaVersion": "1.0.0",
+    "id": "11111111-1111-4111-8111-111111111111",
+    "hotelId": "22222222-2222-4222-8222-222222222222",
+    "name": "云栖酒店周末短片",
+    "template": { "id": "hotel.host-broll", "version": "1.0.0" },
+    "output": {
+      "width": 1080,
+      "height": 1920,
+      "frameRate": 30,
+      "durationFrames": 900,
+      "audioSampleRate": 48000,
+      "backgroundColor": "#101820"
+    },
+    "safeAreas": [
+      {
+        "id": "safe.title",
+        "name": "标题安全区",
+        "kind": "content",
+        "x": 0.08,
+        "y": 0.08,
+        "width": 0.84,
+        "height": 0.18
+      },
+      {
+        "id": "safe.caption",
+        "name": "字幕安全区",
+        "kind": "caption",
+        "x": 0.08,
+        "y": 0.7,
+        "width": 0.84,
+        "height": 0.16
+      },
+      {
+        "id": "safe.cta",
+        "name": "行动按钮安全区",
+        "kind": "cta",
+        "x": 0.12,
+        "y": 0.82,
+        "width": 0.76,
+        "height": 0.1
+      }
+    ],
+    "brandTokens": [
+      { "key": "brand.primary", "type": "color", "value": "#C69B55" },
+      { "key": "brand.onPrimary", "type": "color", "value": "#FFFFFF" },
+      { "key": "brand.captionBackground", "type": "color", "value": "#101820CC" },
+      {
+        "key": "brand.headingFont",
+        "type": "font",
+        "family": "Noto Sans SC",
+        "weight": 700,
+        "style": "normal"
+      },
+      {
+        "key": "brand.bodyFont",
+        "type": "font",
+        "family": "Noto Sans SC",
+        "weight": 500,
+        "style": "normal"
+      }
+    ],
+    "cta": {
+      "id": "14141414-1414-4414-8414-141414141414",
+      "startFrame": 738,
+      "durationFrames": 162,
+      "text": "立即预订",
+      "action": "booking",
+      "destination": "hotelcut://booking",
+      "safeAreaId": "safe.cta",
+      "fontToken": "brand.headingFont",
+      "textColorToken": "brand.onPrimary",
+      "backgroundColorToken": "brand.primary"
+    },
+    "tracks": [
+      {
+        "id": "10802884-373d-40d5-abaa-12bd60758aaa",
+        "kind": "video",
+        "name": "主画面",
+        "enabled": true,
+        "locked": false,
+        "muted": false,
+        "zIndex": 0,
+        "clips": [
+          {
+            "id": "9fc38a5c-989f-4265-a808-12360f987985",
+            "startFrame": 0,
+            "durationFrames": 270,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": null,
+            "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "metadata": {
+              "slotId": "host.intro",
+              "role": "a-roll",
+              "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0",
+              "segmentId": "11000000-0000-4000-8000-000000000001",
+              "automaticScore": 15529,
+              "locked": false
+            },
+            "kind": "video",
+            "assetId": "10000000-0000-4000-8000-000000000001",
+            "sourceStartFrame": 0,
+            "sourceDurationFrames": 270,
+            "volume": 1,
+            "muted": false,
+            "playbackRate": 1
+          },
+          {
+            "id": "e05088c8-766a-43ae-88d0-581d9b8a3791",
+            "startFrame": 270,
+            "durationFrames": 360,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "metadata": {
+              "slotId": "host.body",
+              "role": "a-roll",
+              "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0",
+              "segmentId": "11000000-0000-4000-8000-000000000002",
+              "automaticScore": 15565,
+              "locked": false
+            },
+            "kind": "video",
+            "assetId": "10000000-0000-4000-8000-000000000001",
+            "sourceStartFrame": 450,
+            "sourceDurationFrames": 360,
+            "volume": 1,
+            "muted": false,
+            "playbackRate": 1
+          },
+          {
+            "id": "6b28f226-71c3-430f-8709-baa816cfb71a",
+            "startFrame": 630,
+            "durationFrames": 270,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "transitionOut": null,
+            "metadata": {
+              "slotId": "host.close",
+              "role": "a-roll",
+              "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0",
+              "segmentId": "11000000-0000-4000-8000-000000000003",
+              "automaticScore": 15342,
+              "locked": false
+            },
+            "kind": "video",
+            "assetId": "10000000-0000-4000-8000-000000000001",
+            "sourceStartFrame": 1100,
+            "sourceDurationFrames": 270,
+            "volume": 1,
+            "muted": false,
+            "playbackRate": 1
+          }
+        ],
+        "metadata": { "compilerTrack": "main" }
+      },
+      {
+        "id": "dca96823-4f37-445c-84c9-70c2854a0bd1",
+        "kind": "video",
+        "name": "B-roll",
+        "enabled": true,
+        "locked": false,
+        "muted": false,
+        "zIndex": 10,
+        "clips": [
+          {
+            "id": "7072a8a7-4439-4f77-90e4-04cf710f64c1",
+            "startFrame": 135,
+            "durationFrames": 135,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "metadata": {
+              "slotId": "broll.lobby",
+              "role": "b-roll",
+              "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
+              "segmentId": "14000000-0000-4000-8000-000000000001",
+              "automaticScore": 13801,
+              "locked": false
+            },
+            "kind": "video",
+            "assetId": "10000000-0000-4000-8000-000000000004",
+            "sourceStartFrame": 332,
+            "sourceDurationFrames": 135,
+            "volume": 0,
+            "muted": true,
+            "playbackRate": 1
+          },
+          {
+            "id": "5eb581b0-5778-45d0-a540-dc6be71d3bed",
+            "startFrame": 405,
+            "durationFrames": 153,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "metadata": {
+              "slotId": "broll.room",
+              "role": "b-roll",
+              "candidateId": "10000000-0000-4000-8000-000000000005:15000000-0000-4000-8000-000000000001:0",
+              "segmentId": "15000000-0000-4000-8000-000000000001",
+              "automaticScore": 14741,
+              "locked": false
+            },
+            "kind": "video",
+            "assetId": "10000000-0000-4000-8000-000000000005",
+            "sourceStartFrame": 111,
+            "sourceDurationFrames": 153,
+            "volume": 0,
+            "muted": true,
+            "playbackRate": 1
+          },
+          {
+            "id": "7ba207eb-fdf8-49bc-99e9-f3a8e6ae60f1",
+            "startFrame": 630,
+            "durationFrames": 117,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "metadata": {
+              "slotId": "broll.service",
+              "role": "b-roll",
+              "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
+              "segmentId": "18000000-0000-4000-8000-000000000001",
+              "automaticScore": 13423,
+              "locked": false
+            },
+            "kind": "video",
+            "assetId": "10000000-0000-4000-8000-000000000008",
+            "sourceStartFrame": 352,
+            "sourceDurationFrames": 117,
+            "volume": 0,
+            "muted": true,
+            "playbackRate": 1
+          }
+        ],
+        "metadata": { "compilerTrack": "broll" }
+      },
+      {
+        "id": "327c25d5-43bf-4a3f-ade9-01aac858e632",
+        "kind": "overlay",
+        "name": "标题",
+        "enabled": true,
+        "locked": false,
+        "muted": false,
+        "zIndex": 20,
+        "clips": [
+          {
+            "id": "0b0f82dc-87ad-44bb-ba07-ba4f2ada5e8f",
+            "startFrame": 0,
+            "durationFrames": 108,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-out" },
+            "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in" },
+            "metadata": { "generatedFrom": "brief.title" },
+            "kind": "text",
+            "text": "云栖酒店周末短片",
+            "style": {
+              "fontToken": "brand.headingFont",
+              "colorToken": "brand.onPrimary",
+              "backgroundColorToken": "brand.captionBackground",
+              "fontSize": 68,
+              "lineHeight": 1.2,
+              "align": "center",
+              "maxLines": 2
+            },
+            "safeAreaId": "safe.title"
+          }
+        ],
+        "metadata": { "compilerTrack": "title" }
+      },
+      {
+        "id": "4dd353a1-207e-40cd-b12e-e5b11a8ffb32",
+        "kind": "caption",
+        "name": "字幕",
+        "enabled": true,
+        "locked": false,
+        "muted": false,
+        "zIndex": 30,
+        "clips": [
+          {
+            "id": "23af7cd9-6f1c-45ad-a72c-ea75538ea715",
+            "startFrame": 0,
+            "durationFrames": 135,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": null,
+            "transitionOut": null,
+            "metadata": {
+              "slotId": "host.intro",
+              "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0"
+            },
+            "kind": "caption",
+            "text": "欢迎来到云栖酒店，\n这里让每一次周末停",
+            "words": [],
+            "style": {
+              "fontToken": "brand.bodyFont",
+              "colorToken": "brand.onPrimary",
+              "backgroundColorToken": "brand.captionBackground",
+              "fontSize": 54,
+              "lineHeight": 1.2,
+              "align": "center",
+              "maxLines": 2
+            },
+            "safeAreaId": "safe.caption"
+          },
+          {
+            "id": "cd0e886d-7793-4af8-aedf-d7f458890d96",
+            "startFrame": 135,
+            "durationFrames": 135,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": null,
+            "transitionOut": null,
+            "metadata": {
+              "slotId": "host.intro",
+              "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0"
+            },
+            "kind": "caption",
+            "text": "留都更从容。",
+            "words": [],
+            "style": {
+              "fontToken": "brand.bodyFont",
+              "colorToken": "brand.onPrimary",
+              "backgroundColorToken": "brand.captionBackground",
+              "fontSize": 54,
+              "lineHeight": 1.2,
+              "align": "center",
+              "maxLines": 2
+            },
+            "safeAreaId": "safe.caption"
+          },
+          {
+            "id": "72de6bd1-481f-4796-83f3-c71306ed1185",
+            "startFrame": 270,
+            "durationFrames": 180,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": null,
+            "transitionOut": null,
+            "metadata": {
+              "slotId": "host.body",
+              "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0"
+            },
+            "kind": "caption",
+            "text": "宽敞客房、舒适床品\n和城市景观，",
+            "words": [],
+            "style": {
+              "fontToken": "brand.bodyFont",
+              "colorToken": "brand.onPrimary",
+              "backgroundColorToken": "brand.captionBackground",
+              "fontSize": 54,
+              "lineHeight": 1.2,
+              "align": "center",
+              "maxLines": 2
+            },
+            "safeAreaId": "safe.caption"
+          },
+          {
+            "id": "d042b834-f767-4895-b44d-4bfc21ce0d08",
+            "startFrame": 450,
+            "durationFrames": 180,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": null,
+            "transitionOut": null,
+            "metadata": {
+              "slotId": "host.body",
+              "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0"
+            },
+            "kind": "caption",
+            "text": "为您留出真正放松的\n空间。",
+            "words": [],
+            "style": {
+              "fontToken": "brand.bodyFont",
+              "colorToken": "brand.onPrimary",
+              "backgroundColorToken": "brand.captionBackground",
+              "fontSize": 54,
+              "lineHeight": 1.2,
+              "align": "center",
+              "maxLines": 2
+            },
+            "safeAreaId": "safe.caption"
+          },
+          {
+            "id": "bb5a7428-9e46-44d7-add6-fc8364c83fe7",
+            "startFrame": 630,
+            "durationFrames": 135,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": null,
+            "transitionOut": null,
+            "metadata": {
+              "slotId": "host.close",
+              "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0"
+            },
+            "kind": "caption",
+            "text": "这个周末，欢迎住进\n云栖酒店，立即预订",
+            "words": [],
+            "style": {
+              "fontToken": "brand.bodyFont",
+              "colorToken": "brand.onPrimary",
+              "backgroundColorToken": "brand.captionBackground",
+              "fontSize": 54,
+              "lineHeight": 1.2,
+              "align": "center",
+              "maxLines": 2
+            },
+            "safeAreaId": "safe.caption"
+          },
+          {
+            "id": "cb1614f4-3cf1-4600-868d-0b18920ef737",
+            "startFrame": 765,
+            "durationFrames": 135,
+            "transform": {
+              "x": 0.5,
+              "y": 0.5,
+              "scaleX": 1,
+              "scaleY": 1,
+              "rotationDegrees": 0,
+              "opacity": 1,
+              "fit": "cover"
+            },
+            "transitionIn": null,
+            "transitionOut": null,
+            "metadata": {
+              "slotId": "host.close",
+              "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0"
+            },
+            "kind": "caption",
+            "text": "您的理想房间。",
+            "words": [],
+            "style": {
+              "fontToken": "brand.bodyFont",
+              "colorToken": "brand.onPrimary",
+              "backgroundColorToken": "brand.captionBackground",
+              "fontSize": 54,
+              "lineHeight": 1.2,
+              "align": "center",
+              "maxLines": 2
+            },
+            "safeAreaId": "safe.caption"
+          }
+        ],
+        "metadata": { "compilerTrack": "captions" }
+      },
+      {
+        "id": "0608ec05-073c-41e2-862c-75f1f795f165",
+        "kind": "audio",
+        "name": "背景音乐",
+        "enabled": true,
+        "locked": false,
+        "muted": false,
+        "zIndex": 0,
+        "clips": [
+          {
+            "id": "77db3e80-5289-4bbe-aa8d-aea8cbfce10d",
+            "kind": "audio",
+            "assetId": "10000000-0000-4000-8000-000000000011",
+            "startFrame": 0,
+            "durationFrames": 600,
+            "sourceStartFrame": 0,
+            "sourceDurationFrames": 600,
+            "volume": 0.18,
+            "fadeInFrames": 30,
+            "fadeOutFrames": 0,
+            "metadata": { "slotId": "music", "loopIndex": 0 }
+          },
+          {
+            "id": "630741d0-7df3-4aab-8d62-0b4a424f0bf1",
+            "kind": "audio",
+            "assetId": "10000000-0000-4000-8000-000000000011",
+            "startFrame": 600,
+            "durationFrames": 300,
+            "sourceStartFrame": 0,
+            "sourceDurationFrames": 300,
+            "volume": 0.18,
+            "fadeInFrames": 0,
+            "fadeOutFrames": 30,
+            "metadata": { "slotId": "music", "loopIndex": 1 }
+          }
+        ],
+        "metadata": { "compilerTrack": "music" }
+      }
+    ],
+    "generation": { "compilerVersion": "1.0.0", "seed": 20260727 },
+    "metadata": {
+      "compilation": {
+        "operation": "initial",
+        "inputHash": "ae70e2f5b1ad1e685aab90c20ef723d5be82b2e6871d8a4282206bb01835dc4f"
+      }
+    }
+  },
+  "manifest": {
+    "schemaVersion": "1.0.0",
+    "compilerVersion": "1.0.0",
+    "operation": "initial",
+    "projectId": "11111111-1111-4111-8111-111111111111",
+    "template": { "id": "hotel.host-broll", "version": "1.0.0" },
+    "seed": 20260727,
+    "inputHash": "ae70e2f5b1ad1e685aab90c20ef723d5be82b2e6871d8a4282206bb01835dc4f",
+    "slots": [
+      {
+        "slotId": "host.intro",
+        "role": "a-roll",
+        "startFrame": 0,
+        "durationFrames": 270,
+        "clipId": "9fc38a5c-989f-4265-a808-12360f987985",
+        "assetId": "10000000-0000-4000-8000-000000000001",
+        "segmentId": "11000000-0000-4000-8000-000000000001",
+        "score": 15529,
+        "locked": false,
+        "reason": "Highest deterministic score for slot"
+      },
+      {
+        "slotId": "host.body",
+        "role": "a-roll",
+        "startFrame": 270,
+        "durationFrames": 360,
+        "clipId": "e05088c8-766a-43ae-88d0-581d9b8a3791",
+        "assetId": "10000000-0000-4000-8000-000000000001",
+        "segmentId": "11000000-0000-4000-8000-000000000002",
+        "score": 15565,
+        "locked": false,
+        "reason": "Highest deterministic score for slot"
+      },
+      {
+        "slotId": "host.close",
+        "role": "a-roll",
+        "startFrame": 630,
+        "durationFrames": 270,
+        "clipId": "6b28f226-71c3-430f-8709-baa816cfb71a",
+        "assetId": "10000000-0000-4000-8000-000000000001",
+        "segmentId": "11000000-0000-4000-8000-000000000003",
+        "score": 15342,
+        "locked": false,
+        "reason": "Highest deterministic score for slot"
+      },
+      {
+        "slotId": "broll.lobby",
+        "role": "b-roll",
+        "startFrame": 135,
+        "durationFrames": 135,
+        "clipId": "7072a8a7-4439-4f77-90e4-04cf710f64c1",
+        "assetId": "10000000-0000-4000-8000-000000000004",
+        "segmentId": "14000000-0000-4000-8000-000000000001",
+        "score": 13801,
+        "locked": false,
+        "reason": "Highest deterministic score for slot"
+      },
+      {
+        "slotId": "broll.room",
+        "role": "b-roll",
+        "startFrame": 405,
+        "durationFrames": 153,
+        "clipId": "5eb581b0-5778-45d0-a540-dc6be71d3bed",
+        "assetId": "10000000-0000-4000-8000-000000000005",
+        "segmentId": "15000000-0000-4000-8000-000000000001",
+        "score": 14741,
+        "locked": false,
+        "reason": "Highest deterministic score for slot"
+      },
+      {
+        "slotId": "broll.service",
+        "role": "b-roll",
+        "startFrame": 630,
+        "durationFrames": 117,
+        "clipId": "7ba207eb-fdf8-49bc-99e9-f3a8e6ae60f1",
+        "assetId": "10000000-0000-4000-8000-000000000008",
+        "segmentId": "18000000-0000-4000-8000-000000000001",
+        "score": 13423,
+        "locked": false,
+        "reason": "Highest deterministic score for slot"
+      },
+      {
+        "slotId": "music",
+        "role": "music",
+        "startFrame": 0,
+        "durationFrames": 900,
+        "clipId": "77db3e80-5289-4bbe-aa8d-aea8cbfce10d",
+        "assetId": "10000000-0000-4000-8000-000000000011",
+        "segmentId": null,
+        "score": 12250,
+        "locked": false,
+        "reason": "Highest deterministic music score"
+      }
+    ],
+    "usedAssetIds": [
+      "10000000-0000-4000-8000-000000000001",
+      "10000000-0000-4000-8000-000000000004",
+      "10000000-0000-4000-8000-000000000005",
+      "10000000-0000-4000-8000-000000000008",
+      "10000000-0000-4000-8000-000000000011"
+    ],
+    "lockedClipIds": [],
+    "explanationLog": [
+      {
+        "sequence": 0,
+        "stage": "filter",
+        "code": "MEDIA_FILTER_STARTED",
+        "message": "Evaluating 13 media assets",
+        "details": { "mediaCount": 13 }
+      },
+      {
+        "sequence": 1,
+        "stage": "select",
+        "code": "SLOT_MEDIA_SELECTED",
+        "message": "Selected media for host.intro",
+        "details": {
+          "assetId": "10000000-0000-4000-8000-000000000001",
+          "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0",
+          "score": 15529
+        }
+      },
+      {
+        "sequence": 2,
+        "stage": "select",
+        "code": "SLOT_MEDIA_SELECTED",
+        "message": "Selected media for host.body",
+        "details": {
+          "assetId": "10000000-0000-4000-8000-000000000001",
+          "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0",
+          "score": 15565
+        }
+      },
+      {
+        "sequence": 3,
+        "stage": "select",
+        "code": "SLOT_MEDIA_SELECTED",
+        "message": "Selected media for host.close",
+        "details": {
+          "assetId": "10000000-0000-4000-8000-000000000001",
+          "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0",
+          "score": 15342
+        }
+      },
+      {
+        "sequence": 4,
+        "stage": "select",
+        "code": "SLOT_MEDIA_SELECTED",
+        "message": "Selected media for broll.lobby",
+        "details": {
+          "assetId": "10000000-0000-4000-8000-000000000004",
+          "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
+          "score": 13801
+        }
+      },
+      {
+        "sequence": 5,
+        "stage": "select",
+        "code": "SLOT_MEDIA_SELECTED",
+        "message": "Selected media for broll.room",
+        "details": {
+          "assetId": "10000000-0000-4000-8000-000000000005",
+          "candidateId": "10000000-0000-4000-8000-000000000005:15000000-0000-4000-8000-000000000001:0",
+          "score": 14741
+        }
+      },
+      {
+        "sequence": 6,
+        "stage": "select",
+        "code": "SLOT_MEDIA_SELECTED",
+        "message": "Selected media for broll.service",
+        "details": {
+          "assetId": "10000000-0000-4000-8000-000000000008",
+          "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
+          "score": 13423
+        }
+      },
+      {
+        "sequence": 7,
+        "stage": "layout",
+        "code": "VISUAL_LAYOUT_COMPLETE",
+        "message": "Created 2 visual tracks",
+        "details": { "selectedSlots": 6 }
+      },
+      {
+        "sequence": 8,
+        "stage": "caption",
+        "code": "CAPTIONS_LAYOUT_COMPLETE",
+        "message": "Generated 6 caption clips",
+        "details": { "clipCount": 6 }
+      },
+      {
+        "sequence": 9,
+        "stage": "music",
+        "code": "BACKGROUND_MUSIC_LAYOUT_COMPLETE",
+        "message": "Background music fills the project",
+        "details": { "assetId": "10000000-0000-4000-8000-000000000011", "loopCount": 2 }
+      },
+      {
+        "sequence": 10,
+        "stage": "cta",
+        "code": "CTA_GENERATED",
+        "message": "Generated CTA timing from approved input",
+        "details": { "action": "booking", "startFrame": 738, "durationFrames": 162 }
+      },
+      {
+        "sequence": 11,
+        "stage": "complete",
+        "code": "COMPILATION_COMPLETE",
+        "message": "Compilation produced a valid project",
+        "details": { "operation": "initial", "trackCount": 5, "warningCount": 0 }
+      }
+    ]
+  },
+  "scoreRecords": [
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000001",
+      "eligible": true,
+      "selected": true,
+      "totalScore": 15529,
+      "components": [
+        { "name": "base", "value": 9400, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched welcome" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 130, "detail": "130 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 59, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Eligible after filtering and duration matching",
+        "Highest deterministic score for slot"
+      ]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000002",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14375,
+      "components": [
+        { "name": "base", "value": 9300, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 270, "detail": "270 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 65, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:1",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000002",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14133,
+      "components": [
+        { "name": "base", "value": 9300, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 0, "detail": "0 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 93, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Available duration 60 is shorter than 270",
+        "None of the required tags matched: welcome"
+      ]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000003",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14118,
+      "components": [
+        { "name": "base", "value": 9100, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 230, "detail": "230 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 48, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000002:12000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": "12000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": -523,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 270, "detail": "270 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -240, "detail": "Silence ratio 1200" },
+        { "name": "tie-break", "value": 47, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: welcome"
+      ]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000002:12000000-0000-4000-8000-000000000001:1",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": "12000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": -665,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 90, "detail": "90 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -240, "detail": "Silence ratio 1200" },
+        { "name": "tie-break", "value": 85, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: welcome"
+      ]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000003:whole",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10143,
+      "components": [
+        { "name": "base", "value": 8800, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 480, "detail": "480 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1000, "detail": "Silence ratio 5000" },
+        { "name": "tie-break", "value": 63, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000004:whole",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 9474,
+      "components": [
+        { "name": "base", "value": 8700, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 380, "detail": "380 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1400, "detail": "Silence ratio 7000" },
+        { "name": "tie-break", "value": 94, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000005:whole",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10417,
+      "components": [
+        { "name": "base", "value": 9100, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 630, "detail": "630 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1300, "detail": "Silence ratio 6500" },
+        { "name": "tie-break", "value": 37, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000006:whole",
+      "assetId": "10000000-0000-4000-8000-000000000006",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8387,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1800, "detail": "Technical quality 8600" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 270, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -2000, "detail": "Silence ratio 10000" },
+        { "name": "tie-break", "value": 17, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "image is not accepted by this slot",
+        "None of the required tags matched: welcome",
+        "A-roll requires video",
+        "A-roll requires an audio track",
+        "A-roll is predominantly silent"
+      ]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000007:whole",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8756,
+      "components": [
+        { "name": "base", "value": 8200, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 430, "detail": "430 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1440, "detail": "Silence ratio 7200" },
+        { "name": "tie-break", "value": 66, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000008:whole",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 10965,
+      "components": [
+        { "name": "base", "value": 8600, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched welcome" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 430, "detail": "430 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1000, "detail": "Silence ratio 5000" },
+        { "name": "tie-break", "value": 35, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000009:whole",
+      "assetId": "10000000-0000-4000-8000-000000000009",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8400,
+      "components": [
+        { "name": "base", "value": 8400, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1850, "detail": "Technical quality 8700" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 270, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -2000, "detail": "Silence ratio 10000" },
+        { "name": "tie-break", "value": 80, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "image is not accepted by this slot",
+        "None of the required tags matched: welcome",
+        "A-roll requires video",
+        "A-roll requires an audio track",
+        "A-roll is predominantly silent"
+      ]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000010:whole",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10023,
+      "components": [
+        { "name": "base", "value": 8900, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 430, "detail": "430 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1200, "detail": "Silence ratio 6000" },
+        { "name": "tie-break", "value": 93, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000012:whole",
+      "assetId": "10000000-0000-4000-8000-000000000012",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12986,
+      "components": [
+        { "name": "base", "value": 10000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2500, "detail": "Technical quality 10000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 630, "detail": "630 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": 0, "detail": "Silence ratio 0" },
+        { "name": "tie-break", "value": 56, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Asset is failed", "None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.intro",
+      "candidateId": "10000000-0000-4000-8000-000000000013:whole",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8144,
+      "components": [
+        { "name": "base", "value": 7600, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 530, "detail": "530 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1200, "detail": "Silence ratio 6000" },
+        { "name": "tie-break", "value": 14, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: welcome"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14224,
+      "components": [
+        { "name": "base", "value": 9400, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 40, "detail": "40 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 44, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Candidate source range is already used",
+        "None of the required tags matched: room"
+      ]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000002",
+      "eligible": true,
+      "selected": true,
+      "totalScore": 15565,
+      "components": [
+        { "name": "base", "value": 9300, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 240, "detail": "240 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 85, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Eligible after filtering and duration matching",
+        "Highest deterministic score for slot"
+      ]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000003",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14058,
+      "components": [
+        { "name": "base", "value": 9100, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 140, "detail": "140 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 78, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000002:12000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": "12000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": -404,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 360, "detail": "360 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -240, "detail": "Silence ratio 1200" },
+        { "name": "tie-break", "value": 76, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: room"
+      ]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000002:12000000-0000-4000-8000-000000000001:1",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": "12000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": -766,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 0, "detail": "0 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -240, "detail": "Silence ratio 1200" },
+        { "name": "tie-break", "value": 74, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Available duration 180 is shorter than 360",
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: room"
+      ]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000003:whole",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10069,
+      "components": [
+        { "name": "base", "value": 8800, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 390, "detail": "390 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1000, "detail": "Silence ratio 5000" },
+        { "name": "tie-break", "value": 79, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000004:whole",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 9363,
+      "components": [
+        { "name": "base", "value": 8700, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 290, "detail": "290 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1400, "detail": "Silence ratio 7000" },
+        { "name": "tie-break", "value": 73, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000005:whole",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 11526,
+      "components": [
+        { "name": "base", "value": 9100, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 540, "detail": "540 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1300, "detail": "Silence ratio 6500" },
+        { "name": "tie-break", "value": 36, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000006:whole",
+      "assetId": "10000000-0000-4000-8000-000000000006",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8465,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1800, "detail": "Technical quality 8600" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 360, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -2000, "detail": "Silence ratio 10000" },
+        { "name": "tie-break", "value": 5, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "image is not accepted by this slot",
+        "None of the required tags matched: room",
+        "A-roll requires video",
+        "A-roll requires an audio track",
+        "A-roll is predominantly silent"
+      ]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000007:whole",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8606,
+      "components": [
+        { "name": "base", "value": 8200, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 340, "detail": "340 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1440, "detail": "Silence ratio 7200" },
+        { "name": "tie-break", "value": 6, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000008:whole",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 9676,
+      "components": [
+        { "name": "base", "value": 8600, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 340, "detail": "340 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1000, "detail": "Silence ratio 5000" },
+        { "name": "tie-break", "value": 36, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000009:whole",
+      "assetId": "10000000-0000-4000-8000-000000000009",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8467,
+      "components": [
+        { "name": "base", "value": 8400, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1850, "detail": "Technical quality 8700" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 360, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -2000, "detail": "Silence ratio 10000" },
+        { "name": "tie-break", "value": 57, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "image is not accepted by this slot",
+        "None of the required tags matched: room",
+        "A-roll requires video",
+        "A-roll requires an audio track",
+        "A-roll is predominantly silent"
+      ]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000010:whole",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 9916,
+      "components": [
+        { "name": "base", "value": 8900, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 340, "detail": "340 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1200, "detail": "Silence ratio 6000" },
+        { "name": "tie-break", "value": 76, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000012:whole",
+      "assetId": "10000000-0000-4000-8000-000000000012",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14099,
+      "components": [
+        { "name": "base", "value": 10000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2500, "detail": "Technical quality 10000" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 540, "detail": "540 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": 0, "detail": "Silence ratio 0" },
+        { "name": "tie-break", "value": 59, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Asset is failed"]
+    },
+    {
+      "slotId": "host.body",
+      "candidateId": "10000000-0000-4000-8000-000000000013:whole",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 9246,
+      "components": [
+        { "name": "base", "value": 7600, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 440, "detail": "440 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1200, "detail": "Silence ratio 6000" },
+        { "name": "tie-break", "value": 6, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14354,
+      "components": [
+        { "name": "base", "value": 9400, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 130, "detail": "130 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 84, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Candidate source range is already used",
+        "None of the required tags matched: booking"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000002",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14338,
+      "components": [
+        { "name": "base", "value": 9300, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 270, "detail": "270 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 28, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Candidate source range is already used",
+        "None of the required tags matched: booking"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:1",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000002",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 14064,
+      "components": [
+        { "name": "base", "value": 9300, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 0, "detail": "0 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 24, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Available duration 60 is shorter than 270",
+        "None of the required tags matched: booking"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": "11000000-0000-4000-8000-000000000003",
+      "eligible": true,
+      "selected": true,
+      "totalScore": 15342,
+      "components": [
+        { "name": "base", "value": 9100, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched booking" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 230, "detail": "230 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -160, "detail": "Silence ratio 800" },
+        { "name": "tie-break", "value": 72, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Eligible after filtering and duration matching",
+        "Highest deterministic score for slot"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000002:12000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": "12000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": -495,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 270, "detail": "270 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -240, "detail": "Silence ratio 1200" },
+        { "name": "tie-break", "value": 75, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: booking"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000002:12000000-0000-4000-8000-000000000001:1",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": "12000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": -743,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 1500, "detail": "Matched host, presenter, speech" },
+        { "name": "duration", "value": 90, "detail": "90 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": 1000, "detail": "Speech transcript is available" },
+        { "name": "silence", "value": -240, "detail": "Silence ratio 1200" },
+        { "name": "tie-break", "value": 7, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: booking"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000003:whole",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10125,
+      "components": [
+        { "name": "base", "value": 8800, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 480, "detail": "480 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1000, "detail": "Silence ratio 5000" },
+        { "name": "tie-break", "value": 45, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000004:whole",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 9464,
+      "components": [
+        { "name": "base", "value": 8700, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 380, "detail": "380 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1400, "detail": "Silence ratio 7000" },
+        { "name": "tie-break", "value": 84, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000005:whole",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10456,
+      "components": [
+        { "name": "base", "value": 9100, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 630, "detail": "630 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1300, "detail": "Silence ratio 6500" },
+        { "name": "tie-break", "value": 76, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000006:whole",
+      "assetId": "10000000-0000-4000-8000-000000000006",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8414,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1800, "detail": "Technical quality 8600" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 270, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -2000, "detail": "Silence ratio 10000" },
+        { "name": "tie-break", "value": 44, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "image is not accepted by this slot",
+        "None of the required tags matched: booking",
+        "A-roll requires video",
+        "A-roll requires an audio track",
+        "A-roll is predominantly silent"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000007:whole",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8730,
+      "components": [
+        { "name": "base", "value": 8200, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 430, "detail": "430 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1440, "detail": "Silence ratio 7200" },
+        { "name": "tie-break", "value": 40, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000008:whole",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 9797,
+      "components": [
+        { "name": "base", "value": 8600, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 430, "detail": "430 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1000, "detail": "Silence ratio 5000" },
+        { "name": "tie-break", "value": 67, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000009:whole",
+      "assetId": "10000000-0000-4000-8000-000000000009",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8320,
+      "components": [
+        { "name": "base", "value": 8400, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1850, "detail": "Technical quality 8700" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 270, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -2000, "detail": "Silence ratio 10000" },
+        { "name": "tie-break", "value": 0, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "image is not accepted by this slot",
+        "None of the required tags matched: booking",
+        "A-roll requires video",
+        "A-roll requires an audio track",
+        "A-roll is predominantly silent"
+      ]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000010:whole",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10025,
+      "components": [
+        { "name": "base", "value": 8900, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 430, "detail": "430 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1200, "detail": "Silence ratio 6000" },
+        { "name": "tie-break", "value": 95, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000012:whole",
+      "assetId": "10000000-0000-4000-8000-000000000012",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12978,
+      "components": [
+        { "name": "base", "value": 10000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2500, "detail": "Technical quality 10000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 630, "detail": "630 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": 0, "detail": "Silence ratio 0" },
+        { "name": "tie-break", "value": 48, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Asset is failed", "None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "host.close",
+      "candidateId": "10000000-0000-4000-8000-000000000013:whole",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8187,
+      "components": [
+        { "name": "base", "value": 7600, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 530, "detail": "530 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "speech", "value": -500, "detail": "No speech transcript" },
+        { "name": "silence", "value": -1200, "detail": "Silence ratio 6000" },
+        { "name": "tie-break", "value": 57, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: booking"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000001:whole",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12483,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 800, "detail": "1665 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 83, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Asset is already used by another slot",
+        "None of the required tags matched: lobby"
+      ]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000002:whole",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": -2193,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6100, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 800, "detail": "1665 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 7, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: lobby"
+      ]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000003:13000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": "13000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12527,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 500, "detail": "Matched wide" },
+        { "name": "duration", "value": 465, "detail": "465 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 62, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": "14000000-0000-4000-8000-000000000001",
+      "eligible": true,
+      "selected": true,
+      "totalScore": 13801,
+      "components": [
+        { "name": "base", "value": 9000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched lobby" },
+        { "name": "preferred-tags", "value": 1000, "detail": "Matched bright, wide" },
+        { "name": "duration", "value": 365, "detail": "365 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 36, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Eligible after filtering and duration matching",
+        "Highest deterministic score for slot"
+      ]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000005:15000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": "15000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12525,
+      "components": [
+        { "name": "base", "value": 9500, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 565, "detail": "565 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 10, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000006:whole",
+      "assetId": "10000000-0000-4000-8000-000000000006",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10810,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1800, "detail": "Technical quality 8600" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 135, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 75, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000007:17000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": "17000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11035,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 465, "detail": "465 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 70, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": "18000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11692,
+      "components": [
+        { "name": "base", "value": 9000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 425, "detail": "425 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 67, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000009:whole",
+      "assetId": "10000000-0000-4000-8000-000000000009",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10706,
+      "components": [
+        { "name": "base", "value": 8400, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1850, "detail": "Technical quality 8700" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 135, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 21, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000010:1a000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": "1a000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11953,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 415, "detail": "415 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 38, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000012:whole",
+      "assetId": "10000000-0000-4000-8000-000000000012",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 13659,
+      "components": [
+        { "name": "base", "value": 10000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2500, "detail": "Technical quality 10000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 765, "detail": "765 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 94, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Asset is failed", "None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.lobby",
+      "candidateId": "10000000-0000-4000-8000-000000000013:1d000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": "1d000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10093,
+      "components": [
+        { "name": "base", "value": 7800, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 515, "detail": "515 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 78, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: lobby"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000001:whole",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12405,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 800, "detail": "1647 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 5, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Asset is already used by another slot",
+        "None of the required tags matched: room"
+      ]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000002:whole",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": -2178,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6100, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 800, "detail": "1647 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 22, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: room"
+      ]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000003:13000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": "13000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11976,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 447, "detail": "447 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 29, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": "14000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11566,
+      "components": [
+        { "name": "base", "value": 9000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 347, "detail": "347 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 19, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Candidate source range is already used",
+        "Asset is already used by another slot",
+        "None of the required tags matched: room"
+      ]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000005:15000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": "15000000-0000-4000-8000-000000000001",
+      "eligible": true,
+      "selected": true,
+      "totalScore": 14741,
+      "components": [
+        { "name": "base", "value": 9500, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 1000, "detail": "Matched clean, window" },
+        { "name": "duration", "value": 547, "detail": "547 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 44, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Eligible after filtering and duration matching",
+        "Highest deterministic score for slot"
+      ]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000006:whole",
+      "assetId": "10000000-0000-4000-8000-000000000006",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11263,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1800, "detail": "Technical quality 8600" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 500, "detail": "Matched clean" },
+        { "name": "duration", "value": 153, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 10, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000007:17000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": "17000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10958,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 447, "detail": "447 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 11, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": "18000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11671,
+      "components": [
+        { "name": "base", "value": 9000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 407, "detail": "407 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 64, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000009:whole",
+      "assetId": "10000000-0000-4000-8000-000000000009",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10769,
+      "components": [
+        { "name": "base", "value": 8400, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1850, "detail": "Technical quality 8700" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 153, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 66, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000010:1a000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": "1a000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11927,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 397, "detail": "397 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 30, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000012:whole",
+      "assetId": "10000000-0000-4000-8000-000000000012",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 15836,
+      "components": [
+        { "name": "base", "value": 10000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2500, "detail": "Technical quality 10000" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 1000, "detail": "Matched clean, window" },
+        { "name": "duration", "value": 747, "detail": "747 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 89, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Asset is failed"]
+    },
+    {
+      "slotId": "broll.room",
+      "candidateId": "10000000-0000-4000-8000-000000000013:1d000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": "1d000000-0000-4000-8000-000000000001",
+      "eligible": true,
+      "selected": false,
+      "totalScore": 11211,
+      "components": [
+        { "name": "base", "value": 7800, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 497, "detail": "497 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 14, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000001:whole",
+      "assetId": "10000000-0000-4000-8000-000000000001",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12460,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2100, "detail": "Technical quality 9200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 800, "detail": "1683 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 60, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Asset is already used by another slot",
+        "None of the required tags matched: service"
+      ]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000002:whole",
+      "assetId": "10000000-0000-4000-8000-000000000002",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": -2144,
+      "components": [
+        {
+          "name": "deduplication",
+          "value": -10000,
+          "detail": "Fingerprint duplicates 10000000-0000-4000-8000-000000000001"
+        },
+        { "name": "base", "value": 6100, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 600, "detail": "Technical quality 6200" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 800, "detail": "1683 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 56, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Duplicate of higher-quality asset 10000000-0000-4000-8000-000000000001",
+        "None of the required tags matched: service"
+      ]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000003:13000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": "13000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12012,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 483, "detail": "483 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 29, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": "14000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11675,
+      "components": [
+        { "name": "base", "value": 9000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 383, "detail": "383 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 92, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Candidate source range is already used",
+        "Asset is already used by another slot",
+        "None of the required tags matched: service"
+      ]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000005:15000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": "15000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12553,
+      "components": [
+        { "name": "base", "value": 9500, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 583, "detail": "583 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 20, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Candidate source range is already used",
+        "Asset is already used by another slot",
+        "None of the required tags matched: service"
+      ]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000006:whole",
+      "assetId": "10000000-0000-4000-8000-000000000006",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11310,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1800, "detail": "Technical quality 8600" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 500, "detail": "Matched detail" },
+        { "name": "duration", "value": 117, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 93, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000007:17000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": "17000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11009,
+      "components": [
+        { "name": "base", "value": 8500, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 483, "detail": "483 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 26, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": "18000000-0000-4000-8000-000000000001",
+      "eligible": true,
+      "selected": true,
+      "totalScore": 13423,
+      "components": [
+        { "name": "base", "value": 9000, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched service" },
+        { "name": "preferred-tags", "value": 500, "detail": "Matched staff" },
+        { "name": "duration", "value": 443, "detail": "443 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 80, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Eligible after filtering and duration matching",
+        "Highest deterministic score for slot"
+      ]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000009:whole",
+      "assetId": "10000000-0000-4000-8000-000000000009",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 11176,
+      "components": [
+        { "name": "base", "value": 8400, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1850, "detail": "Technical quality 8700" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 500, "detail": "Matched detail" },
+        { "name": "duration", "value": 117, "detail": "Still image can fill the slot" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 9, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000010:1a000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": "1a000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 12001,
+      "components": [
+        { "name": "base", "value": 9200, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 433, "detail": "433 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 68, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000012:whole",
+      "assetId": "10000000-0000-4000-8000-000000000012",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 13682,
+      "components": [
+        { "name": "base", "value": 10000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2500, "detail": "Technical quality 10000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 783, "detail": "783 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 99, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Asset is failed", "None of the required tags matched: service"]
+    },
+    {
+      "slotId": "broll.service",
+      "candidateId": "10000000-0000-4000-8000-000000000013:1d000000-0000-4000-8000-000000000001:0",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": "1d000000-0000-4000-8000-000000000001",
+      "eligible": false,
+      "selected": false,
+      "totalScore": 10132,
+      "components": [
+        { "name": "base", "value": 7800, "detail": "Analyzed segment base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 533, "detail": "533 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 99, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "music",
+      "candidateId": "10000000-0000-4000-8000-000000000011:whole",
+      "assetId": "10000000-0000-4000-8000-000000000011",
+      "segmentId": null,
+      "eligible": true,
+      "selected": true,
+      "totalScore": 12250,
+      "components": [
+        { "name": "base", "value": 9000, "detail": "Music analysis base score" },
+        { "name": "quality", "value": 2050, "detail": "Technical quality 9100" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched music" },
+        { "name": "deduplication", "value": 0, "detail": "Unique content fingerprint" }
+      ],
+      "reasons": ["Eligible background music", "Highest score for background music"]
+    }
+  ],
+  "warnings": []
+}

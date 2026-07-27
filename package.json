@@ -26,6 +26,7 @@
     "test": "pnpm test:js && pnpm test:python",
     "test:e2e": "playwright test",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "templates:fixtures": "pnpm build && pnpm --filter @hotelcut/templates generate:fixtures",
     "timeline:artifacts": "pnpm --filter @hotelcut/timeline generate:artifacts",
     "test:js": "turbo run test",
     "test:python": "node infrastructure/scripts/python.mjs -m pytest apps/analysis-worker/tests",

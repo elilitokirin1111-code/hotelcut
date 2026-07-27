@@ -142,3 +142,37 @@ Verified on 2026-07-27:
 - template errors were classified by input, generation and output stage
 - the committed OTIO fixture matched the exporter byte-for-byte
 - official OpenTimelineIO 0.18.1 parsed four tracks with a 900-frame duration at 30 fps
+
+## M4 gate
+
+M4 is complete only when:
+
+- compiler input validates analyzed video, image and audio candidates with frame-aligned segments
+- non-ready, incompatible, too-short, duplicate and unusably silent candidates are rejected
+- every candidate has a deterministic score record with components and rejection reasons
+- A-roll uses speech segments and preserves speaking audio
+- B-roll and montage clips are muted and placed in declared slots
+- Chinese captions wrap and paginate inside a configured safe area
+- approved CTA data receives template timing without invented facts
+- background music fills the project with deterministic looping and boundary fades
+- the same fixed input/template/seed produces byte-equivalent output
+- regeneration preserves locked clips and recomputes unlocked clips
+- single-shot replacement validates the requested source and leaves other clip IDs unchanged
+- every result contains project JSON, manifest, score records, warnings and explanation log
+- fixed test media produces the host+B-roll, room montage and hotel promotion templates
+
+## M4 verification record
+
+Verified on 2026-07-27:
+
+- a fixed 13-asset library produced all three valid projects with zero unmet requirements
+- host+B-roll produced five tracks, seven manifest slots and per-candidate scoring
+- the room montage produced six manifest slots; promotion produced five
+- duplicate fingerprints favored the higher-quality source and failed media never won a slot
+- A-roll used three distinct speech ranges; B-roll was muted and generated captions were paged
+- a 600-frame music source looped to fill the 900-frame host project with edge fades
+- changing the seed regenerated unlocked clip IDs while a locked shot retained its ID and asset
+- explicit room B-roll replacement changed one asset while all other visual clip IDs remained
+- removing promotion media produced `SLOT_REQUIREMENT_UNMET` without fabricating a replacement
+- all three complete results matched their committed golden JSON byte-for-byte after stable
+  normalization

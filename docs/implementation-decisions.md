@@ -184,3 +184,54 @@
   semantics.
 - Impact: OTIO files are never treated as the authoritative business document; imports require a
   future adapter and explicit loss handling.
+
+## ID-020: Compilation evidence is a first-class result
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: every automatic generation returns the validated project, generation manifest,
+  per-candidate score records and structured warnings together.
+- Reason: automatic choices must be explainable and reproducible, including candidates that were
+  rejected.
+- Impact: consumers persist generation evidence alongside a project revision rather than
+  reconstructing it from logs.
+
+## ID-021: Media selection uses deterministic integer scoring
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: score readiness, fingerprints, tags, duration, orientation, speech, silence and
+  quality with integer components and a seed-derived final tie-break.
+- Reason: floating scoring or unstable sort order would make identical generations drift.
+- Impact: changing weights or eligibility rules requires compiler-version and golden-fixture
+  review.
+
+## ID-022: Product templates are declarative slot layouts
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: templates declare non-overlapping basis-point ranges, roles, accepted media, tag
+  requirements, reuse/audio policy and optional caption/title/CTA/music layouts.
+- Reason: business templates should describe editorial intent without invoking selection or
+  renderer code.
+- Impact: slot semantics belong to `@hotelcut/templates`; algorithms belong to
+  `@hotelcut/compiler`.
+
+## ID-023: Locks preserve selections; replacements preserve clip identity
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: regeneration copies explicitly locked clip IDs/assets/source ranges from a matching
+  previous project. Single-shot replacement retains the target clip ID and all unrelated clips.
+- Reason: users need stable references and control over approved shots before the M5 editor is
+  introduced.
+- Impact: missing locks and A-roll caption staleness are warnings, never silent behavior.
+
+## ID-024: The compiler never invents business facts
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: CTA text, action and destination come only from validated approved input; absent CTA
+  or media produces warnings.
+- Reason: generated booking/contact claims can create operational and legal risk.
+- Impact: templates control placement and timing, not factual CTA content.

@@ -6,7 +6,7 @@ quality report.
 
 ## Milestone status
 
-M0 through M3 were completed and locally accepted on 2026-07-27. The repository now includes:
+M0 through M4 were completed and locally accepted on 2026-07-27. The repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -33,6 +33,11 @@ M0 through M3 were completed and locally accepted on 2026-07-27. The repository 
 - explicit validation errors and a versioned `0.9.0` to `1.0.0` migration
 - deterministic template input/output SDK with seeded random and ID generation
 - canonical JSON fixtures and an OpenTimelineIO export prototype
+- deterministic automatic editing with filtering, scoring, deduplication and duration matching
+- A-roll speech segmentation, muted B-roll, caption wrapping, CTA timing and music looping
+- declarative slot templates for host presentation, room montage and hotel promotion
+- generation manifests, per-candidate score records, warnings and explanation logs
+- locked-shot regeneration and single-shot replacement
 
 ## Prerequisites
 
@@ -131,6 +136,8 @@ packages/
   job-queue/
   timeline/
   template-sdk/
+  compiler/
+  templates/
 infrastructure/
   docker/
   scripts/
@@ -152,10 +159,11 @@ See `packages/README.md` for package ownership.
 - The render worker accepts only an M0 healthcheck job; real rendering begins in M6.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
-- M3 defines template execution contracts but does not yet implement automatic media selection,
-  shot planning or the three product templates; those belong to M4.
+- M4 is a library and fixture milestone. Project review UI, autosave and revision editing begin
+  in M5.
 
-## M4 readiness
+## M5 readiness
 
-The M3 timeline contract, migration, deterministic template SDK, generated JSON Schema and OTIO
-fixture pass locally. M4 may begin as a separate, reviewable milestone.
+All three M4 templates compile the fixed media library into valid, golden
+`HotelVideoProject` documents with manifests, score records and warnings. M5 may begin as a
+separate, reviewable milestone.

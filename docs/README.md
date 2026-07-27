@@ -7,6 +7,7 @@
 | `data-model.md`               | Planned business entities             | M1               |
 | `timeline-schema.md`          | Renderer-independent project model    | M3               |
 | `template-authoring.md`       | Template SDK rules                    | M3               |
+| `automatic-editing.md`        | Compiler, scoring and manifest rules  | M4               |
 | `media-analysis.md`           | Upload and analysis pipeline          | M2               |
 | `rendering.md`                | Renderer adapter and jobs             | M6               |
 | `quality-control.md`          | Automated output checks               | M6               |

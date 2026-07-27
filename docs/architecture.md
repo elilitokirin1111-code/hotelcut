@@ -78,6 +78,27 @@ renderer adapters.
 M3 stops at renderer-neutral project structure and deterministic template execution. M4 owns
 the timeline compiler that selects analyzed media and invokes product templates.
 
+## M4 compilation flow
+
+```text
+VideoBrief + BrandKit + approved CTA + analyzed media
+                         |
+                         v
+              Declarative slot template
+                         |
+                         v
+Filter -> deduplicate -> score -> select -> frame layout
+                         |
+          +--------------+----------------+
+          |              |                |
+          v              v                v
+HotelVideoProject  generation manifest  score records/warnings
+```
+
+`@hotelcut/compiler` owns deterministic decisions and generation evidence.
+`@hotelcut/templates` owns the three immutable slot definitions. Neither package imports a
+renderer, persistence repository or UI type.
+
 ## Long-running work
 
 API requests create jobs and return identifiers. Analysis and rendering run in independent
@@ -88,6 +109,6 @@ workers, publish progress, persist terminal states and support idempotent retrie
 - M1: domain, schemas, database (implemented)
 - M2: storage, job queue and media probe contracts (implemented)
 - M3: timeline schema, migration, OTIO prototype and template SDK (implemented)
-- M4: timeline compiler, hotel templates and generation explanations
+- M4: timeline compiler, hotel templates and generation explanations (implemented)
 - M6: renderer contracts, implementations and quality control
 - M8: OpenCut adapter
