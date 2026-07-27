@@ -13,9 +13,14 @@ pnpm healthcheck
 
 Docker Desktop uses the WSL 2 backend on Windows.
 
+The accepted Windows development machine keeps Docker Desktop and its WSL data under
+`D:\HotelCut`. The local analysis worker defaults to deterministic mock transcription. To run
+the real model, set `ANALYSIS_TRANSCRIPTION_PROVIDER=faster-whisper`; model files persist in the
+`whisper-cache` volume.
+
 ## Production direction
 
-Production deployment is not implemented in M0. The intended separation is:
+Production deployment is not implemented through M2. The intended separation is:
 
 - stateless Web and API services
 - independently scalable analysis and render workers

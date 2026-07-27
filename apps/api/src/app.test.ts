@@ -33,7 +33,7 @@ describe('API health routes', () => {
     expect(response.json()).toMatchObject({ status: 'ready' });
   });
 
-  it('publishes the M1 OpenAPI document and UI', async () => {
+  it('publishes the M2 OpenAPI document and UI', async () => {
     const app = await buildApp();
     apps.push(app);
 
@@ -49,6 +49,9 @@ describe('API health routes', () => {
       info: { title: 'HotelCut API', version: '0.1.0' },
     });
     expect(document.paths).toHaveProperty('/v1/hotels');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/assets/uploads');
+    expect(document.paths).toHaveProperty('/v1/assets/{assetId}');
+    expect(document.paths).toHaveProperty('/v1/assets/{assetId}/analysis/retry');
     expect(uiResponse.statusCode).toBe(200);
   });
 });

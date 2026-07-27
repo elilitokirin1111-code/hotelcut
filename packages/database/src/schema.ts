@@ -28,6 +28,22 @@ export const assetStatus = pgEnum('asset_status', [
   'ready',
   'failed',
 ]);
+export const assetUploadStatus = pgEnum('asset_upload_status', [
+  'initiated',
+  'completed',
+  'aborted',
+  'expired',
+]);
+export const assetDerivativeKind = pgEnum('asset_derivative_kind', ['proxy', 'thumbnail', 'audio']);
+export const assetSegmentKind = pgEnum('asset_segment_kind', ['scene', 'speech', 'vad', 'manual']);
+export const assetSegmentSource = pgEnum('asset_segment_source', ['automatic', 'manual']);
+export const analysisJobStatus = pgEnum('analysis_job_status', [
+  'queued',
+  'running',
+  'succeeded',
+  'failed',
+  'cancelled',
+]);
 export const videoPlatform = pgEnum('video_platform', [
   'douyin',
   'xiaohongshu',
@@ -169,6 +185,57 @@ export const assets = pgTable(
   ],
 );
 
+export const assetUploads = pgTable(
+  'asset_uploads',
+  {
+    id: uuid('id').primaryKey(),
+    assetId: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    providerUploadId: text('provider_upload_id').notNull(),
+    partSize: integer('part_size').notNull(),
+    partCount: integer('part_count').notNull(),
+    status: assetUploadStatus('status').default('initiated').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('asset_uploads_asset_unique').on(table.assetId),
+    uniqueIndex('asset_uploads_provider_unique').on(table.providerUploadId),
+    check('asset_uploads_part_size_minimum', sql`${table.partSize} >= 5242880`),
+    check(
+      'asset_uploads_part_count_range',
+      sql`${table.partCount} >= 1 and ${table.partCount} <= 10000`,
+    ),
+  ],
+);
+
+export const assetDerivatives = pgTable(
+  'asset_derivatives',
+  {
+    id: uuid('id').primaryKey(),
+    assetId: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    kind: assetDerivativeKind('kind').notNull(),
+    storageBucket: varchar('storage_bucket', { length: 120 }).notNull(),
+    storageKey: varchar('storage_key', { length: 500 }).notNull(),
+    contentType: varchar('content_type', { length: 120 }).notNull(),
+    byteSize: integer('byte_size').notNull(),
+    checksumSha256: varchar('checksum_sha256', { length: 64 }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex('asset_derivatives_asset_kind_unique').on(table.assetId, table.kind),
+    uniqueIndex('asset_derivatives_storage_location_unique').on(
+      table.storageBucket,
+      table.storageKey,
+    ),
+    check('asset_derivatives_byte_size_positive', sql`${table.byteSize} > 0`),
+  ],
+);
+
 export const assetSegments = pgTable(
   'asset_segments',
   {
@@ -179,7 +246,12 @@ export const assetSegments = pgTable(
     startMs: integer('start_ms').notNull(),
     endMs: integer('end_ms').notNull(),
     label: varchar('label', { length: 160 }),
+    kind: assetSegmentKind('kind').default('scene').notNull(),
+    source: assetSegmentSource('source').default('automatic').notNull(),
     scoreBasisPoints: integer('score_basis_points'),
+    createdByUserId: uuid('created_by_user_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
     metadata: jsonb('metadata')
       .default(sql`'{}'::jsonb`)
       .notNull(),
@@ -192,6 +264,36 @@ export const assetSegments = pgTable(
     check(
       'asset_segments_score_range',
       sql`${table.scoreBasisPoints} is null or (${table.scoreBasisPoints} >= 0 and ${table.scoreBasisPoints} <= 10000)`,
+    ),
+  ],
+);
+
+export const analysisJobs = pgTable(
+  'analysis_jobs',
+  {
+    id: uuid('id').primaryKey(),
+    assetId: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    status: analysisJobStatus('status').default('queued').notNull(),
+    attempt: integer('attempt').default(0).notNull(),
+    maxAttempts: integer('max_attempts').default(3).notNull(),
+    logs: jsonb('logs')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    errorCode: varchar('error_code', { length: 100 }),
+    errorMessage: text('error_message'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index('analysis_jobs_asset_idx').on(table.assetId),
+    index('analysis_jobs_status_idx').on(table.status),
+    check('analysis_jobs_attempt_nonnegative', sql`${table.attempt} >= 0`),
+    check(
+      'analysis_jobs_max_attempts_range',
+      sql`${table.maxAttempts} >= 1 and ${table.maxAttempts} <= 10`,
     ),
   ],
 );

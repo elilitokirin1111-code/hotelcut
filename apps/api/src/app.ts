@@ -14,6 +14,7 @@ import {
   DomainNotFoundError,
   type HotelCutRepository,
 } from '@hotelcut/domain';
+import type { AnalysisQueue } from '@hotelcut/job-queue';
 import {
   actorHeadersSchema,
   brandKitSchema,
@@ -28,10 +29,17 @@ import {
   upsertBrandKitSchema,
   videoBriefSchema,
 } from '@hotelcut/schemas';
+import type { MultipartObjectStorage } from '@hotelcut/storage';
+
+import { assetRoutes } from './asset-routes.js';
 
 interface BuildAppOptions {
+  analysisQueue?: AnalysisQueue;
   logger?: boolean;
+  objectStorage?: MultipartObjectStorage;
   repository?: HotelCutRepository;
+  storageBucket?: string;
+  uploadUrlTtlSeconds?: number;
 }
 
 const healthResponseSchema = z.object({
@@ -333,6 +341,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     },
     async (request) => repository().getVideoBrief(request.headers['x-user-id'], request.params.id),
   );
+
+  await app.register(assetRoutes, {
+    analysisQueue: options.analysisQueue,
+    bucket: options.storageBucket ?? 'hotelcut-local',
+    objectStorage: options.objectStorage,
+    repository: options.repository,
+    uploadUrlTtlSeconds: options.uploadUrlTtlSeconds ?? 900,
+  });
 
   await app.register(swaggerUi, {
     routePrefix: '/docs',

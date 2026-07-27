@@ -11,12 +11,16 @@ Fastify API ---- PostgreSQL
   |
   +---- Redis / BullMQ ---- Render Worker ---- RendererAdapter
   |
-  +---- analysis job boundary ---- Python Analysis Worker
+  +---- Redis / BullMQ ---- Python Analysis Worker
+                              |---- MinIO originals/derivatives
+                              |---- ffprobe / FFmpeg
+                              |---- PySceneDetect
+                              \---- faster-whisper provider
 ```
 
-The M1 API persists through a tenant-scoped repository and reports PostgreSQL readiness. Compose
-runs an idempotent migration-and-seed bootstrap before the API starts. Media analysis begins in
-M2 and rendering in M6.
+The API persists through a tenant-scoped repository and reports PostgreSQL readiness. Compose
+runs an idempotent migration-and-seed bootstrap before the API starts. M2 media analysis runs
+outside the request process; rendering begins in M6.
 
 ## Technology choices
 
@@ -24,17 +28,35 @@ M2 and rendering in M6.
 - API: Node.js 22, TypeScript, Fastify, Zod
 - Persistent data: PostgreSQL
 - Queue and coordination: Redis and BullMQ
-- Analysis: Python 3.12, later FFmpeg, faster-whisper, PySceneDetect, PyAV and OpenCV
+- Analysis: Python 3.12, FFmpeg/ffprobe, faster-whisper, PySceneDetect and OpenCV
 - Rendering: Remotion behind an adapter, with FFmpeg preprocessing and post-processing
 - Object storage: MinIO locally and an S3-compatible provider in production
 
-## M1 package flow
+## API package flow
 
 ```text
 Fastify routes -> domain repository contract -> PostgreSQL repository -> Drizzle -> PostgreSQL
        |
        +-> Zod schemas -> OpenAPI
 ```
+
+## M2 media flow
+
+```text
+Client -> API: register upload
+API -> MinIO: create multipart upload + presigned part URLs
+Client -> MinIO: upload parts
+Client -> API: complete upload
+API -> PostgreSQL: Asset uploaded + AnalysisJob queued
+API -> BullMQ: language-neutral analysis payload
+Worker -> MinIO: download + SHA-256 validation
+Worker -> ffprobe/FFmpeg/PySceneDetect/transcriber
+Worker -> MinIO: deterministic derivative keys
+Worker -> PostgreSQL: atomic metadata, segments, derivatives and terminal job state
+```
+
+Automatic segments are replaced on retry, manual segments are retained, and derivative rows are
+upserted by asset and kind. Each attempt runs in an isolated temporary directory.
 
 ## Core boundary
 
@@ -60,8 +82,8 @@ workers, publish progress, persist terminal states and support idempotent retrie
 
 ## Package ownership
 
-- M1: domain, schemas, database, storage (implemented)
-- M2: job queue and media probe contracts
+- M1: domain, schemas, database (implemented)
+- M2: storage, job queue and media probe contracts (implemented)
 - M3: timeline, timeline compiler and template SDK
 - M4: hotel templates and generation explanations
 - M6: renderer contracts, implementations and quality control

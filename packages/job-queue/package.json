@@ -1,5 +1,5 @@
 {
-  "name": "@hotelcut/storage",
+  "name": "@hotelcut/job-queue",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,8 +15,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1095.0",
-    "@aws-sdk/s3-request-presigner": "^3.1095.0"
+    "@hotelcut/media": "workspace:*",
+    "bullmq": "^5.58.5",
+    "ioredis": "^5.7.0"
   },
   "devDependencies": {
     "typescript": "^5.9.2",

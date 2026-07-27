@@ -13,11 +13,16 @@ trust boundary.
 ## Uploads and media tools
 
 - Signed upload URLs are short-lived.
+- Multipart part counts and sizes are bounded before URLs are issued.
+- User filenames are metadata only; generated UUID paths are storage identities.
+- The API validates the completed object's size and registered SHA-256 metadata.
+- The worker recomputes SHA-256 from downloaded bytes before invoking media tools.
 - Extension alone never determines file type.
 - ffprobe validates uploaded media.
 - File and project size limits are enforced.
 - Untrusted values are passed as process arguments, never interpolated into shell commands.
 - Workers use isolated temporary directories and clean them after completion.
+- Derivative download URLs are tenant-scoped and expire after 15 minutes.
 
 ## Secrets and logging
 

@@ -1,6 +1,16 @@
 import type {
+  AnalysisJob,
+  Asset,
+  AssetDerivative,
+  AssetDerivativeKind,
+  AssetDetail,
+  AssetSegment,
+  AssetUpload,
   BrandKit,
+  CompleteAssetUploadInput,
+  CreateAssetUploadInput,
   CreateHotelInput,
+  CreateManualSegmentInput,
   CreateVideoBriefInput,
   Hotel,
   Organization,
@@ -9,6 +19,29 @@ import type {
   UpsertBrandKitInput,
   VideoBrief,
 } from '@hotelcut/schemas';
+
+export interface RegisterAssetUploadInput extends CreateAssetUploadInput {
+  assetId: string;
+  storageBucket: string;
+  storageKey: string;
+  providerUploadId: string;
+  partCount: number;
+  expiresAt: string;
+}
+
+export interface RegisteredAssetUpload {
+  asset: Asset;
+  upload: AssetUpload;
+}
+
+export interface AssetUploadContext extends RegisteredAssetUpload {
+  expectedPartCount: number;
+}
+
+export interface QueuedAssetAnalysis {
+  asset: Asset;
+  analysisJob: AnalysisJob;
+}
 
 export class DomainNotFoundError extends Error {
   readonly code = 'NOT_FOUND';
@@ -48,6 +81,34 @@ export interface HotelCutRepository {
     input: CreateVideoBriefInput,
   ): Promise<VideoBrief>;
   getVideoBrief(actorUserId: string, briefId: string): Promise<VideoBrief>;
+  listAssets(actorUserId: string, hotelId: string): Promise<Asset[]>;
+  registerAssetUpload(
+    actorUserId: string,
+    hotelId: string,
+    input: RegisterAssetUploadInput,
+  ): Promise<RegisteredAssetUpload>;
+  getAssetUpload(
+    actorUserId: string,
+    assetId: string,
+    providerUploadId: string,
+  ): Promise<AssetUploadContext>;
+  completeAssetUpload(
+    actorUserId: string,
+    assetId: string,
+    input: CompleteAssetUploadInput,
+  ): Promise<QueuedAssetAnalysis>;
+  getAssetDetail(actorUserId: string, assetId: string): Promise<AssetDetail>;
+  retryAssetAnalysis(actorUserId: string, assetId: string): Promise<QueuedAssetAnalysis>;
+  createManualSegment(
+    actorUserId: string,
+    assetId: string,
+    input: CreateManualSegmentInput,
+  ): Promise<AssetSegment>;
+  getAssetDerivative(
+    actorUserId: string,
+    assetId: string,
+    kind: AssetDerivativeKind,
+  ): Promise<AssetDerivative>;
 }
 
 const allowedRenderJobTransitions: Readonly<Record<RenderJobStatus, readonly RenderJobStatus[]>> = {

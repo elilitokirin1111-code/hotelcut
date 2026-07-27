@@ -6,7 +6,7 @@ quality report.
 
 ## Milestone status
 
-M0 and M1 were completed and locally accepted on 2026-07-27. The repository now includes:
+M0, M1 and M2 were completed and locally accepted on 2026-07-27. The repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -23,6 +23,11 @@ M0 and M1 were completed and locally accepted on 2026-07-27. The repository now 
 - Zod request and response contracts
 - hotel, BrandKit and VideoBrief APIs
 - generated OpenAPI documentation
+- presigned MinIO multipart video upload and checksum validation
+- BullMQ media-analysis jobs with safe retry
+- ffprobe metadata, FFmpeg proxy/thumbnail/audio generation and PySceneDetect scenes
+- replaceable faster-whisper transcription with word timestamps and VAD
+- tenant-scoped asset detail, derivative download and manual tagging APIs
 
 ## Prerequisites
 
@@ -117,6 +122,8 @@ packages/
   schemas/
   database/
   storage/
+  media/
+  job-queue/
 infrastructure/
   docker/
   scripts/
@@ -130,13 +137,17 @@ See `packages/README.md` for package ownership.
 
 - `x-user-id` is a development-only identity boundary; SSO/JWT authentication is not yet
   implemented.
-- The analysis worker exposes health and readiness boundaries but does not consume media jobs
-  until M2.
+- Local Compose defaults to the deterministic `mock` transcription provider. Set
+  `ANALYSIS_TRANSCRIPTION_PROVIDER=faster-whisper` to run the real model; the first run downloads
+  the configured model into the persistent Docker model cache.
+- M2 detects scenes, speech and VAD ranges. Black-frame, duplicate-fingerprint and waveform
+  analysis remain follow-up analysis enhancements.
 - The render worker accepts only an M0 healthcheck job; real rendering begins in M6.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
 
-## M2 readiness
+## M3 readiness
 
-The full M1 quality gate, fresh-database migration, tenant isolation integration test and Docker
-stack verification pass locally. M2 may begin as a separate, reviewable milestone.
+The full M2 quality gate, migration, multipart-upload integration test and real
+MinIO-to-BullMQ-to-analysis acceptance pass locally. M3 may begin as a separate, reviewable
+milestone.

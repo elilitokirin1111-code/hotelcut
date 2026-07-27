@@ -91,3 +91,44 @@
 - Reason: one-command development startup must work from an empty volume.
 - Impact: production deployment will run migrations as a controlled release job and disable
   development seed data.
+
+## ID-011: Clients upload media directly with presigned multipart URLs
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: the API registers an asset and creates a short-lived S3-compatible multipart upload;
+  clients upload parts directly to object storage and submit ordered ETags for completion.
+- Reason: large hotel footage must not be buffered through the API process.
+- Impact: the API validates tenant access, part completeness, object size and registered
+  checksum metadata before publishing analysis.
+
+## ID-012: Analysis is a language-neutral BullMQ contract
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: the Node API publishes a versioned `m2-v1` payload to `hotelcut-analysis`, and the
+  Python BullMQ worker validates it with Pydantic.
+- Reason: media tooling is strongest in Python while API and tenant orchestration remain in
+  TypeScript.
+- Impact: payload changes require a new pipeline version and contract tests.
+
+## ID-013: Local transcription is deterministic by default
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: Compose defaults to a mock provider; `faster-whisper` and `disabled` are explicit
+  runtime selections.
+- Reason: a default developer boot must not download model weights, while production-compatible
+  word timestamps and VAD must remain implemented and selectable.
+- Impact: acceptance uses the deterministic provider; model-level accuracy evaluation is a
+  separate test track.
+
+## ID-014: Media retries preserve human work
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: retries use deterministic derivative keys, upsert derivative rows, replace only
+  automatic segments and preserve manual segments.
+- Reason: interrupted analysis must be safe to repeat without duplicating machine results or
+  deleting operator annotations.
+- Impact: new automatically generated data must always be marked `source=automatic`.

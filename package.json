@@ -30,7 +30,7 @@
     "test:python": "node infrastructure/scripts/python.mjs -m pytest apps/analysis-worker/tests",
     "typecheck": "pnpm typecheck:js && pnpm typecheck:python",
     "typecheck:js": "tsc -p tsconfig.json --noEmit --pretty false && turbo run typecheck",
-    "typecheck:python": "node infrastructure/scripts/python.mjs -m mypy apps/analysis-worker/src apps/analysis-worker/tests"
+    "typecheck:python": "node infrastructure/scripts/python.mjs -m mypy --config-file apps/analysis-worker/pyproject.toml apps/analysis-worker/src apps/analysis-worker/tests"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",

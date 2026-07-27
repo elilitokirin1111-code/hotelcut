@@ -4,10 +4,17 @@ import {
   assetSegmentSchema,
   createHotelSchema,
   createVideoBriefSchema,
+  dateTimeSchema,
   upsertBrandKitSchema,
 } from './index.js';
 
-describe('M1 input schemas', () => {
+describe('shared input schemas', () => {
+  it('accepts standard UTC offsets from cross-language workers', () => {
+    expect(dateTimeSchema.parse('2026-07-27T04:21:23.789314+00:00')).toBe(
+      '2026-07-27T04:21:23.789314+00:00',
+    );
+  });
+
   it('normalizes a minimal hotel input', () => {
     expect(
       createHotelSchema.parse({
@@ -53,7 +60,10 @@ describe('M1 input schemas', () => {
         startMs: 2_000,
         endMs: 1_000,
         label: null,
+        kind: 'scene',
+        source: 'automatic',
         scoreBasisPoints: null,
+        createdByUserId: null,
         metadata: {},
         createdAt: '2026-07-27T00:00:00.000Z',
         updatedAt: '2026-07-27T00:00:00.000Z',

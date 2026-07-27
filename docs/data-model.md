@@ -1,6 +1,6 @@
 # Data model
 
-Status: implemented in M1.
+Status: M1 core model and M2 media lifecycle implemented.
 
 ## Tenant and hotel
 
@@ -19,7 +19,10 @@ and a hotel has at most one BrandKit.
 ## Media and projects
 
 - Asset
+- AssetUpload
+- AssetDerivative
 - AssetSegment
+- AnalysisJob
 - VideoBrief
 - VideoProject
 - ProjectRevision
@@ -28,8 +31,23 @@ Original filenames are metadata only, never storage identities. Projects are rev
 renders bind to an immutable project revision.
 
 Asset storage locations and project revision numbers are unique. Segment time ranges, byte sizes,
-brief durations and score ranges are protected by database checks. `logoAssetId` is a nullable
-soft reference in M1 so BrandKit can exist before the M2 asset lifecycle is implemented.
+multipart sizes/counts, job attempts, brief durations and score ranges are protected by database
+checks. `logoAssetId` remains a nullable soft reference so BrandKit can exist before a logo is
+uploaded.
+
+The M2 asset lifecycle is:
+
+```text
+registered -> uploaded -> analyzing -> ready
+                  ^            |
+                  |            v
+                  +--------- failed
+```
+
+`AssetUpload` stores the provider upload ID and completion state. `AssetDerivative` is unique by
+asset and kind (`proxy`, `thumbnail`, `audio`). `AssetSegment` distinguishes automatic scene,
+speech and VAD ranges from manual labels. `AnalysisJob` stores attempts, structured logs and
+terminal error details.
 
 ## Jobs and artifacts
 
@@ -61,3 +79,11 @@ cancelled jobs are terminal.
 - Zod API schemas and OpenAPI exposure
 - unit tests for constraints and job state transitions
 - PostgreSQL/API integration tests for tenant scoping and business persistence
+
+## M2 implementation
+
+- five media enums and three new tables, bringing the public business schema to 16 tables
+- upload and asset repository methods with membership-scoped joins
+- retry-safe analysis job persistence
+- automatic-segment replacement with manual-segment preservation
+- derivative upserts and structured per-attempt logs
