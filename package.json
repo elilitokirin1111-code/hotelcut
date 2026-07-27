@@ -1,0 +1,48 @@
+{
+  "name": "hotelcut",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Hotel short-video automation platform",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22 <25",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "db:generate": "pnpm --filter @hotelcut/database db:generate",
+    "db:migrate": "pnpm --filter @hotelcut/database db:migrate",
+    "db:seed": "pnpm --filter @hotelcut/database db:seed",
+    "dev": "docker compose up --build",
+    "dev:apps": "turbo run dev --parallel",
+    "dev:infra": "docker compose up -d postgres redis minio minio-init",
+    "down": "docker compose down",
+    "format": "prettier --write . && node infrastructure/scripts/python.mjs -m ruff format apps/analysis-worker",
+    "format:check": "prettier --check . && node infrastructure/scripts/python.mjs -m ruff format --check apps/analysis-worker",
+    "healthcheck": "node infrastructure/scripts/check-health.mjs",
+    "lint": "pnpm lint:js && pnpm lint:python",
+    "lint:js": "eslint .",
+    "lint:python": "node infrastructure/scripts/python.mjs -m ruff check apps/analysis-worker",
+    "test": "pnpm test:js && pnpm test:python",
+    "test:e2e": "playwright test",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:js": "turbo run test",
+    "test:python": "node infrastructure/scripts/python.mjs -m pytest apps/analysis-worker/tests",
+    "typecheck": "pnpm typecheck:js && pnpm typecheck:python",
+    "typecheck:js": "tsc -p tsconfig.json --noEmit --pretty false && turbo run typecheck",
+    "typecheck:python": "node infrastructure/scripts/python.mjs -m mypy apps/analysis-worker/src apps/analysis-worker/tests"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.34.0",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^22.18.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.34.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.41.0",
+    "vitest": "^3.2.4"
+  }
+}

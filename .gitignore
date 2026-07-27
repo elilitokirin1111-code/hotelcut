@@ -1,0 +1,36 @@
+# JavaScript
+node_modules/
+.turbo/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# Media and runtime data
+data/
+tmp/
+*.mp4
+*.mov
+*.webm
+*.wav
+*.mp3
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

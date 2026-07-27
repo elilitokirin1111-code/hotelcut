@@ -1,0 +1,188 @@
+name: hotelcut
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hotelcut}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotelcut_local}
+      POSTGRES_USER: ${POSTGRES_USER:-hotelcut}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-hotelcut_local_secret}
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-hotelcut}
+    ports:
+      - '9000:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        until mc alias set local http://minio:9000
+        "$${S3_ACCESS_KEY_ID:-hotelcut}" "$${S3_SECRET_ACCESS_KEY:-hotelcut_local_secret}";
+        do sleep 2; done;
+        mc mb --ignore-existing "local/$${S3_BUCKET:-hotelcut-local}";
+    environment:
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-hotelcut}
+      S3_BUCKET: ${S3_BUCKET:-hotelcut-local}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-hotelcut_local_secret}
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.node
+      args:
+        APP_FILTER: '@hotelcut/api'
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
+      NODE_ENV: development
+      REDIS_URL: redis://redis:6379
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-hotelcut}
+      S3_BUCKET: ${S3_BUCKET:-hotelcut-local}
+      S3_ENDPOINT: http://minio:9000
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-hotelcut_local_secret}
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)})",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - '${API_PORT:-3000}:3000'
+
+  db-bootstrap:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.node
+      args:
+        APP_FILTER: '@hotelcut/database'
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
+      SEED_DEVELOPMENT_DATA: ${SEED_DEVELOPMENT_DATA:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  render-worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.node
+      args:
+        APP_FILTER: '@hotelcut/render-worker'
+    environment:
+      NODE_ENV: development
+      REDIS_URL: redis://redis:6379
+      RENDER_WORKER_HEALTH_PORT: 3001
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then(r=>{if(!r.ok)process.exit(1)})",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - '${RENDER_WORKER_HEALTH_PORT:-3001}:3001'
+
+  analysis-worker:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.analysis-worker
+    environment:
+      ANALYSIS_WORKER_HOST: 0.0.0.0
+      ANALYSIS_WORKER_PORT: 8001
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=2)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - '${ANALYSIS_WORKER_PORT:-8001}:8001'
+
+  web:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.node
+      args:
+        APP_FILTER: '@hotelcut/web'
+    command: ['pnpm', '--filter', '@hotelcut/web', 'preview', '--host', '0.0.0.0']
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ['CMD', 'node', '-e', "fetch('http://127.0.0.1:4173').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - '${WEB_PORT:-5173}:4173'
+
+volumes:
+  minio-data:
+  postgres-data:
+  redis-data:

@@ -1,0 +1,13 @@
+.git
+.github
+.codebase-memory
+.turbo
+**/node_modules
+**/dist
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+coverage
+data
+tmp
