@@ -132,3 +132,55 @@
 - Reason: interrupted analysis must be safe to repeat without duplicating machine results or
   deleting operator annotations.
 - Impact: new automatically generated data must always be marked `source=automatic`.
+
+## ID-015: Timeline time is represented in integer frames
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: `HotelVideoProject` uses one integer frame rate and integer start/duration/source
+  ranges everywhere.
+- Reason: frame arithmetic is deterministic and removes floating-point second ambiguity at
+  renderer and exchange boundaries.
+- Impact: external millisecond or second inputs must be rounded once during import or migration.
+
+## ID-016: Timeline clips are renderer-independent discriminated types
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: model video, image, audio, text and caption clips as a Zod discriminated union with
+  normalized transforms, safe-area references and typed BrandKit token references.
+- Reason: project revisions must remain editable and portable without importing Remotion, FFmpeg
+  or OpenCut types.
+- Impact: renderer adapters translate the canonical model and cannot extend persisted documents
+  with private runtime objects.
+
+## ID-017: Template variability comes only from a seeded execution context
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: the template SDK supplies deterministic random, integer, pick, UUID and input-hash
+  functions scoped by template ID, semantic version and unsigned seed.
+- Reason: identical business input must reproduce byte-equivalent timelines for debugging,
+  approvals and render retries.
+- Impact: template implementations must not call wall-clock, unseeded randomness or unordered
+  external state during generation.
+
+## ID-018: Schema evolution uses an explicit migration registry
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: persisted documents retain semantic `schemaVersion`; ordered migrations create a new
+  normalized v1 object and never rewrite historical revisions in place.
+- Reason: project history must remain auditable as the editing contract evolves.
+- Impact: every breaking schema release adds a migration and fixtures proving the supported path.
+
+## ID-019: OTIO is a lossy, namespaced exchange projection
+
+- Date: 2026-07-27
+- Status: accepted
+- Decision: export tracks, gaps, clips, transitions and asset URLs to OTIO while preserving
+  HotelCut-only concepts under `metadata.hotelcut`.
+- Reason: OTIO supports interoperability but does not model HotelCut typography, BrandKit or CTA
+  semantics.
+- Impact: OTIO files are never treated as the authoritative business document; imports require a
+  future adapter and explicit loss handling.

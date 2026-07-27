@@ -111,3 +111,34 @@ Verified on 2026-07-27:
 - Python unit tests cover ffprobe normalization, silent-video audio generation and transcription
   provider behavior
 - all Compose services reported healthy after rebuilding API and analysis images
+
+## M3 gate
+
+M3 is complete only when:
+
+- `HotelVideoProject` v1 models video, audio, overlay and caption tracks
+- video, image, audio, text and caption clips use integer-frame ranges
+- transforms, transitions, safe areas, typed BrandKit tokens and CTA are renderer-independent
+- Zod validation reports readable paths for structural and cross-field errors
+- inferred TypeScript types and a committed JSON Schema come from the same runtime contract
+- a versioned migration converts the `0.9.0` draft into a valid `1.0.0` project
+- canonical template input and output schemas are implemented
+- the template execution context provides seeded random choices and deterministic UUIDs
+- the same input, template version and seed produce byte-equivalent normalized output
+- committed JSON and OTIO golden fixtures cannot drift silently
+- the OTIO prototype is readable by the official OpenTimelineIO library
+
+## M3 verification record
+
+Verified on 2026-07-27:
+
+- the canonical project fixture validated with four tracks and all five clip kinds
+- invalid overlap tests reported `tracks[0].clips[1].startFrame`
+- brand-token, safe-area, timing, track compatibility and global ID invariants are enforced
+- the committed draft-2020-12 JSON Schema matched the Zod-generated artifact
+- the `0.9.0` fixture migrated from 10,000 milliseconds to 300 frames at 30 fps
+- two executions of the fixture template produced byte-equivalent normalized projects
+- changing only the seed changed deterministic IDs while preserving a valid project
+- template errors were classified by input, generation and output stage
+- the committed OTIO fixture matched the exporter byte-for-byte
+- official OpenTimelineIO 0.18.1 parsed four tracks with a 900-frame duration at 30 fps

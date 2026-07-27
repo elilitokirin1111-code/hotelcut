@@ -1,0 +1,778 @@
+{
+  "OTIO_SCHEMA": "Timeline.1",
+  "global_start_time": null,
+  "metadata": {
+    "hotelcut": {
+      "cta": {
+        "action": "booking",
+        "backgroundColorToken": "brand.primary",
+        "destination": "hotelcut://booking",
+        "durationFrames": 180,
+        "fontToken": "brand.headingFont",
+        "id": "14141414-1414-4414-8414-141414141414",
+        "safeAreaId": "safe.cta",
+        "startFrame": 720,
+        "text": "立即预订",
+        "textColorToken": "brand.onPrimary"
+      },
+      "generation": {
+        "compilerVersion": "1.0.0",
+        "seed": 20260727
+      },
+      "hotelId": "22222222-2222-4222-8222-222222222222",
+      "projectId": "11111111-1111-4111-8111-111111111111",
+      "safeAreas": [
+        {
+          "height": 0.16,
+          "id": "safe.caption",
+          "kind": "caption",
+          "name": "字幕安全区",
+          "width": 0.84,
+          "x": 0.08,
+          "y": 0.7
+        },
+        {
+          "height": 0.1,
+          "id": "safe.cta",
+          "kind": "cta",
+          "name": "行动按钮安全区",
+          "width": 0.76,
+          "x": 0.12,
+          "y": 0.82
+        }
+      ],
+      "schemaVersion": "1.0.0",
+      "template": {
+        "id": "hotel.weekend-promo",
+        "version": "1.0.0"
+      }
+    }
+  },
+  "name": "云栖酒店周末短片",
+  "tracks": {
+    "OTIO_SCHEMA": "Stack.1",
+    "children": [
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "children": [
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "active_media_reference_key": "DEFAULT_MEDIA",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "available_image_bounds": null,
+                "available_range": null,
+                "metadata": {
+                  "hotelcut": {
+                    "assetId": "66666666-6666-4666-8666-666666666666"
+                  }
+                },
+                "name": "66666666-6666-4666-8666-666666666666",
+                "target_url": "hotelcut://asset/66666666-6666-4666-8666-666666666666"
+              }
+            },
+            "metadata": {
+              "hotelcut": {
+                "clip": {
+                  "assetId": "66666666-6666-4666-8666-666666666666",
+                  "durationFrames": 450,
+                  "id": "44444444-4444-4444-8444-444444444444",
+                  "kind": "video",
+                  "metadata": {
+                    "shot": "lobby"
+                  },
+                  "muted": false,
+                  "playbackRate": 1,
+                  "sourceDurationFrames": 450,
+                  "sourceStartFrame": 30,
+                  "startFrame": 0,
+                  "transform": {
+                    "fit": "cover",
+                    "opacity": 1,
+                    "rotationDegrees": 0,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "transitionIn": null,
+                  "transitionOut": {
+                    "durationFrames": 12,
+                    "easing": "ease-in-out",
+                    "type": "dissolve"
+                  },
+                  "volume": 0.8
+                },
+                "startFrame": 0
+              }
+            },
+            "name": "video:44444444-4444-4444-8444-444444444444",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 450
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 30
+              }
+            }
+          },
+          {
+            "OTIO_SCHEMA": "Transition.1",
+            "in_offset": {
+              "OTIO_SCHEMA": "RationalTime.1",
+              "rate": 30,
+              "value": 6
+            },
+            "metadata": {
+              "hotelcut": {
+                "easing": "ease-in-out",
+                "type": "dissolve"
+              }
+            },
+            "name": "dissolve",
+            "out_offset": {
+              "OTIO_SCHEMA": "RationalTime.1",
+              "rate": 30,
+              "value": 6
+            },
+            "transition_type": "SMPTE_Dissolve"
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "active_media_reference_key": "DEFAULT_MEDIA",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "available_image_bounds": null,
+                "available_range": null,
+                "metadata": {
+                  "hotelcut": {
+                    "assetId": "77777777-7777-4777-8777-777777777777"
+                  }
+                },
+                "name": "77777777-7777-4777-8777-777777777777",
+                "target_url": "hotelcut://asset/77777777-7777-4777-8777-777777777777"
+              }
+            },
+            "metadata": {
+              "hotelcut": {
+                "clip": {
+                  "assetId": "77777777-7777-4777-8777-777777777777",
+                  "durationFrames": 450,
+                  "id": "55555555-5555-4555-8555-555555555555",
+                  "kind": "image",
+                  "metadata": {
+                    "shot": "guest-room"
+                  },
+                  "startFrame": 450,
+                  "transform": {
+                    "fit": "cover",
+                    "opacity": 1,
+                    "rotationDegrees": 0,
+                    "scaleX": 1.08,
+                    "scaleY": 1.08,
+                    "x": 0.5,
+                    "y": 0.5
+                  },
+                  "transitionIn": {
+                    "durationFrames": 12,
+                    "easing": "ease-in-out",
+                    "type": "dissolve"
+                  },
+                  "transitionOut": null
+                },
+                "startFrame": 450
+              }
+            },
+            "name": "image:55555555-5555-4555-8555-555555555555",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 450
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          }
+        ],
+        "effects": [],
+        "enabled": true,
+        "kind": "Video",
+        "markers": [],
+        "metadata": {
+          "hotelcut": {
+            "kind": "video",
+            "locked": false,
+            "muted": false,
+            "trackId": "33333333-3333-4333-8333-333333333333",
+            "zIndex": 0
+          }
+        },
+        "name": "主画面",
+        "source_range": null
+      },
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "children": [
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "active_media_reference_key": "DEFAULT_MEDIA",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "available_image_bounds": null,
+                "available_range": null,
+                "metadata": {
+                  "hotelcut": {
+                    "assetId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+                  }
+                },
+                "name": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                "target_url": "hotelcut://asset/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+              }
+            },
+            "metadata": {
+              "hotelcut": {
+                "clip": {
+                  "assetId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                  "durationFrames": 900,
+                  "fadeInFrames": 30,
+                  "fadeOutFrames": 60,
+                  "id": "99999999-9999-4999-8999-999999999999",
+                  "kind": "audio",
+                  "metadata": {},
+                  "sourceDurationFrames": 900,
+                  "sourceStartFrame": 0,
+                  "startFrame": 0,
+                  "volume": 0.35
+                },
+                "startFrame": 0
+              }
+            },
+            "name": "audio:99999999-9999-4999-8999-999999999999",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 900
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          }
+        ],
+        "effects": [],
+        "enabled": true,
+        "kind": "Audio",
+        "markers": [],
+        "metadata": {
+          "hotelcut": {
+            "kind": "audio",
+            "locked": false,
+            "muted": false,
+            "trackId": "88888888-8888-4888-8888-888888888888",
+            "zIndex": 0
+          }
+        },
+        "name": "背景音乐",
+        "source_range": null
+      },
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "children": [
+          {
+            "OTIO_SCHEMA": "Gap.1",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "metadata": {
+              "hotelcut": {
+                "reason": "absolute-timeline-offset"
+              }
+            },
+            "name": "Gap",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 30
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "active_media_reference_key": "DEFAULT_MEDIA",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "ExternalReference.1",
+                "available_image_bounds": null,
+                "available_range": null,
+                "metadata": {
+                  "hotelcut": {
+                    "assetId": "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+                  }
+                },
+                "name": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+                "target_url": "hotelcut://asset/dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+              }
+            },
+            "metadata": {
+              "hotelcut": {
+                "clip": {
+                  "assetId": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+                  "durationFrames": 120,
+                  "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                  "kind": "image",
+                  "metadata": {
+                    "role": "logo"
+                  },
+                  "startFrame": 30,
+                  "transform": {
+                    "fit": "contain",
+                    "opacity": 0.92,
+                    "rotationDegrees": 0,
+                    "scaleX": 0.22,
+                    "scaleY": 0.22,
+                    "x": 0.82,
+                    "y": 0.1
+                  },
+                  "transitionIn": {
+                    "durationFrames": 10,
+                    "easing": "ease-out",
+                    "type": "fade"
+                  },
+                  "transitionOut": {
+                    "durationFrames": 10,
+                    "easing": "ease-in",
+                    "type": "fade"
+                  }
+                },
+                "startFrame": 30
+              }
+            },
+            "name": "image:cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 120
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          },
+          {
+            "OTIO_SCHEMA": "Transition.1",
+            "in_offset": {
+              "OTIO_SCHEMA": "RationalTime.1",
+              "rate": 30,
+              "value": 5
+            },
+            "metadata": {
+              "hotelcut": {
+                "easing": "ease-in",
+                "type": "fade"
+              }
+            },
+            "name": "fade",
+            "out_offset": {
+              "OTIO_SCHEMA": "RationalTime.1",
+              "rate": 30,
+              "value": 5
+            },
+            "transition_type": "SMPTE_Dissolve"
+          },
+          {
+            "OTIO_SCHEMA": "Gap.1",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "metadata": {
+              "hotelcut": {
+                "reason": "absolute-timeline-offset"
+              }
+            },
+            "name": "Gap",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 510
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "active_media_reference_key": "DEFAULT_MEDIA",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "MissingReference.1",
+                "available_image_bounds": null,
+                "available_range": null,
+                "metadata": {
+                  "hotelcut": {
+                    "clipKind": "text"
+                  }
+                },
+                "name": "text:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+              }
+            },
+            "metadata": {
+              "hotelcut": {
+                "clip": {
+                  "durationFrames": 180,
+                  "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+                  "kind": "text",
+                  "metadata": {},
+                  "safeAreaId": "safe.caption",
+                  "startFrame": 660,
+                  "style": {
+                    "align": "center",
+                    "backgroundColorToken": "brand.captionBackground",
+                    "colorToken": "brand.onPrimary",
+                    "fontSize": 68,
+                    "fontToken": "brand.headingFont",
+                    "lineHeight": 1.2,
+                    "maxLines": 2
+                  },
+                  "text": "这个周末，住进风景里",
+                  "transform": {
+                    "fit": "contain",
+                    "opacity": 1,
+                    "rotationDegrees": 0,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "x": 0.5,
+                    "y": 0.76
+                  },
+                  "transitionIn": {
+                    "durationFrames": 12,
+                    "easing": "ease-out",
+                    "type": "fade"
+                  },
+                  "transitionOut": {
+                    "durationFrames": 12,
+                    "easing": "ease-in",
+                    "type": "fade"
+                  }
+                },
+                "startFrame": 660
+              }
+            },
+            "name": "text:eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 180
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          }
+        ],
+        "effects": [],
+        "enabled": true,
+        "kind": "Video",
+        "markers": [],
+        "metadata": {
+          "hotelcut": {
+            "kind": "overlay",
+            "locked": false,
+            "muted": false,
+            "trackId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            "zIndex": 10
+          }
+        },
+        "name": "品牌叠加",
+        "source_range": null
+      },
+      {
+        "OTIO_SCHEMA": "Track.1",
+        "children": [
+          {
+            "OTIO_SCHEMA": "Gap.1",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "metadata": {
+              "hotelcut": {
+                "reason": "absolute-timeline-offset"
+              }
+            },
+            "name": "Gap",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 60
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "active_media_reference_key": "DEFAULT_MEDIA",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "MissingReference.1",
+                "available_image_bounds": null,
+                "available_range": null,
+                "metadata": {
+                  "hotelcut": {
+                    "clipKind": "caption"
+                  }
+                },
+                "name": "caption:12121212-1212-4212-8212-121212121212"
+              }
+            },
+            "metadata": {
+              "hotelcut": {
+                "clip": {
+                  "durationFrames": 180,
+                  "id": "12121212-1212-4212-8212-121212121212",
+                  "kind": "caption",
+                  "metadata": {},
+                  "safeAreaId": "safe.caption",
+                  "startFrame": 60,
+                  "style": {
+                    "align": "center",
+                    "backgroundColorToken": "brand.captionBackground",
+                    "colorToken": "brand.onPrimary",
+                    "fontSize": 54,
+                    "fontToken": "brand.bodyFont",
+                    "lineHeight": 1.2,
+                    "maxLines": 2
+                  },
+                  "text": "欢迎来到云栖酒店",
+                  "transform": {
+                    "fit": "contain",
+                    "opacity": 1,
+                    "rotationDegrees": 0,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "x": 0.5,
+                    "y": 0.76
+                  },
+                  "transitionIn": null,
+                  "transitionOut": null,
+                  "words": [
+                    {
+                      "durationFrames": 80,
+                      "startOffsetFrame": 0,
+                      "text": "欢迎来到"
+                    },
+                    {
+                      "durationFrames": 95,
+                      "startOffsetFrame": 85,
+                      "text": "云栖酒店"
+                    }
+                  ]
+                },
+                "startFrame": 60
+              }
+            },
+            "name": "caption:12121212-1212-4212-8212-121212121212",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 180
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          },
+          {
+            "OTIO_SCHEMA": "Gap.1",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "metadata": {
+              "hotelcut": {
+                "reason": "absolute-timeline-offset"
+              }
+            },
+            "name": "Gap",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 60
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          },
+          {
+            "OTIO_SCHEMA": "Clip.2",
+            "active_media_reference_key": "DEFAULT_MEDIA",
+            "effects": [],
+            "enabled": true,
+            "markers": [],
+            "media_references": {
+              "DEFAULT_MEDIA": {
+                "OTIO_SCHEMA": "MissingReference.1",
+                "available_image_bounds": null,
+                "available_range": null,
+                "metadata": {
+                  "hotelcut": {
+                    "clipKind": "caption"
+                  }
+                },
+                "name": "caption:13131313-1313-4313-8313-131313131313"
+              }
+            },
+            "metadata": {
+              "hotelcut": {
+                "clip": {
+                  "durationFrames": 210,
+                  "id": "13131313-1313-4313-8313-131313131313",
+                  "kind": "caption",
+                  "metadata": {},
+                  "safeAreaId": "safe.caption",
+                  "startFrame": 300,
+                  "style": {
+                    "align": "center",
+                    "backgroundColorToken": "brand.captionBackground",
+                    "colorToken": "brand.onPrimary",
+                    "fontSize": 54,
+                    "fontToken": "brand.bodyFont",
+                    "lineHeight": 1.2,
+                    "maxLines": 2
+                  },
+                  "text": "在城市中心享受安静周末",
+                  "transform": {
+                    "fit": "contain",
+                    "opacity": 1,
+                    "rotationDegrees": 0,
+                    "scaleX": 1,
+                    "scaleY": 1,
+                    "x": 0.5,
+                    "y": 0.76
+                  },
+                  "transitionIn": null,
+                  "transitionOut": null,
+                  "words": []
+                },
+                "startFrame": 300
+              }
+            },
+            "name": "caption:13131313-1313-4313-8313-131313131313",
+            "source_range": {
+              "OTIO_SCHEMA": "TimeRange.1",
+              "duration": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 210
+              },
+              "start_time": {
+                "OTIO_SCHEMA": "RationalTime.1",
+                "rate": 30,
+                "value": 0
+              }
+            }
+          }
+        ],
+        "effects": [],
+        "enabled": true,
+        "kind": "Video",
+        "markers": [],
+        "metadata": {
+          "hotelcut": {
+            "kind": "caption",
+            "locked": false,
+            "muted": false,
+            "trackId": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+            "zIndex": 20
+          }
+        },
+        "name": "中文字幕",
+        "source_range": null
+      }
+    ],
+    "effects": [],
+    "enabled": true,
+    "markers": [],
+    "metadata": {
+      "hotelcut": {
+        "output": {
+          "audioSampleRate": 48000,
+          "backgroundColor": "#101820",
+          "durationFrames": 900,
+          "frameRate": 30,
+          "height": 1920,
+          "width": 1080
+        }
+      }
+    },
+    "name": "HotelCut tracks",
+    "source_range": null
+  }
+}

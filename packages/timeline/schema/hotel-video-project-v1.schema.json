@@ -1,0 +1,1137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "hotelId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "template": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+        },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+      },
+      "required": ["id", "version"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "integer", "exclusiveMinimum": 0, "maximum": 8192 },
+        "height": { "type": "integer", "exclusiveMinimum": 0, "maximum": 8192 },
+        "frameRate": { "type": "integer", "minimum": 1, "maximum": 120 },
+        "durationFrames": { "type": "integer", "exclusiveMinimum": 0, "maximum": 9007199254740991 },
+        "audioSampleRate": {
+          "default": 48000,
+          "type": "integer",
+          "minimum": 8000,
+          "maximum": 192000
+        },
+        "backgroundColor": {
+          "default": "#000000",
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "frameRate",
+        "durationFrames",
+        "audioSampleRate",
+        "backgroundColor"
+      ],
+      "additionalProperties": false
+    },
+    "safeAreas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120,
+            "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+          },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "kind": { "type": "string", "enum": ["content", "caption", "cta", "custom"] },
+          "x": { "type": "number", "minimum": 0, "maximum": 1 },
+          "y": { "type": "number", "minimum": 0, "maximum": 1 },
+          "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+          "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+        },
+        "required": ["id", "name", "kind", "x", "y", "width", "height"],
+        "additionalProperties": false
+      }
+    },
+    "brandTokens": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+              },
+              "type": { "type": "string", "const": "color" },
+              "value": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$" }
+            },
+            "required": ["key", "type", "value"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+              },
+              "type": { "type": "string", "const": "font" },
+              "family": { "type": "string", "minLength": 1, "maxLength": 160 },
+              "weight": { "default": 400, "type": "integer", "minimum": 100, "maximum": 900 },
+              "style": { "default": "normal", "type": "string", "enum": ["normal", "italic"] }
+            },
+            "required": ["key", "type", "family", "weight", "style"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+              },
+              "type": { "type": "string", "const": "text" },
+              "value": { "type": "string", "maxLength": 500 }
+            },
+            "required": ["key", "type", "value"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120,
+                "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+              },
+              "type": { "type": "string", "const": "number" },
+              "value": { "type": "number" },
+              "unit": {
+                "default": "unitless",
+                "type": "string",
+                "enum": ["px", "percent", "frames", "unitless"]
+              }
+            },
+            "required": ["key", "type", "value", "unit"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "cta": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "startFrame": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            "durationFrames": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "text": { "type": "string", "minLength": 1, "maxLength": 300 },
+            "action": {
+              "type": "string",
+              "enum": ["booking", "contact", "navigate", "follow", "custom"]
+            },
+            "destination": {
+              "anyOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }]
+            },
+            "safeAreaId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+            },
+            "fontToken": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+            },
+            "textColorToken": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+            },
+            "backgroundColorToken": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120,
+              "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+            }
+          },
+          "required": [
+            "id",
+            "startFrame",
+            "durationFrames",
+            "text",
+            "action",
+            "destination",
+            "safeAreaId",
+            "fontToken",
+            "textColorToken",
+            "backgroundColorToken"
+          ],
+          "additionalProperties": false
+        },
+        { "type": "null" }
+      ]
+    },
+    "tracks": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "kind": { "type": "string", "enum": ["video", "audio", "overlay", "caption"] },
+          "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "enabled": { "default": true, "type": "boolean" },
+          "locked": { "default": false, "type": "boolean" },
+          "muted": { "default": false, "type": "boolean" },
+          "zIndex": { "type": "integer", "minimum": -1000, "maximum": 1000 },
+          "clips": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "startFrame": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                    "durationFrames": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "transform": {
+                      "default": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "scaleX": 1,
+                        "scaleY": 1,
+                        "rotationDegrees": 0,
+                        "opacity": 1,
+                        "fit": "cover"
+                      },
+                      "type": "object",
+                      "properties": {
+                        "x": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "y": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "scaleX": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "scaleY": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "rotationDegrees": {
+                          "default": 0,
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "opacity": { "default": 1, "type": "number", "minimum": 0, "maximum": 1 },
+                        "fit": {
+                          "default": "cover",
+                          "type": "string",
+                          "enum": ["cover", "contain", "fill", "none"]
+                        },
+                        "crop": {
+                          "type": "object",
+                          "properties": {
+                            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+                          },
+                          "required": ["x", "y", "width", "height"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "scaleX",
+                        "scaleY",
+                        "rotationDegrees",
+                        "opacity",
+                        "fit"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "transitionIn": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "transitionOut": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "metadata": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": { "type": "string" },
+                      "additionalProperties": {}
+                    },
+                    "kind": { "type": "string", "const": "video" },
+                    "assetId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "sourceStartFrame": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sourceDurationFrames": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "volume": { "default": 1, "type": "number", "minimum": 0, "maximum": 2 },
+                    "muted": { "default": false, "type": "boolean" },
+                    "playbackRate": {
+                      "default": 1,
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 8
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "startFrame",
+                    "durationFrames",
+                    "transform",
+                    "transitionIn",
+                    "transitionOut",
+                    "metadata",
+                    "kind",
+                    "assetId",
+                    "sourceStartFrame",
+                    "sourceDurationFrames",
+                    "volume",
+                    "muted",
+                    "playbackRate"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "startFrame": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                    "durationFrames": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "transform": {
+                      "default": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "scaleX": 1,
+                        "scaleY": 1,
+                        "rotationDegrees": 0,
+                        "opacity": 1,
+                        "fit": "cover"
+                      },
+                      "type": "object",
+                      "properties": {
+                        "x": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "y": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "scaleX": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "scaleY": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "rotationDegrees": {
+                          "default": 0,
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "opacity": { "default": 1, "type": "number", "minimum": 0, "maximum": 1 },
+                        "fit": {
+                          "default": "cover",
+                          "type": "string",
+                          "enum": ["cover", "contain", "fill", "none"]
+                        },
+                        "crop": {
+                          "type": "object",
+                          "properties": {
+                            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+                          },
+                          "required": ["x", "y", "width", "height"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "scaleX",
+                        "scaleY",
+                        "rotationDegrees",
+                        "opacity",
+                        "fit"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "transitionIn": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "transitionOut": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "metadata": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": { "type": "string" },
+                      "additionalProperties": {}
+                    },
+                    "kind": { "type": "string", "const": "image" },
+                    "assetId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "startFrame",
+                    "durationFrames",
+                    "transform",
+                    "transitionIn",
+                    "transitionOut",
+                    "metadata",
+                    "kind",
+                    "assetId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "kind": { "type": "string", "const": "audio" },
+                    "assetId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "startFrame": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                    "durationFrames": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sourceStartFrame": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sourceDurationFrames": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "volume": { "default": 1, "type": "number", "minimum": 0, "maximum": 2 },
+                    "fadeInFrames": {
+                      "default": 0,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "fadeOutFrames": {
+                      "default": 0,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "metadata": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": { "type": "string" },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "assetId",
+                    "startFrame",
+                    "durationFrames",
+                    "sourceStartFrame",
+                    "sourceDurationFrames",
+                    "volume",
+                    "fadeInFrames",
+                    "fadeOutFrames",
+                    "metadata"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "startFrame": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                    "durationFrames": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "transform": {
+                      "default": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "scaleX": 1,
+                        "scaleY": 1,
+                        "rotationDegrees": 0,
+                        "opacity": 1,
+                        "fit": "cover"
+                      },
+                      "type": "object",
+                      "properties": {
+                        "x": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "y": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "scaleX": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "scaleY": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "rotationDegrees": {
+                          "default": 0,
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "opacity": { "default": 1, "type": "number", "minimum": 0, "maximum": 1 },
+                        "fit": {
+                          "default": "cover",
+                          "type": "string",
+                          "enum": ["cover", "contain", "fill", "none"]
+                        },
+                        "crop": {
+                          "type": "object",
+                          "properties": {
+                            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+                          },
+                          "required": ["x", "y", "width", "height"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "scaleX",
+                        "scaleY",
+                        "rotationDegrees",
+                        "opacity",
+                        "fit"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "transitionIn": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "transitionOut": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "metadata": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": { "type": "string" },
+                      "additionalProperties": {}
+                    },
+                    "kind": { "type": "string", "const": "text" },
+                    "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+                    "style": {
+                      "type": "object",
+                      "properties": {
+                        "fontToken": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                        },
+                        "colorToken": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                        },
+                        "backgroundColorToken": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                        },
+                        "fontSize": { "type": "number", "exclusiveMinimum": 0, "maximum": 500 },
+                        "lineHeight": {
+                          "default": 1.2,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 5
+                        },
+                        "align": {
+                          "default": "center",
+                          "type": "string",
+                          "enum": ["left", "center", "right"]
+                        },
+                        "maxLines": {
+                          "default": 3,
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        }
+                      },
+                      "required": [
+                        "fontToken",
+                        "colorToken",
+                        "fontSize",
+                        "lineHeight",
+                        "align",
+                        "maxLines"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "safeAreaId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "startFrame",
+                    "durationFrames",
+                    "transform",
+                    "transitionIn",
+                    "transitionOut",
+                    "metadata",
+                    "kind",
+                    "text",
+                    "style"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "startFrame": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+                    "durationFrames": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "transform": {
+                      "default": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "scaleX": 1,
+                        "scaleY": 1,
+                        "rotationDegrees": 0,
+                        "opacity": 1,
+                        "fit": "cover"
+                      },
+                      "type": "object",
+                      "properties": {
+                        "x": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "y": { "default": 0.5, "type": "number", "minimum": 0, "maximum": 1 },
+                        "scaleX": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "scaleY": {
+                          "default": 1,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        },
+                        "rotationDegrees": {
+                          "default": 0,
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "opacity": { "default": 1, "type": "number", "minimum": 0, "maximum": 1 },
+                        "fit": {
+                          "default": "cover",
+                          "type": "string",
+                          "enum": ["cover", "contain", "fill", "none"]
+                        },
+                        "crop": {
+                          "type": "object",
+                          "properties": {
+                            "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "y": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "width": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                            "height": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 }
+                          },
+                          "required": ["x", "y", "width", "height"],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y",
+                        "scaleX",
+                        "scaleY",
+                        "rotationDegrees",
+                        "opacity",
+                        "fit"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "transitionIn": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "transitionOut": {
+                      "default": null,
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["cut", "dissolve", "fade", "wipe"]
+                            },
+                            "durationFrames": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "easing": {
+                              "default": "linear",
+                              "type": "string",
+                              "enum": ["linear", "ease-in", "ease-out", "ease-in-out"]
+                            }
+                          },
+                          "required": ["type", "durationFrames", "easing"],
+                          "additionalProperties": false
+                        },
+                        { "type": "null" }
+                      ]
+                    },
+                    "metadata": {
+                      "default": {},
+                      "type": "object",
+                      "propertyNames": { "type": "string" },
+                      "additionalProperties": {}
+                    },
+                    "kind": { "type": "string", "const": "caption" },
+                    "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+                    "words": {
+                      "default": [],
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "text": { "type": "string", "minLength": 1, "maxLength": 200 },
+                          "startOffsetFrame": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "durationFrames": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": ["text", "startOffsetFrame", "durationFrames"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "style": {
+                      "type": "object",
+                      "properties": {
+                        "fontToken": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                        },
+                        "colorToken": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                        },
+                        "backgroundColorToken": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120,
+                          "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                        },
+                        "fontSize": { "type": "number", "exclusiveMinimum": 0, "maximum": 500 },
+                        "lineHeight": {
+                          "default": 1.2,
+                          "type": "number",
+                          "exclusiveMinimum": 0,
+                          "maximum": 5
+                        },
+                        "align": {
+                          "default": "center",
+                          "type": "string",
+                          "enum": ["left", "center", "right"]
+                        },
+                        "maxLines": {
+                          "default": 3,
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 20
+                        }
+                      },
+                      "required": [
+                        "fontToken",
+                        "colorToken",
+                        "fontSize",
+                        "lineHeight",
+                        "align",
+                        "maxLines"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "safeAreaId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "startFrame",
+                    "durationFrames",
+                    "transform",
+                    "transitionIn",
+                    "transitionOut",
+                    "metadata",
+                    "kind",
+                    "text",
+                    "words",
+                    "style"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "metadata": {
+            "default": {},
+            "type": "object",
+            "propertyNames": { "type": "string" },
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "enabled",
+          "locked",
+          "muted",
+          "zIndex",
+          "clips",
+          "metadata"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "generation": {
+      "type": "object",
+      "properties": {
+        "compilerVersion": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
+      },
+      "required": ["compilerVersion", "seed"],
+      "additionalProperties": false
+    },
+    "metadata": {
+      "default": {},
+      "type": "object",
+      "propertyNames": { "type": "string" },
+      "additionalProperties": {}
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "id",
+    "hotelId",
+    "name",
+    "template",
+    "output",
+    "safeAreas",
+    "brandTokens",
+    "cta",
+    "tracks",
+    "generation",
+    "metadata"
+  ],
+  "additionalProperties": false,
+  "$id": "https://hotelcut.local/schemas/hotel-video-project-v1.schema.json",
+  "title": "HotelVideoProject v1"
+}

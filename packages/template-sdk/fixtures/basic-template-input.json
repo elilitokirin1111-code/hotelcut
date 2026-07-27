@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectId": "11111111-1111-4111-8111-111111111111",
+  "hotelId": "22222222-2222-4222-8222-222222222222",
+  "template": {
+    "id": "hotel.fixture",
+    "version": "1.0.0"
+  },
+  "seed": 20260727,
+  "brief": {
+    "id": "15151515-1515-4515-8515-151515151515",
+    "title": "云栖酒店周末短片",
+    "platform": "douyin",
+    "durationFrames": 900,
+    "tone": "温暖高级",
+    "language": "zh-CN",
+    "objective": "提升周末预订",
+    "targetAudience": "周末城市度假客群"
+  },
+  "output": {
+    "width": 1080,
+    "height": 1920,
+    "frameRate": 30,
+    "durationFrames": 900,
+    "audioSampleRate": 48000,
+    "backgroundColor": "#101820"
+  },
+  "brandTokens": [
+    {
+      "key": "brand.primary",
+      "type": "color",
+      "value": "#C69B55"
+    },
+    {
+      "key": "brand.onPrimary",
+      "type": "color",
+      "value": "#FFFFFF"
+    },
+    {
+      "key": "brand.headingFont",
+      "type": "font",
+      "family": "Noto Sans SC",
+      "weight": 700,
+      "style": "normal"
+    }
+  ],
+  "safeAreas": [
+    {
+      "id": "safe.cta",
+      "name": "行动按钮安全区",
+      "kind": "cta",
+      "x": 0.12,
+      "y": 0.82,
+      "width": 0.76,
+      "height": 0.1
+    }
+  ],
+  "cta": {
+    "id": "14141414-1414-4414-8414-141414141414",
+    "startFrame": 720,
+    "durationFrames": 180,
+    "text": "立即预订",
+    "action": "booking",
+    "destination": "hotelcut://booking",
+    "safeAreaId": "safe.cta",
+    "fontToken": "brand.headingFont",
+    "textColorToken": "brand.onPrimary",
+    "backgroundColorToken": "brand.primary"
+  },
+  "media": [
+    {
+      "assetId": "66666666-6666-4666-8666-666666666666",
+      "kind": "video",
+      "durationFrames": 1200,
+      "tags": ["大堂", "白天"],
+      "scoreBasisPoints": 9200,
+      "metadata": {
+        "orientation": "portrait"
+      }
+    },
+    {
+      "assetId": "77777777-7777-4777-8777-777777777777",
+      "kind": "video",
+      "durationFrames": 1000,
+      "tags": ["客房", "夜景"],
+      "scoreBasisPoints": 8900,
+      "metadata": {
+        "orientation": "portrait"
+      }
+    }
+  ],
+  "metadata": {
+    "fixture": true
+  }
+}

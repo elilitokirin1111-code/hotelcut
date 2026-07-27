@@ -6,7 +6,7 @@ quality report.
 
 ## Milestone status
 
-M0, M1 and M2 were completed and locally accepted on 2026-07-27. The repository now includes:
+M0 through M3 were completed and locally accepted on 2026-07-27. The repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -28,6 +28,11 @@ M0, M1 and M2 were completed and locally accepted on 2026-07-27. The repository 
 - ffprobe metadata, FFmpeg proxy/thumbnail/audio generation and PySceneDetect scenes
 - replaceable faster-whisper transcription with word timestamps and VAD
 - tenant-scoped asset detail, derivative download and manual tagging APIs
+- renderer-independent `HotelVideoProject` v1 with integer-frame timing
+- Zod, TypeScript and generated JSON Schema timeline contracts
+- explicit validation errors and a versioned `0.9.0` to `1.0.0` migration
+- deterministic template input/output SDK with seeded random and ID generation
+- canonical JSON fixtures and an OpenTimelineIO export prototype
 
 ## Prerequisites
 
@@ -124,6 +129,8 @@ packages/
   storage/
   media/
   job-queue/
+  timeline/
+  template-sdk/
 infrastructure/
   docker/
   scripts/
@@ -145,9 +152,10 @@ See `packages/README.md` for package ownership.
 - The render worker accepts only an M0 healthcheck job; real rendering begins in M6.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
+- M3 defines template execution contracts but does not yet implement automatic media selection,
+  shot planning or the three product templates; those belong to M4.
 
-## M3 readiness
+## M4 readiness
 
-The full M2 quality gate, migration, multipart-upload integration test and real
-MinIO-to-BullMQ-to-analysis acceptance pass locally. M3 may begin as a separate, reviewable
-milestone.
+The M3 timeline contract, migration, deterministic template SDK, generated JSON Schema and OTIO
+fixture pass locally. M4 may begin as a separate, reviewable milestone.
