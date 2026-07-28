@@ -1,16 +1,28 @@
-import type { Hotel } from '@hotelcut/schemas';
-import { useEffect, useMemo, useState } from 'react';
+import type { AuthSession, Hotel } from '@hotelcut/schemas';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
-import { createWorkspaceApi, type WorkspaceApi, type WorkspaceSnapshot } from './workspace-api';
+import {
+  createWorkspaceApi,
+  WorkspaceApiError,
+  type WorkspaceApi,
+  type WorkspaceSnapshot,
+} from './workspace-api';
 
-const developmentSeedUserId =
-  import.meta.env.VITE_DEVELOPMENT_USER_ID ?? '20000000-0000-4000-8000-000000000001';
+const developmentSeedEmail =
+  import.meta.env.VITE_DEVELOPMENT_SEED_EMAIL ?? 'owner@hotelcut.example';
+const developmentSeedPassword = import.meta.env.VITE_DEVELOPMENT_SEED_PASSWORD ?? 'hotelcut-local';
 const defaultWorkspaceApi = createWorkspaceApi();
 
 interface WorkspaceAppProps {
   api?: WorkspaceApi;
-  developmentUserId?: string;
+  developmentEmail?: string;
+  developmentPassword?: string;
 }
+
+type SessionState =
+  | { status: 'checking' }
+  | { status: 'anonymous' }
+  | { status: 'authenticated'; session: AuthSession };
 
 type LoadState =
   | { status: 'idle' }
@@ -110,32 +122,84 @@ function HotelWorkspace({
 
 export function WorkspaceApp({
   api = defaultWorkspaceApi,
-  developmentUserId = developmentSeedUserId,
+  developmentEmail = developmentSeedEmail,
+  developmentPassword = developmentSeedPassword,
 }: WorkspaceAppProps) {
-  const [actorUserId, setActorUserId] = useState<string | null>(null);
+  const [sessionState, setSessionState] = useState<SessionState>({ status: 'checking' });
+  const [email, setEmail] = useState(developmentEmail);
+  const [password, setPassword] = useState(developmentPassword);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
   const [loadState, setLoadState] = useState<LoadState>({ status: 'idle' });
   const [query, setQuery] = useState('');
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!actorUserId) {
+    const controller = new AbortController();
+    void api
+      .getSession(controller.signal)
+      .then((session) => {
+        setSessionState(session ? { status: 'authenticated', session } : { status: 'anonymous' });
+      })
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setLoginError(formatLoadError(error));
+          setSessionState({ status: 'anonymous' });
+        }
+      });
+    return () => controller.abort();
+  }, [api]);
+
+  useEffect(() => {
+    if (sessionState.status !== 'authenticated') {
       setLoadState({ status: 'idle' });
       return;
     }
     const controller = new AbortController();
     setLoadState({ status: 'loading' });
     void api
-      .loadWorkspace(actorUserId, controller.signal)
+      .loadWorkspace(controller.signal)
       .then((snapshot) => {
         setLoadState({ snapshot, status: 'ready' });
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
+          if (error instanceof WorkspaceApiError && error.status === 401) {
+            setLoginError('登录已过期，请重新登录');
+            setSessionState({ status: 'anonymous' });
+            return;
+          }
           setLoadState({ message: formatLoadError(error), status: 'error' });
         }
       });
     return () => controller.abort();
-  }, [actorUserId, api]);
+  }, [api, sessionState]);
+
+  const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmittingLogin(true);
+    setLoginError(null);
+    try {
+      const session = await api.login(email, password);
+      setSessionState({ status: 'authenticated', session });
+    } catch (error) {
+      setLoginError(formatLoadError(error));
+    } finally {
+      setIsSubmittingLogin(false);
+    }
+  };
+
+  const logout = async () => {
+    setLoginError(null);
+    try {
+      await api.logout();
+      setSessionState({ status: 'anonymous' });
+      setQuery('');
+      setSelectedHotelId(null);
+    } catch (error) {
+      setLoginError(formatLoadError(error));
+    }
+  };
 
   const organizationNameById = useMemo(() => {
     if (loadState.status !== 'ready') {
@@ -166,7 +230,15 @@ export function WorkspaceApp({
       ? (loadState.snapshot.hotels.find((hotel) => hotel.id === selectedHotelId) ?? null)
       : null;
 
-  if (!actorUserId) {
+  if (sessionState.status === 'checking') {
+    return (
+      <main className="grid min-h-screen place-items-center bg-[#e8eeeb] px-5 py-10 text-[#263138]">
+        <p className="text-sm font-semibold text-slate-500">正在检查登录状态…</p>
+      </main>
+    );
+  }
+
+  if (sessionState.status === 'anonymous') {
     return (
       <main className="grid min-h-screen place-items-center bg-[#e8eeeb] px-5 py-10 text-[#263138]">
         <section className="w-full max-w-md overflow-hidden rounded-[32px] border border-white/80 bg-white/80 p-8 shadow-[0_28px_90px_rgba(35,52,60,.16)] backdrop-blur-xl">
@@ -178,20 +250,55 @@ export function WorkspaceApp({
           </p>
           <h1 className="mt-2 text-3xl font-black tracking-[-0.04em]">酒店短视频工作空间</h1>
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            开发环境使用数据库种子账号进入。该入口仅用于本地 M7 验收，不代表正式邮箱认证已完成。
+            使用邮箱和密码登录。身份由服务端会话确认，浏览器不再提交或保存用户 ID。
           </p>
 
           <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-black">演示管理员</p>
-            <p className="mt-1 text-xs text-slate-500">owner@hotelcut.example</p>
+            <p className="text-xs font-black">本地演示账号</p>
+            <p className="mt-1 text-xs text-slate-500">{developmentEmail}</p>
+            <p className="mt-1 text-xs text-slate-500">{developmentPassword}</p>
+            <p className="mt-2 text-[10px] leading-4 text-slate-400">
+              仅在启用开发种子数据时存在；生产环境必须禁用种子数据。
+            </p>
           </div>
-          <button
-            className="mt-4 w-full rounded-2xl bg-[#263138] px-5 py-3.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#172126]"
-            onClick={() => setActorUserId(developmentUserId)}
-            type="button"
-          >
-            使用种子账号进入
-          </button>
+
+          <form className="mt-5 space-y-4" onSubmit={(event) => void submitLogin(event)}>
+            <label className="block">
+              <span className="text-xs font-black text-slate-700">邮箱</span>
+              <input
+                autoComplete="username"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#d6a76d]"
+                onChange={(event) => setEmail(event.target.value)}
+                required
+                type="email"
+                value={email}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs font-black text-slate-700">密码</span>
+              <input
+                autoComplete="current-password"
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#d6a76d]"
+                minLength={10}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                type="password"
+                value={password}
+              />
+            </label>
+            {loginError ? (
+              <p className="rounded-xl bg-rose-50 px-4 py-3 text-xs leading-5 text-rose-700">
+                {loginError}
+              </p>
+            ) : null}
+            <button
+              className="w-full rounded-2xl bg-[#263138] px-5 py-3.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#172126] disabled:cursor-wait disabled:opacity-60"
+              disabled={isSubmittingLogin}
+              type="submit"
+            >
+              {isSubmittingLogin ? '正在登录…' : '登录工作空间'}
+            </button>
+          </form>
         </section>
       </main>
     );
@@ -217,19 +324,11 @@ export function WorkspaceApp({
             </p>
             <h1 className="mt-2 text-3xl font-black tracking-[-0.04em]">选择酒店</h1>
             <p className="mt-2 text-sm text-slate-500">
-              仅显示当前种子账号拥有成员权限的组织与酒店。
+              {sessionState.session.user.displayName} · 仅显示当前账号拥有成员权限的组织与酒店。
             </p>
           </div>
-          <button
-            className="editor-secondary-button"
-            onClick={() => {
-              setActorUserId(null);
-              setQuery('');
-              setSelectedHotelId(null);
-            }}
-            type="button"
-          >
-            退出种子账号
+          <button className="editor-secondary-button" onClick={() => void logout()} type="button">
+            退出登录
           </button>
         </header>
 

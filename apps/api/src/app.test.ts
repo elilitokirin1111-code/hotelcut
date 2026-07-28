@@ -49,6 +49,8 @@ describe('API health routes', () => {
       info: { title: 'HotelCut API', version: '0.1.0' },
     });
     expect(document.paths).toHaveProperty('/v1/hotels');
+    expect(document.paths).toHaveProperty('/v1/auth/login');
+    expect(document.paths).toHaveProperty('/v1/auth/session');
     expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/assets/uploads');
     expect(document.paths).toHaveProperty('/v1/assets/{assetId}');
     expect(document.paths).toHaveProperty('/v1/assets/{assetId}/analysis/retry');

@@ -54,6 +54,8 @@ small, reviewable workspace slices. The repository now includes:
 - fixed-media golden rendering for all three hotel templates
 - an explicit development seed-account entry for the M7 Web workspace
 - tenant-scoped organization and hotel discovery with search and hotel selection
+- scrypt-based email login with an HttpOnly opaque session cookie
+- PostgreSQL session revocation and server-derived actor identity on protected routes
 
 ## Prerequisites
 
@@ -98,12 +100,16 @@ pnpm down
 For local hot reload, start infrastructure with `pnpm dev:infra` and applications with
 `pnpm dev:apps`.
 
-Compose applies migrations and loads fictional development data before starting the API. Local
-requests use the seeded development identity until the authentication milestone:
+Compose applies migrations and loads fictional development data before starting the API. Sign in
+through the Web app with the local-only seed credential:
 
 ```text
-x-user-id: 20000000-0000-4000-8000-000000000001
+email: owner@hotelcut.example
+password: hotelcut-local
 ```
+
+Set `ALLOW_DEVELOPMENT_IDENTITY=false` to disable the legacy `x-user-id` integration-test path
+and exercise only server-owned sessions.
 
 The seeded organization is `云栖酒店集团（演示）`. To manage the database manually:
 
@@ -169,8 +175,8 @@ See `packages/README.md` for package ownership.
 
 ## Current limitations
 
-- `x-user-id` is a development-only identity boundary; SSO/JWT authentication is not yet
-  implemented.
+- Basic email/password sessions are implemented, but self-service signup, password reset, email
+  verification, login rate limiting, MFA and enterprise SSO are not yet implemented.
 - Local Compose defaults to the deterministic `mock` transcription provider. Set
   `ANALYSIS_TRANSCRIPTION_PROVIDER=faster-whisper` to run the real model; the first run downloads
   the configured model into the persistent Docker model cache.
@@ -180,14 +186,15 @@ See `packages/README.md` for package ownership.
   Remotion and FFmpeg.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
-- The M7 workspace now selects a tenant-scoped hotel through the production API, but formal email
-  authentication and production video-project selection are not yet wired. The M5 Studio still
-  uses its fictional local project adapter.
+- The M7 workspace now authenticates with a server-owned session and selects a tenant-scoped hotel
+  through production APIs, but production video-project selection is not yet wired. The M5 Studio
+  still uses its fictional local project adapter.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
 ## M7 progress
 
-The first M7 slice uses the documented development seed account to load only organizations and
-hotels visible to its actor identity, search the hotel list and enter a selected hotel workspace.
-Formal email authentication, hotel configuration, the asset library, production project
-selection, the render center, operation audit and quotas remain M7 work.
+The first M7 slice added tenant-scoped hotel discovery and selection. The second slice adds
+email/password verification, revocable PostgreSQL sessions, HttpOnly cookie restoration and
+logout, and server-derived identity for all protected APIs. Hotel configuration, the asset
+library, production project selection, the render center, operation audit and quotas remain M7
+work.

@@ -338,3 +338,14 @@
   fake password form or hidden hard-coded identity would misrepresent the authentication state.
 - Impact: the workspace can exercise real tenant isolation now, while the UI must continue to
   label the session as development-only until formal email authentication replaces it.
+
+## ID-035: Basic email authentication uses opaque database sessions
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: hash local passwords with scrypt, issue 256-bit opaque tokens, persist only token
+  digests and expiries, and deliver the raw token in an HttpOnly, SameSite cookie.
+- Reason: browser-supplied user IDs cannot be a production trust boundary, while revocable opaque
+  sessions keep identity server-owned without pulling enterprise SSO into the MVP.
+- Impact: every protected API route resolves a current active user before tenant authorization;
+  `x-user-id` is a non-production compatibility path and the seed credential is local-only.

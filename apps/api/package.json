@@ -13,6 +13,7 @@
   "dependencies": {
     "@fastify/swagger": "^9.8.1",
     "@fastify/swagger-ui": "^6.1.0",
+    "@hotelcut/auth": "workspace:*",
     "@hotelcut/database": "workspace:*",
     "@hotelcut/domain": "workspace:*",
     "@hotelcut/job-queue": "workspace:*",

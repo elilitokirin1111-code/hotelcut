@@ -67,8 +67,10 @@ services:
       args:
         APP_FILTER: '@hotelcut/api'
     environment:
+      ALLOW_DEVELOPMENT_IDENTITY: ${ALLOW_DEVELOPMENT_IDENTITY:-true}
       API_HOST: 0.0.0.0
       API_PORT: 3000
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-604800}
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
       NODE_ENV: development
       REDIS_URL: redis://redis:6379
@@ -78,6 +80,7 @@ services:
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-hotelcut_local_secret}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     depends_on:
       db-bootstrap:
         condition: service_completed_successfully
@@ -107,6 +110,7 @@ services:
         APP_FILTER: '@hotelcut/database'
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
+      DEVELOPMENT_SEED_PASSWORD: ${DEVELOPMENT_SEED_PASSWORD:-hotelcut-local}
       SEED_DEVELOPMENT_DATA: ${SEED_DEVELOPMENT_DATA:-true}
     depends_on:
       postgres:

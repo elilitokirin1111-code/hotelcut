@@ -270,3 +270,21 @@ Verified on 2026-07-28:
 - selecting a hotel entered a workspace bound to that hotel and organization
 - Web typecheck, eight component/client tests and the production build passed
 - the browser flow completed login, list, search and selection with no console warnings or errors
+
+## M7 slice 2 verification record
+
+Verified on 2026-07-28:
+
+- scrypt credential tests covered correct, incorrect and malformed password hashes
+- opaque 256-bit tokens were stored only as SHA-256 digests in the new `user_sessions` table
+- email login issued an HttpOnly, SameSite cookie; protected routes ignored client user IDs when
+  the development compatibility path was disabled
+- session restoration, anonymous `204` probing, explicit logout revocation and expired-session
+  handling were covered by API and Web tests
+- migration `0003` applied to the active PostgreSQL service and the database-enabled integration
+  suite passed all seven M1/M2/M5/M6/M7 cases
+- the rebuilt Compose stack passed every service health check; a real login saw one tenant-scoped
+  organization and the revoked cookie received HTTP 401
+- format, lint, typecheck, unit tests, integration tests and the production build passed
+- the Chromium flow completed email login, hotel selection and workspace entry with no console or
+  page errors

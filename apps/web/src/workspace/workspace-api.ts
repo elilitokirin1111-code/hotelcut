@@ -1,4 +1,11 @@
-import { hotelSchema, organizationSchema, type Hotel, type Organization } from '@hotelcut/schemas';
+import {
+  authSessionSchema,
+  hotelSchema,
+  organizationSchema,
+  type AuthSession,
+  type Hotel,
+  type Organization,
+} from '@hotelcut/schemas';
 import { z } from 'zod';
 
 const errorResponseSchema = z.object({
@@ -12,7 +19,10 @@ export interface WorkspaceSnapshot {
 }
 
 export interface WorkspaceApi {
-  loadWorkspace(actorUserId: string, signal?: AbortSignal): Promise<WorkspaceSnapshot>;
+  getSession(signal?: AbortSignal): Promise<AuthSession | null>;
+  login(email: string, password: string): Promise<AuthSession>;
+  logout(): Promise<void>;
+  loadWorkspace(signal?: AbortSignal): Promise<WorkspaceSnapshot>;
 }
 
 export class WorkspaceApiError extends Error {
@@ -45,19 +55,22 @@ async function parseError(response: Response): Promise<WorkspaceApiError> {
 }
 
 export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
+  const fetchApi = async (path: string, init?: RequestInit): Promise<Response> =>
+    fetch(`${baseUrl}${path}`, {
+      credentials: 'include',
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...init?.headers,
+      },
+    });
+
   const request = async <T>(
     path: string,
-    actorUserId: string,
     schema: z.ZodType<T>,
     signal?: AbortSignal,
   ): Promise<T> => {
-    const response = await fetch(`${baseUrl}${path}`, {
-      headers: {
-        Accept: 'application/json',
-        'x-user-id': actorUserId,
-      },
-      ...(signal ? { signal } : {}),
-    });
+    const response = await fetchApi(path, signal ? { signal } : undefined);
     if (!response.ok) {
       throw await parseError(response);
     }
@@ -65,10 +78,40 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
   };
 
   return {
-    async loadWorkspace(actorUserId, signal) {
+    async getSession(signal) {
+      const response = await fetchApi('/v1/auth/session', signal ? { signal } : undefined);
+      if (response.status === 204) {
+        return null;
+      }
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+      return authSessionSchema.parse(await response.json());
+    },
+
+    async login(email, password) {
+      const response = await fetchApi('/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+      return authSessionSchema.parse(await response.json());
+    },
+
+    async logout() {
+      const response = await fetchApi('/v1/auth/session', { method: 'DELETE' });
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+    },
+
+    async loadWorkspace(signal) {
       const [organizations, hotels] = await Promise.all([
-        request('/v1/organizations', actorUserId, organizationSchema.array(), signal),
-        request('/v1/hotels', actorUserId, hotelSchema.array(), signal),
+        request('/v1/organizations', organizationSchema.array(), signal),
+        request('/v1/hotels', hotelSchema.array(), signal),
       ]);
       return { hotels, organizations };
     },

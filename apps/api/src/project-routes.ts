@@ -1,6 +1,5 @@
 import type { HotelCutRepository } from '@hotelcut/domain';
 import {
-  actorHeadersSchema,
   createVideoProjectSchema,
   errorResponseSchema,
   hotelIdParamsSchema,
@@ -52,20 +51,18 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
     '/v1/hotels/:hotelId/video-projects',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: {
           200: z.array(videoProjectSchema),
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'List editable video projects for a hotel',
         tags: ['video-projects'],
       },
     },
-    async (request) =>
-      repository().listVideoProjects(request.headers['x-user-id'], request.params.hotelId),
+    async (request) => repository().listVideoProjects(request.actorUserId, request.params.hotelId),
   );
 
   app.post(
@@ -73,7 +70,6 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
     {
       schema: {
         body: createVideoProjectSchema,
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: {
           201: videoProjectDetailSchema,
@@ -81,7 +77,7 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
           404: errorResponseSchema,
           409: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Create a project and immutable first revision',
         tags: ['video-projects'],
       },
@@ -95,7 +91,7 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
         throw new ProjectRequestError('Project document hotelId must match the route hotelId');
       }
       const result = await repository().createVideoProject(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.hotelId,
         {
           ...request.body,
@@ -111,40 +107,36 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
     '/v1/video-projects/:id',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: videoProjectDetailSchema,
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Load the current editable project revision',
         tags: ['video-projects'],
       },
     },
-    async (request) =>
-      repository().getVideoProject(request.headers['x-user-id'], request.params.id),
+    async (request) => repository().getVideoProject(request.actorUserId, request.params.id),
   );
 
   app.get(
     '/v1/video-projects/:id/revisions',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: z.array(projectRevisionSchema),
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'List immutable revisions for a project',
         tags: ['video-projects'],
       },
     },
-    async (request) =>
-      repository().listProjectRevisions(request.headers['x-user-id'], request.params.id),
+    async (request) => repository().listProjectRevisions(request.actorUserId, request.params.id),
   );
 
   app.post(
@@ -152,7 +144,6 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
     {
       schema: {
         body: saveProjectRevisionSchema,
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           201: videoProjectDetailSchema,
@@ -160,7 +151,7 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
           404: errorResponseSchema,
           409: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Autosave a validated immutable project revision',
         tags: ['video-projects'],
       },
@@ -171,7 +162,7 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
         throw new ProjectRequestError('Project document id must match the route project id');
       }
       const result = await repository().saveProjectRevision(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.id,
         {
           ...request.body,

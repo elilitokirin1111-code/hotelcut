@@ -37,19 +37,27 @@ membership joins in the repository remain the source of truth, and inaccessible 
 continue to return 404. Search and selection operate only on the already tenant-filtered API
 response.
 
-The seed identity is not formal authentication. It is:
+The original seed identity was fictional, development-only, not persisted in browser storage and
+visibly labeled as incomplete authentication.
 
-- fictional
-- development-only
-- not persisted in browser storage
-- visibly labeled as incomplete authentication
+## Slice 2: basic email session
 
-M7 must add basic email authentication before this path can be considered suitable for real
-hotel customers. Complex enterprise SSO remains outside the MVP.
+The second slice replaces the Web seed-button identity with a real email/password session:
+
+1. `POST /v1/auth/login` verifies the normalized email and scrypt password hash.
+2. PostgreSQL stores only a digest of the opaque session token and its expiry.
+3. The API returns the raw token only in an HttpOnly, SameSite cookie.
+4. Protected routes resolve that cookie to an active user and inject the actor identity before
+   tenant-scoped repository calls.
+5. `GET /v1/auth/session` restores the Web session and `DELETE /v1/auth/session` revokes it.
+6. The development header remains available only when explicitly allowed outside production.
+
+The fictional seed account now exercises this formal boundary. It remains clearly labeled as
+local-only data; production must disable seeding. Password reset, email verification, login rate
+limiting and enterprise SSO remain later hardening or expansion work.
 
 ## Remaining M7 slices
 
-- basic email login and server-owned session identity
 - editable hotel and BrandKit configuration
 - asset upload, analysis status, filtering and manual tagging
 - production video-project selection and Studio autosave adapter

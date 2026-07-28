@@ -92,6 +92,7 @@ export const users = pgTable(
     id: uuid('id').primaryKey(),
     externalSubject: varchar('external_subject', { length: 200 }).notNull(),
     email: varchar('email', { length: 320 }),
+    passwordHash: varchar('password_hash', { length: 300 }),
     displayName: varchar('display_name', { length: 120 }).notNull(),
     status: userStatus('status').default('active').notNull(),
     ...timestamps,
@@ -99,6 +100,24 @@ export const users = pgTable(
   (table) => [
     uniqueIndex('users_external_subject_unique').on(table.externalSubject),
     uniqueIndex('users_email_unique').on(table.email),
+  ],
+);
+
+export const userSessions = pgTable(
+  'user_sessions',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('user_sessions_token_hash_unique').on(table.tokenHash),
+    index('user_sessions_user_idx').on(table.userId),
+    index('user_sessions_expires_at_idx').on(table.expiresAt),
   ],
 );
 

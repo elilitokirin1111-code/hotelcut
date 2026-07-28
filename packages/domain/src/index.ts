@@ -27,6 +27,7 @@ import type {
   RenderJobStatus,
   UpdateHotelInput,
   UpsertBrandKitInput,
+  User,
   VideoBrief,
   VideoProject,
   VideoProjectDetail,
@@ -111,6 +112,30 @@ export class DomainConflictError extends Error {
     super(message);
     this.name = 'DomainConflictError';
   }
+}
+
+export interface PasswordCredential {
+  passwordHash: string;
+  user: User;
+}
+
+export interface CreateUserSessionInput {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+}
+
+export interface UserSessionIdentity {
+  user: User;
+  expiresAt: Date;
+}
+
+export interface AuthRepository {
+  findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
+  createUserSession(input: CreateUserSessionInput): Promise<void>;
+  findUserBySessionTokenHash(tokenHash: string, now: Date): Promise<UserSessionIdentity | null>;
+  revokeUserSession(tokenHash: string): Promise<void>;
 }
 
 export interface HotelCutRepository {

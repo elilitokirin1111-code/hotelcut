@@ -1,11 +1,12 @@
 # Data model
 
-Status: M1 core model, M2 media lifecycle, M5 revisions and M6 rendering implemented.
+Status: M1 core model, M2 media lifecycle, M5 revisions, M6 rendering and M7 sessions implemented.
 
 ## Tenant and hotel
 
 - Organization
 - User
+- UserSession
 - Membership
 - Hotel
 - BrandKit
@@ -15,6 +16,10 @@ checked by repository queries as well as API handlers.
 
 `Membership` is unique by organization and user. A hotel name is unique inside an organization,
 and a hotel has at most one BrandKit.
+
+`User.passwordHash` is nullable so future external-identity users do not require a local
+credential. `UserSession` stores only a unique token digest, the owning user, creation time and
+expiry. Session deletion revokes access immediately; deleting a user cascades to every session.
 
 ## Media and projects
 

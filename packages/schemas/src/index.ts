@@ -60,6 +60,23 @@ export const userSchema = z.object({
   updatedAt: dateTimeSchema,
 });
 
+export const authenticatedUserSchema = userSchema.pick({
+  id: true,
+  email: true,
+  displayName: true,
+  status: true,
+});
+
+export const emailLoginSchema = z.object({
+  email: z.email().trim().toLowerCase(),
+  password: z.string().min(10).max(200),
+});
+
+export const authSessionSchema = z.object({
+  user: authenticatedUserSchema.extend({ email: z.email(), status: z.literal('active') }),
+  expiresAt: dateTimeSchema,
+});
+
 export const membershipSchema = z.object({
   id: idSchema,
   organizationId: idSchema,
@@ -449,6 +466,9 @@ export const errorResponseSchema = z.object({
 
 export type Organization = z.infer<typeof organizationSchema>;
 export type User = z.infer<typeof userSchema>;
+export type AuthenticatedUser = z.infer<typeof authenticatedUserSchema>;
+export type EmailLoginInput = z.infer<typeof emailLoginSchema>;
+export type AuthSession = z.infer<typeof authSessionSchema>;
 export type Membership = z.infer<typeof membershipSchema>;
 export type Hotel = z.infer<typeof hotelSchema>;
 export type CreateHotelInput = z.infer<typeof createHotelSchema>;
