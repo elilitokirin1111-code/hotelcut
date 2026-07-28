@@ -6,12 +6,12 @@ quality report.
 
 ## Milestone status
 
-M0 through M5 were completed and locally accepted on 2026-07-28. The repository now includes:
+M0 through M6 were completed and locally accepted on 2026-07-28. The repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
 - Fastify API
-- BullMQ render worker boundary
+- BullMQ render queue with progress, cancellation and retry
 - Python 3.12 analysis worker boundary
 - PostgreSQL, Redis and MinIO development infrastructure
 - strict TypeScript and Python quality gates
@@ -44,6 +44,13 @@ M0 through M5 were completed and locally accepted on 2026-07-28. The repository 
 - no-JSON controls for title, caption, CTA and music editing
 - debounced autosave backed by immutable project revisions and optimistic concurrency
 - tenant-scoped project and revision APIs
+- a renderer-neutral adapter and Remotion implementation
+- FFmpeg normalization, probing, cover extraction, black-frame and silence detection
+- MP4, SRT, cover, normalized project, media manifest and quality-report artifacts
+- eleven mandatory output quality checks with success gating
+- tenant-scoped render-job, artifact and short-lived download APIs
+- a Chromium/FFmpeg render-worker image and full Compose wiring
+- fixed-media golden rendering for all three hotel templates
 
 ## Prerequisites
 
@@ -113,6 +120,7 @@ pnpm test
 pnpm test:integration
 pnpm build
 pnpm test:e2e
+pnpm --filter @hotelcut/renderer acceptance:golden
 ```
 
 The Python commands prefer a repository-local `.venv` and otherwise use Python from `PATH`.
@@ -145,6 +153,8 @@ packages/
   compiler/
   templates/
   editor/
+  renderer/
+  quality-control/
 infrastructure/
   docker/
   scripts/
@@ -163,17 +173,19 @@ See `packages/README.md` for package ownership.
   the configured model into the persistent Docker model cache.
 - M2 detects scenes, speech and VAD ranges. Black-frame, duplicate-fingerprint and waveform
   analysis remain follow-up analysis enhancements.
-- The M5 preview interprets project frames in the browser and is not a pixel-accurate final
-  renderer. The render worker accepts only an M0 healthcheck job; real rendering begins in M6.
+- The M5 preview remains an editorial interpreter; M6 final output is produced independently by
+  Remotion and FFmpeg.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
 - The M5 Studio currently uses a fictional local project adapter. The production API persistence
   boundary is implemented and integration tested; authenticated hotel/project selection is an M7
   workspace concern.
+- Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
-## M6 readiness
+## M7 readiness
 
-M5 can review and correct a validated `HotelVideoProject` without exposing JSON. Every accepted
-change produces another validated document, and persistence creates an immutable revision using
-optimistic concurrency. M6 can consume a fixed revision through the renderer adapter without
-depending on browser preview implementation details.
+M6 consumes an immutable project revision, renders the three initial templates, persists
+traceable progress and terminal state, uploads six artifact kinds, and refuses success when a
+mandatory quality check fails. M7 can now wire the Studio's production project selection to the
+render endpoints and present the resulting render center without changing editor or renderer
+contracts.

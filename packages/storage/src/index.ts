@@ -4,6 +4,7 @@ import {
   CreateMultipartUploadCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  PutObjectCommand,
   S3Client,
   UploadPartCommand,
   type CompletedPart,
@@ -55,6 +56,13 @@ export interface MultipartObjectStorage {
     reference: Pick<StoredObjectReference, 'bucket' | 'key'>,
     expiresInSeconds: number,
   ): Promise<string>;
+  putObject(input: {
+    bucket: string;
+    key: string;
+    contentType: string;
+    body: Uint8Array;
+    checksumSha256: string;
+  }): Promise<void>;
 }
 
 export interface S3StorageOptions {
@@ -180,6 +188,24 @@ export class S3MultipartObjectStorage implements MultipartObjectStorage {
         Key: reference.key,
       }),
       { expiresIn: expiresInSeconds },
+    );
+  }
+
+  async putObject(input: {
+    bucket: string;
+    key: string;
+    contentType: string;
+    body: Uint8Array;
+    checksumSha256: string;
+  }): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: input.bucket,
+        Key: input.key,
+        Body: input.body,
+        ContentType: input.contentType,
+        Metadata: { sha256: input.checksumSha256.toLowerCase() },
+      }),
     );
   }
 }

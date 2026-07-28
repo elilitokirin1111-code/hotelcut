@@ -15,6 +15,13 @@
       "when": 1785124951007,
       "tag": "0001_numerous_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785221078383,
+      "tag": "0002_brown_silver_surfer",
+      "breakpoints": true
     }
   ]
 }

@@ -31,7 +31,14 @@ export const renderJobStatusSchema = z.enum([
   'failed',
   'cancelled',
 ]);
-export const renderArtifactKindSchema = z.enum(['video', 'thumbnail', 'captions', 'report']);
+export const renderArtifactKindSchema = z.enum([
+  'video',
+  'thumbnail',
+  'captions',
+  'report',
+  'project',
+  'manifest',
+]);
 export const qualityReportStatusSchema = z.enum(['passed', 'warning', 'failed']);
 export const videoPlatformSchema = z.enum(['douyin', 'xiaohongshu', 'wechat_channels', 'other']);
 
@@ -360,6 +367,14 @@ export const videoProjectDetailSchema = z.object({
   currentRevision: projectRevisionSchema,
 });
 
+export const renderLogEntrySchema = z.object({
+  timestamp: dateTimeSchema,
+  level: z.enum(['info', 'warning', 'error']),
+  stage: z.enum(['queued', 'preprocessing', 'rendering', 'postprocessing', 'validating']),
+  message: z.string().min(1).max(2_000),
+  details: z.record(z.string(), z.unknown()).default({}),
+});
+
 export const renderJobSchema = z.object({
   id: idSchema,
   videoProjectId: idSchema,
@@ -367,6 +382,11 @@ export const renderJobSchema = z.object({
   requestedByUserId: idSchema,
   status: renderJobStatusSchema,
   attempt: z.number().int().nonnegative(),
+  maxAttempts: z.number().int().min(1).max(10),
+  progressBasisPoints: z.number().int().min(0).max(10_000),
+  inputHash: z.string().regex(/^[0-9A-Fa-f]{64}$/),
+  logs: z.array(renderLogEntrySchema),
+  cancelRequestedAt: dateTimeSchema.nullable(),
   errorCode: z.string().max(100).nullable(),
   errorMessage: z.string().nullable(),
   startedAt: dateTimeSchema.nullable(),
@@ -390,6 +410,10 @@ export const renderArtifactSchema = z.object({
   createdAt: dateTimeSchema,
 });
 
+export const createRenderJobSchema = z.object({
+  projectRevisionId: idSchema.optional(),
+});
+
 export const qualityReportSchema = z.object({
   id: idSchema,
   renderJobId: idSchema,
@@ -397,6 +421,18 @@ export const qualityReportSchema = z.object({
   scoreBasisPoints: z.number().int().min(0).max(10_000),
   details: z.record(z.string(), z.unknown()),
   createdAt: dateTimeSchema,
+});
+
+export const renderJobDetailSchema = z.object({
+  job: renderJobSchema,
+  artifacts: z.array(renderArtifactSchema),
+  qualityReport: qualityReportSchema.nullable(),
+});
+
+export const renderArtifactDownloadSchema = z.object({
+  artifact: renderArtifactSchema,
+  downloadUrl: z.url(),
+  expiresAt: dateTimeSchema,
 });
 
 export const actorHeadersSchema = z.object({
@@ -439,5 +475,9 @@ export type SaveProjectRevisionInput = z.infer<typeof saveProjectRevisionSchema>
 export type VideoProjectDetail = z.infer<typeof videoProjectDetailSchema>;
 export type RenderJob = z.infer<typeof renderJobSchema>;
 export type RenderJobStatus = z.infer<typeof renderJobStatusSchema>;
+export type RenderLogEntry = z.infer<typeof renderLogEntrySchema>;
+export type CreateRenderJobInput = z.infer<typeof createRenderJobSchema>;
 export type RenderArtifact = z.infer<typeof renderArtifactSchema>;
+export type RenderArtifactKind = z.infer<typeof renderArtifactKindSchema>;
 export type QualityReport = z.infer<typeof qualityReportSchema>;
+export type RenderJobDetail = z.infer<typeof renderJobDetailSchema>;

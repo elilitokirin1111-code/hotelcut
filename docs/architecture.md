@@ -19,8 +19,8 @@ Fastify API ---- PostgreSQL
 ```
 
 The API persists through a tenant-scoped repository and reports PostgreSQL readiness. Compose
-runs an idempotent migration-and-seed bootstrap before the API starts. M2 media analysis runs
-outside the request process; rendering begins in M6.
+runs an idempotent migration-and-seed bootstrap before the API starts. Media analysis and final
+rendering both run outside the request process.
 
 ## Technology choices
 
@@ -121,6 +121,33 @@ The API compares `baseRevision` with the current project revision in the same tr
 successful save advances the project pointer and inserts an immutable revision; a stale save
 returns conflict instead of overwriting another editor.
 
+## M6 rendering flow
+
+```text
+immutable ProjectRevision + ready asset URLs
+                    |
+                    v
+            RendererAdapter
+                    |
+             RemotionRenderer
+                    |
+       FFmpeg normalize/probe/detect
+                    |
+                    v
+         11 quality-control checks
+              /             \
+          pass             fail
+           |                 |
+   six MinIO artifacts   traceable failed job
+           |
+   succeeded render job
+```
+
+`@hotelcut/renderer` owns engine translation and file production.
+`@hotelcut/quality-control` owns pure policy checks. The render worker owns orchestration,
+cancellation polling, progress logs, signed input URLs, artifact upload and terminal
+persistence. The API never renders in its request process.
+
 ## Long-running work
 
 API requests create jobs and return identifiers. Analysis and rendering run in independent
@@ -133,5 +160,5 @@ workers, publish progress, persist terminal states and support idempotent retrie
 - M3: timeline schema, migration, OTIO prototype and template SDK (implemented)
 - M4: timeline compiler, hotel templates and generation explanations (implemented)
 - M5: preview, pure edit commands, undo/redo and project revisions (implemented)
-- M6: renderer contracts, implementations and quality control
+- M6: renderer contracts, Remotion/FFmpeg implementation, worker and quality control (implemented)
 - M8: OpenCut adapter

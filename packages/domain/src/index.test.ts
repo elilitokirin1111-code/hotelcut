@@ -8,6 +8,7 @@ describe('render job state machine', () => {
     expect(canTransitionRenderJob('preprocessing', 'rendering')).toBe(true);
     expect(canTransitionRenderJob('rendering', 'validating')).toBe(true);
     expect(canTransitionRenderJob('validating', 'succeeded')).toBe(true);
+    expect(canTransitionRenderJob('queued', 'failed')).toBe(true);
   });
 
   it('keeps terminal states terminal', () => {

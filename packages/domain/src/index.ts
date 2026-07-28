@@ -11,11 +11,18 @@ import type {
   CreateAssetUploadInput,
   CreateHotelInput,
   CreateManualSegmentInput,
+  CreateRenderJobInput,
   CreateVideoProjectInput,
   CreateVideoBriefInput,
   Hotel,
   Organization,
   ProjectRevision,
+  QualityReport,
+  RenderArtifact,
+  RenderArtifactKind,
+  RenderJob,
+  RenderJobDetail,
+  RenderLogEntry,
   SaveProjectRevisionInput,
   RenderJobStatus,
   UpdateHotelInput,
@@ -54,6 +61,38 @@ export interface PersistVideoProjectInput extends CreateVideoProjectInput {
 
 export interface PersistProjectRevisionInput extends SaveProjectRevisionInput {
   schemaVersion: string;
+}
+
+export interface WorkerRenderAsset {
+  id: string;
+  kind: Asset['kind'];
+  status: Asset['status'];
+  storageBucket: string;
+  storageKey: string;
+  contentType: string;
+  byteSize: number;
+  checksumSha256: string | null;
+}
+
+export interface RenderJobContext {
+  job: RenderJob;
+  projectRevision: ProjectRevision;
+  assets: WorkerRenderAsset[];
+}
+
+export interface PersistRenderArtifactInput {
+  kind: RenderArtifactKind;
+  storageBucket: string;
+  storageKey: string;
+  contentType: string;
+  byteSize: number;
+  checksumSha256: string;
+}
+
+export interface PersistQualityReportInput {
+  status: QualityReport['status'];
+  scoreBasisPoints: number;
+  details: Record<string, unknown>;
 }
 
 export class DomainNotFoundError extends Error {
@@ -107,6 +146,32 @@ export interface HotelCutRepository {
     projectId: string,
     input: PersistProjectRevisionInput,
   ): Promise<VideoProjectDetail>;
+  listRenderJobs(actorUserId: string, projectId: string): Promise<RenderJob[]>;
+  createRenderJob(
+    actorUserId: string,
+    projectId: string,
+    input: CreateRenderJobInput,
+  ): Promise<RenderJob>;
+  getRenderJob(actorUserId: string, renderJobId: string): Promise<RenderJobDetail>;
+  requestRenderCancellation(actorUserId: string, renderJobId: string): Promise<RenderJob>;
+  retryRenderJob(actorUserId: string, renderJobId: string): Promise<RenderJob>;
+  getRenderArtifact(actorUserId: string, artifactId: string): Promise<RenderArtifact>;
+  markRenderQueueFailure(renderJobId: string, message: string): Promise<void>;
+  startRenderJob(renderJobId: string): Promise<RenderJobContext>;
+  isRenderCancellationRequested(renderJobId: string): Promise<boolean>;
+  updateRenderJobProgress(
+    renderJobId: string,
+    status: RenderJobStatus,
+    progressBasisPoints: number,
+    logEntry: RenderLogEntry,
+  ): Promise<RenderJob>;
+  persistRenderOutcome(
+    renderJobId: string,
+    artifacts: PersistRenderArtifactInput[],
+    qualityReport: PersistQualityReportInput,
+  ): Promise<RenderJobDetail>;
+  failRenderJob(renderJobId: string, errorCode: string, errorMessage: string): Promise<void>;
+  acknowledgeRenderCancellation(renderJobId: string, message: string): Promise<void>;
   listAssets(actorUserId: string, hotelId: string): Promise<Asset[]>;
   registerAssetUpload(
     actorUserId: string,
@@ -138,7 +203,7 @@ export interface HotelCutRepository {
 }
 
 const allowedRenderJobTransitions: Readonly<Record<RenderJobStatus, readonly RenderJobStatus[]>> = {
-  queued: ['preprocessing', 'cancelled'],
+  queued: ['preprocessing', 'failed', 'cancelled'],
   preprocessing: ['rendering', 'failed', 'cancelled'],
   rendering: ['validating', 'failed', 'cancelled'],
   validating: ['succeeded', 'failed'],

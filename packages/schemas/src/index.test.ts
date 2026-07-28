@@ -6,6 +6,7 @@ import {
   createVideoProjectSchema,
   createVideoBriefSchema,
   dateTimeSchema,
+  renderJobSchema,
   saveProjectRevisionSchema,
   upsertBrandKitSchema,
 } from './index.js';
@@ -93,5 +94,38 @@ describe('shared input schemas', () => {
         projectDocument,
       }),
     ).toThrow();
+  });
+
+  it('validates durable render progress and structured logs', () => {
+    const now = '2026-07-28T07:00:00.000Z';
+    expect(
+      renderJobSchema.parse({
+        id: '80000000-0000-4000-8000-000000000001',
+        videoProjectId: '70000000-0000-4000-8000-000000000001',
+        projectRevisionId: '71000000-0000-4000-8000-000000000001',
+        requestedByUserId: '20000000-0000-4000-8000-000000000001',
+        status: 'rendering',
+        attempt: 1,
+        maxAttempts: 3,
+        progressBasisPoints: 5_000,
+        inputHash: 'a'.repeat(64),
+        logs: [
+          {
+            timestamp: now,
+            level: 'info',
+            stage: 'rendering',
+            message: 'Rendering frames 50%',
+            details: { renderer: 'remotion' },
+          },
+        ],
+        cancelRequestedAt: null,
+        errorCode: null,
+        errorMessage: null,
+        startedAt: now,
+        finishedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    ).toMatchObject({ status: 'rendering', progressBasisPoints: 5_000 });
   });
 });

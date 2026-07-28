@@ -209,4 +209,42 @@ Verified on 2026-07-28:
 - PostgreSQL/API integration created revision 1, saved revision 2 and rejected a stale revision 1
   save with HTTP 409
 - another tenant could not read the project or revision history
+
+## M6 gate
+
+M6 is complete only when:
+
+- render requests bind to an immutable project revision and SHA-256 input hash
+- BullMQ invokes a real render worker and reports durable progress
+- cancellation stops in-flight Remotion/FFmpeg work and queued or failed work is safely retryable
+- Remotion renders video, image, audio, text, captions, CTA, BrandKit tokens and transitions
+- FFmpeg emits a normalized H.264/AAC 1080 by 1920 MP4 at the project frame rate
+- every attempt produces MP4, SRT, cover, project JSON, media manifest and quality report
+- ffprobe, duration, audio, caption safe area, missing asset, black, silence and CTA checks run
+- a mandatory quality failure cannot produce a successful job
+- project state and immutable revisions survive failures unchanged
+- job, artifact and download APIs remain tenant scoped
+- all three fixed golden projects complete a full-duration real render
+
+## M6 verification record
+
+Verified on 2026-07-28:
+
+- migration `0002_brown_silver_surfer.sql` upgraded the active PostgreSQL database
+- OpenAPI exposed render create/list/detail, cancel, retry and artifact-download routes
+- database/API integration covered immutable revision binding, cross-tenant 404s, progress,
+  quality-gated success, six artifacts, signed download, cancellation and retry
+- render-worker tests covered success, quality failure, cancellation and traceable engine failure
+  without mutating the project
+- fixed synthetic media completed full-duration renders for host+B-roll (30 s), room montage
+  (25 s) and promotion (20 s)
+- all three outputs were ffprobe-readable H.264/AAC, 1080 by 1920 at 30 fps with audio
+- all three received `passed` and 10,000 basis points across eleven mandatory checks
+- the same three full-duration renders passed inside the Linux `render-worker` container, using
+  its packaged Chromium and FFmpeg; ignored evidence was copied to
+  `tmp/m6-linux-acceptance-2026-07-28`
+- the render-worker image includes Chromium, FFmpeg and Noto CJK fonts; Compose supplies
+  PostgreSQL, Redis and internal MinIO configuration
+- the database-enabled integration suite passed all six M1/M2/M5/M6 cases against the active
+  PostgreSQL service
 - the desktop browser review found no console warnings or layout overlap at 1440 × 1000

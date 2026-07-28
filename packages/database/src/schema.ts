@@ -70,6 +70,8 @@ export const renderArtifactKind = pgEnum('render_artifact_kind', [
   'thumbnail',
   'captions',
   'report',
+  'project',
+  'manifest',
 ]);
 export const qualityReportStatus = pgEnum('quality_report_status', ['passed', 'warning', 'failed']);
 
@@ -387,6 +389,13 @@ export const renderJobs = pgTable(
       .references(() => users.id, { onDelete: 'restrict' }),
     status: renderJobStatus('status').default('queued').notNull(),
     attempt: integer('attempt').default(0).notNull(),
+    maxAttempts: integer('max_attempts').default(3).notNull(),
+    progressBasisPoints: integer('progress_basis_points').default(0).notNull(),
+    inputHash: varchar('input_hash', { length: 64 }).notNull(),
+    logs: jsonb('logs')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    cancelRequestedAt: timestamp('cancel_requested_at', { withTimezone: true }),
     errorCode: varchar('error_code', { length: 100 }),
     errorMessage: text('error_message'),
     startedAt: timestamp('started_at', { withTimezone: true }),
@@ -397,6 +406,15 @@ export const renderJobs = pgTable(
     index('render_jobs_project_idx').on(table.videoProjectId),
     index('render_jobs_status_idx').on(table.status),
     check('render_jobs_attempt_nonnegative', sql`${table.attempt} >= 0`),
+    check(
+      'render_jobs_max_attempts_range',
+      sql`${table.maxAttempts} >= 1 and ${table.maxAttempts} <= 10`,
+    ),
+    check(
+      'render_jobs_progress_range',
+      sql`${table.progressBasisPoints} >= 0 and ${table.progressBasisPoints} <= 10000`,
+    ),
+    check('render_jobs_input_hash_format', sql`${table.inputHash} ~ '^[0-9a-fA-F]{64}$'`),
   ],
 );
 
@@ -417,6 +435,7 @@ export const renderArtifacts = pgTable(
   },
   (table) => [
     index('render_artifacts_job_idx').on(table.renderJobId),
+    uniqueIndex('render_artifacts_job_kind_unique').on(table.renderJobId, table.kind),
     uniqueIndex('render_artifacts_storage_location_unique').on(
       table.storageBucket,
       table.storageKey,

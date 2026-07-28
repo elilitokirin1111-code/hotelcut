@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
@@ -6,8 +6,11 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import {
   DomainConflictError,
   DomainNotFoundError,
+  assertRenderJobTransition,
   type AssetUploadContext,
   type HotelCutRepository,
+  type PersistQualityReportInput,
+  type PersistRenderArtifactInput,
   type PersistProjectRevisionInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
@@ -26,10 +29,17 @@ import type {
   CompleteAssetUploadInput,
   CreateHotelInput,
   CreateManualSegmentInput,
+  CreateRenderJobInput,
   CreateVideoBriefInput,
   Hotel,
   Organization,
   ProjectRevision,
+  QualityReport,
+  RenderArtifact,
+  RenderJob,
+  RenderJobDetail,
+  RenderLogEntry,
+  RenderJobStatus,
   UpdateHotelInput,
   UpsertBrandKitInput,
   VideoBrief,
@@ -43,6 +53,9 @@ import {
   assetSegmentSchema,
   assetUploadSchema,
   projectRevisionSchema,
+  qualityReportSchema,
+  renderArtifactSchema,
+  renderJobSchema,
   videoBriefSchema,
   videoProjectSchema,
 } from '@hotelcut/schemas';
@@ -132,6 +145,62 @@ function mapAnalysisJob(row: typeof schema.analysisJobs.$inferSelect): AnalysisJ
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   });
+}
+
+function mapRenderJob(row: typeof schema.renderJobs.$inferSelect): RenderJob {
+  return renderJobSchema.parse({
+    ...row,
+    cancelRequestedAt: row.cancelRequestedAt ? toIso(row.cancelRequestedAt) : null,
+    startedAt: row.startedAt ? toIso(row.startedAt) : null,
+    finishedAt: row.finishedAt ? toIso(row.finishedAt) : null,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  });
+}
+
+function mapRenderArtifact(row: typeof schema.renderArtifacts.$inferSelect): RenderArtifact {
+  return renderArtifactSchema.parse({
+    ...row,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function mapQualityReport(row: typeof schema.qualityReports.$inferSelect): QualityReport {
+  return qualityReportSchema.parse({
+    ...row,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function appendRenderLog(logs: unknown, entry: RenderLogEntry): RenderLogEntry[] {
+  return [...renderJobSchema.shape.logs.parse(logs), entry];
+}
+
+function renderLog(
+  stage: RenderLogEntry['stage'],
+  message: string,
+  level: RenderLogEntry['level'] = 'info',
+  details: Record<string, unknown> = {},
+): RenderLogEntry {
+  return {
+    timestamp: new Date().toISOString(),
+    level,
+    stage,
+    message,
+    details,
+  };
+}
+
+function renderStageForStatus(status: RenderJobStatus): RenderLogEntry['stage'] {
+  if (
+    status === 'queued' ||
+    status === 'preprocessing' ||
+    status === 'rendering' ||
+    status === 'validating'
+  ) {
+    return status;
+  }
+  return 'validating';
 }
 
 export class PostgresHotelCutRepository implements HotelCutRepository {
@@ -465,6 +534,486 @@ export class PostgresHotelCutRepository implements HotelCutRepository {
         project: mapVideoProject(projectRow),
         currentRevision: mapProjectRevision(revisionRow),
       };
+    });
+  }
+
+  async listRenderJobs(actorUserId: string, projectId: string): Promise<RenderJob[]> {
+    await this.requireVideoProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.renderJobs)
+      .where(eq(schema.renderJobs.videoProjectId, projectId))
+      .orderBy(desc(schema.renderJobs.createdAt));
+    return rows.map(mapRenderJob);
+  }
+
+  async createRenderJob(
+    actorUserId: string,
+    projectId: string,
+    input: CreateRenderJobInput,
+  ): Promise<RenderJob> {
+    const project = await this.requireVideoProjectMember(actorUserId, projectId);
+    const revisionCondition = input.projectRevisionId
+      ? eq(schema.projectRevisions.id, input.projectRevisionId)
+      : eq(schema.projectRevisions.revision, project.currentRevision);
+    const [revision] = await this.db
+      .select()
+      .from(schema.projectRevisions)
+      .where(and(eq(schema.projectRevisions.videoProjectId, projectId), revisionCondition))
+      .limit(1);
+    if (!revision) {
+      throw new DomainNotFoundError('Project revision not found');
+    }
+
+    const inputHash = createHash('sha256')
+      .update(JSON.stringify(revision.projectDocument))
+      .digest('hex');
+    const now = new Date();
+    const [row] = await this.db
+      .insert(schema.renderJobs)
+      .values({
+        id: randomUUID(),
+        videoProjectId: projectId,
+        projectRevisionId: revision.id,
+        requestedByUserId: actorUserId,
+        inputHash,
+        logs: [
+          renderLog('queued', `Render queued for immutable revision ${revision.revision}`, 'info', {
+            projectRevisionId: revision.id,
+            revision: revision.revision,
+          }),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    if (!row) {
+      throw new Error('Render job insert did not return a row');
+    }
+    return mapRenderJob(row);
+  }
+
+  async getRenderJob(actorUserId: string, renderJobId: string): Promise<RenderJobDetail> {
+    const jobRow = await this.requireRenderJobMember(actorUserId, renderJobId);
+    const [artifactRows, reportRows] = await Promise.all([
+      this.db
+        .select()
+        .from(schema.renderArtifacts)
+        .where(eq(schema.renderArtifacts.renderJobId, renderJobId))
+        .orderBy(asc(schema.renderArtifacts.kind)),
+      this.db
+        .select()
+        .from(schema.qualityReports)
+        .where(eq(schema.qualityReports.renderJobId, renderJobId))
+        .limit(1),
+    ]);
+    return {
+      job: mapRenderJob(jobRow),
+      artifacts: artifactRows.map(mapRenderArtifact),
+      qualityReport: reportRows[0] ? mapQualityReport(reportRows[0]) : null,
+    };
+  }
+
+  async requestRenderCancellation(actorUserId: string, renderJobId: string): Promise<RenderJob> {
+    const job = await this.requireRenderJobMember(actorUserId, renderJobId);
+    if (!['queued', 'preprocessing', 'rendering'].includes(job.status)) {
+      throw new DomainConflictError(`Render job cannot be cancelled from ${job.status}`);
+    }
+    const now = new Date();
+    const queued = job.status === 'queued';
+    const [updated] = await this.db
+      .update(schema.renderJobs)
+      .set({
+        status: queued ? 'cancelled' : job.status,
+        cancelRequestedAt: now,
+        finishedAt: queued ? now : null,
+        progressBasisPoints: job.progressBasisPoints,
+        logs: appendRenderLog(
+          job.logs,
+          renderLog(
+            queued ? 'queued' : renderStageForStatus(job.status),
+            queued ? 'Queued render was cancelled' : 'Render cancellation was requested',
+          ),
+        ),
+        updatedAt: now,
+      })
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .returning();
+    if (!updated) {
+      throw new DomainNotFoundError('Render job not found');
+    }
+    return mapRenderJob(updated);
+  }
+
+  async retryRenderJob(actorUserId: string, renderJobId: string): Promise<RenderJob> {
+    const job = await this.requireRenderJobMember(actorUserId, renderJobId);
+    if (!['failed', 'cancelled'].includes(job.status)) {
+      throw new DomainConflictError(`Render job cannot be retried from ${job.status}`);
+    }
+    if (job.attempt >= job.maxAttempts) {
+      throw new DomainConflictError('Render job has exhausted its retry attempts');
+    }
+    const now = new Date();
+    const [updated] = await this.db
+      .update(schema.renderJobs)
+      .set({
+        status: 'queued',
+        progressBasisPoints: 0,
+        cancelRequestedAt: null,
+        errorCode: null,
+        errorMessage: null,
+        startedAt: null,
+        finishedAt: null,
+        logs: appendRenderLog(
+          job.logs,
+          renderLog('queued', `Manual retry queued after attempt ${job.attempt}`),
+        ),
+        updatedAt: now,
+      })
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .returning();
+    if (!updated) {
+      throw new DomainNotFoundError('Render job not found');
+    }
+    return mapRenderJob(updated);
+  }
+
+  async getRenderArtifact(actorUserId: string, artifactId: string): Promise<RenderArtifact> {
+    const artifact = await this.requireRenderArtifactMember(actorUserId, artifactId);
+    return mapRenderArtifact(artifact);
+  }
+
+  async markRenderQueueFailure(renderJobId: string, message: string): Promise<void> {
+    const [job] = await this.db
+      .select()
+      .from(schema.renderJobs)
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .limit(1);
+    if (!job || job.status !== 'queued') {
+      return;
+    }
+    assertRenderJobTransition(job.status, 'failed');
+    const now = new Date();
+    await this.db
+      .update(schema.renderJobs)
+      .set({
+        status: 'failed',
+        errorCode: 'QUEUE_PUBLISH_FAILED',
+        errorMessage: message,
+        finishedAt: now,
+        logs: appendRenderLog(
+          job.logs,
+          renderLog('queued', 'Render queue publish failed', 'error', { message }),
+        ),
+        updatedAt: now,
+      })
+      .where(eq(schema.renderJobs.id, renderJobId));
+  }
+
+  async startRenderJob(renderJobId: string) {
+    return this.db.transaction(async (transaction) => {
+      const [context] = await transaction
+        .select({
+          job: schema.renderJobs,
+          revision: schema.projectRevisions,
+          project: schema.videoProjects,
+        })
+        .from(schema.renderJobs)
+        .innerJoin(
+          schema.projectRevisions,
+          eq(schema.projectRevisions.id, schema.renderJobs.projectRevisionId),
+        )
+        .innerJoin(
+          schema.videoProjects,
+          eq(schema.videoProjects.id, schema.renderJobs.videoProjectId),
+        )
+        .where(eq(schema.renderJobs.id, renderJobId))
+        .limit(1);
+      if (!context) {
+        throw new DomainNotFoundError('Render job not found');
+      }
+      if (context.job.status === 'cancelled' || context.job.cancelRequestedAt) {
+        throw new DomainConflictError('Render job was cancelled before processing');
+      }
+      assertRenderJobTransition(context.job.status, 'preprocessing');
+      if (context.job.attempt >= context.job.maxAttempts) {
+        throw new DomainConflictError('Render job has exhausted its retry attempts');
+      }
+
+      const now = new Date();
+      const [started] = await transaction
+        .update(schema.renderJobs)
+        .set({
+          status: 'preprocessing',
+          attempt: context.job.attempt + 1,
+          progressBasisPoints: 100,
+          startedAt: now,
+          finishedAt: null,
+          logs: appendRenderLog(
+            context.job.logs,
+            renderLog('preprocessing', `Render attempt ${context.job.attempt + 1} started`),
+          ),
+          updatedAt: now,
+        })
+        .where(and(eq(schema.renderJobs.id, renderJobId), eq(schema.renderJobs.status, 'queued')))
+        .returning();
+      if (!started) {
+        throw new DomainConflictError('Render job is no longer queued');
+      }
+      await transaction
+        .update(schema.videoProjects)
+        .set({ status: 'rendering', updatedAt: now })
+        .where(eq(schema.videoProjects.id, context.project.id));
+      const assetRows = await transaction
+        .select()
+        .from(schema.assets)
+        .where(eq(schema.assets.hotelId, context.project.hotelId));
+
+      return {
+        job: mapRenderJob(started),
+        projectRevision: mapProjectRevision(context.revision),
+        assets: assetRows.map((asset) => ({
+          id: asset.id,
+          kind: asset.kind,
+          status: asset.status,
+          storageBucket: asset.storageBucket,
+          storageKey: asset.storageKey,
+          contentType: asset.contentType,
+          byteSize: asset.byteSize,
+          checksumSha256: asset.checksumSha256,
+        })),
+      };
+    });
+  }
+
+  async isRenderCancellationRequested(renderJobId: string): Promise<boolean> {
+    const [job] = await this.db
+      .select({
+        status: schema.renderJobs.status,
+        cancelRequestedAt: schema.renderJobs.cancelRequestedAt,
+      })
+      .from(schema.renderJobs)
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .limit(1);
+    return !job || job.status === 'cancelled' || Boolean(job.cancelRequestedAt);
+  }
+
+  async updateRenderJobProgress(
+    renderJobId: string,
+    status: RenderJobStatus,
+    progressBasisPoints: number,
+    logEntry: RenderLogEntry,
+  ): Promise<RenderJob> {
+    const [job] = await this.db
+      .select()
+      .from(schema.renderJobs)
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .limit(1);
+    if (!job) {
+      throw new DomainNotFoundError('Render job not found');
+    }
+    if (['succeeded', 'failed', 'cancelled'].includes(job.status)) {
+      throw new DomainConflictError(`Render job is already ${job.status}`);
+    }
+    if (job.status !== status) {
+      assertRenderJobTransition(job.status, status);
+    }
+    const [updated] = await this.db
+      .update(schema.renderJobs)
+      .set({
+        status,
+        progressBasisPoints: Math.max(job.progressBasisPoints, progressBasisPoints),
+        logs: appendRenderLog(job.logs, logEntry),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .returning();
+    if (!updated) {
+      throw new DomainNotFoundError('Render job not found');
+    }
+    return mapRenderJob(updated);
+  }
+
+  async persistRenderOutcome(
+    renderJobId: string,
+    artifacts: PersistRenderArtifactInput[],
+    qualityReport: PersistQualityReportInput,
+  ): Promise<RenderJobDetail> {
+    return this.db.transaction(async (transaction) => {
+      const [job] = await transaction
+        .select()
+        .from(schema.renderJobs)
+        .where(eq(schema.renderJobs.id, renderJobId))
+        .limit(1);
+      if (!job) {
+        throw new DomainNotFoundError('Render job not found');
+      }
+      if (job.status !== 'validating') {
+        throw new DomainConflictError(`Render outcome cannot be persisted from ${job.status}`);
+      }
+
+      const artifactRows: Array<typeof schema.renderArtifacts.$inferSelect> = [];
+      for (const artifact of artifacts) {
+        const [row] = await transaction
+          .insert(schema.renderArtifacts)
+          .values({
+            id: randomUUID(),
+            renderJobId,
+            ...artifact,
+          })
+          .onConflictDoUpdate({
+            target: [schema.renderArtifacts.renderJobId, schema.renderArtifacts.kind],
+            set: {
+              storageBucket: artifact.storageBucket,
+              storageKey: artifact.storageKey,
+              contentType: artifact.contentType,
+              byteSize: artifact.byteSize,
+              checksumSha256: artifact.checksumSha256,
+              createdAt: new Date(),
+            },
+          })
+          .returning();
+        if (!row) {
+          throw new Error('Render artifact upsert did not return a row');
+        }
+        artifactRows.push(row);
+      }
+
+      const [reportRow] = await transaction
+        .insert(schema.qualityReports)
+        .values({
+          id: randomUUID(),
+          renderJobId,
+          ...qualityReport,
+        })
+        .onConflictDoUpdate({
+          target: schema.qualityReports.renderJobId,
+          set: {
+            status: qualityReport.status,
+            scoreBasisPoints: qualityReport.scoreBasisPoints,
+            details: qualityReport.details,
+            createdAt: new Date(),
+          },
+        })
+        .returning();
+      if (!reportRow) {
+        throw new Error('Quality report upsert did not return a row');
+      }
+
+      const succeeded = qualityReport.status !== 'failed';
+      assertRenderJobTransition(job.status, succeeded ? 'succeeded' : 'failed');
+      const now = new Date();
+      const [updatedJob] = await transaction
+        .update(schema.renderJobs)
+        .set({
+          status: succeeded ? 'succeeded' : 'failed',
+          progressBasisPoints: 10_000,
+          errorCode: succeeded ? null : 'QUALITY_CHECK_FAILED',
+          errorMessage: succeeded ? null : 'One or more mandatory quality checks failed',
+          finishedAt: now,
+          logs: appendRenderLog(
+            job.logs,
+            renderLog(
+              'validating',
+              succeeded ? 'Quality checks passed' : 'Quality checks failed',
+              succeeded ? 'info' : 'error',
+              {
+                qualityStatus: qualityReport.status,
+                scoreBasisPoints: qualityReport.scoreBasisPoints,
+              },
+            ),
+          ),
+          updatedAt: now,
+        })
+        .where(eq(schema.renderJobs.id, renderJobId))
+        .returning();
+      if (!updatedJob) {
+        throw new DomainNotFoundError('Render job not found');
+      }
+      await transaction
+        .update(schema.videoProjects)
+        .set({ status: succeeded ? 'completed' : 'draft', updatedAt: now })
+        .where(eq(schema.videoProjects.id, job.videoProjectId));
+
+      return {
+        job: mapRenderJob(updatedJob),
+        artifacts: artifactRows.map(mapRenderArtifact),
+        qualityReport: mapQualityReport(reportRow),
+      };
+    });
+  }
+
+  async failRenderJob(renderJobId: string, errorCode: string, errorMessage: string): Promise<void> {
+    const [job] = await this.db
+      .select()
+      .from(schema.renderJobs)
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .limit(1);
+    if (!job || ['succeeded', 'failed', 'cancelled'].includes(job.status)) {
+      return;
+    }
+    assertRenderJobTransition(job.status, 'failed');
+    const now = new Date();
+    await this.db.transaction(async (transaction) => {
+      await transaction
+        .update(schema.renderJobs)
+        .set({
+          status: 'failed',
+          errorCode,
+          errorMessage,
+          finishedAt: now,
+          logs: appendRenderLog(
+            job.logs,
+            renderLog(renderStageForStatus(job.status), 'Render attempt failed', 'error', {
+              errorCode,
+              errorMessage,
+            }),
+          ),
+          updatedAt: now,
+        })
+        .where(eq(schema.renderJobs.id, renderJobId));
+      await transaction
+        .update(schema.videoProjects)
+        .set({ status: 'draft', updatedAt: now })
+        .where(eq(schema.videoProjects.id, job.videoProjectId));
+    });
+  }
+
+  async acknowledgeRenderCancellation(renderJobId: string, message: string): Promise<void> {
+    const [job] = await this.db
+      .select()
+      .from(schema.renderJobs)
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .limit(1);
+    if (!job || job.status === 'cancelled') {
+      return;
+    }
+    if (!['preprocessing', 'rendering'].includes(job.status)) {
+      throw new DomainConflictError(
+        `Render cancellation cannot be acknowledged from ${job.status}`,
+      );
+    }
+    assertRenderJobTransition(job.status, 'cancelled');
+    const now = new Date();
+    await this.db.transaction(async (transaction) => {
+      await transaction
+        .update(schema.renderJobs)
+        .set({
+          status: 'cancelled',
+          errorCode: null,
+          errorMessage: null,
+          finishedAt: now,
+          logs: appendRenderLog(
+            job.logs,
+            renderLog(renderStageForStatus(job.status), message, 'warning'),
+          ),
+          updatedAt: now,
+        })
+        .where(eq(schema.renderJobs.id, renderJobId));
+      await transaction
+        .update(schema.videoProjects)
+        .set({ status: 'draft', updatedAt: now })
+        .where(eq(schema.videoProjects.id, job.videoProjectId));
     });
   }
 
@@ -853,5 +1402,60 @@ export class PostgresHotelCutRepository implements HotelCutRepository {
       throw new DomainNotFoundError('Video project not found');
     }
     return row.project;
+  }
+
+  private async requireRenderJobMember(
+    actorUserId: string,
+    renderJobId: string,
+  ): Promise<typeof schema.renderJobs.$inferSelect> {
+    const [row] = await this.db
+      .select({ job: schema.renderJobs })
+      .from(schema.renderJobs)
+      .innerJoin(
+        schema.videoProjects,
+        eq(schema.videoProjects.id, schema.renderJobs.videoProjectId),
+      )
+      .innerJoin(schema.hotels, eq(schema.hotels.id, schema.videoProjects.hotelId))
+      .innerJoin(
+        schema.memberships,
+        and(
+          eq(schema.memberships.organizationId, schema.hotels.organizationId),
+          eq(schema.memberships.userId, actorUserId),
+        ),
+      )
+      .where(eq(schema.renderJobs.id, renderJobId))
+      .limit(1);
+    if (!row) {
+      throw new DomainNotFoundError('Render job not found');
+    }
+    return row.job;
+  }
+
+  private async requireRenderArtifactMember(
+    actorUserId: string,
+    artifactId: string,
+  ): Promise<typeof schema.renderArtifacts.$inferSelect> {
+    const [row] = await this.db
+      .select({ artifact: schema.renderArtifacts })
+      .from(schema.renderArtifacts)
+      .innerJoin(schema.renderJobs, eq(schema.renderJobs.id, schema.renderArtifacts.renderJobId))
+      .innerJoin(
+        schema.videoProjects,
+        eq(schema.videoProjects.id, schema.renderJobs.videoProjectId),
+      )
+      .innerJoin(schema.hotels, eq(schema.hotels.id, schema.videoProjects.hotelId))
+      .innerJoin(
+        schema.memberships,
+        and(
+          eq(schema.memberships.organizationId, schema.hotels.organizationId),
+          eq(schema.memberships.userId, actorUserId),
+        ),
+      )
+      .where(eq(schema.renderArtifacts.id, artifactId))
+      .limit(1);
+    if (!row) {
+      throw new DomainNotFoundError('Render artifact not found');
+    }
+    return row.artifact;
   }
 }

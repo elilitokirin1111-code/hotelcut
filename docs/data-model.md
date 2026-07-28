@@ -1,6 +1,6 @@
 # Data model
 
-Status: M1 core model, M2 media lifecycle and M5 project revision persistence implemented.
+Status: M1 core model, M2 media lifecycle, M5 revisions and M6 rendering implemented.
 
 ## Tenant and hotel
 
@@ -77,6 +77,15 @@ queued -> preprocessing -> rendering -> validating -> succeeded
 Cancellation is also permitted during preprocessing and rendering. Succeeded, failed and
 cancelled jobs are terminal.
 
+`RenderJob` additionally stores `projectRevisionId`, a SHA-256 `inputHash`, attempt budget,
+progress basis points, structured logs, cancellation time and traceable terminal error fields.
+Every job therefore proves exactly which immutable document it consumed.
+
+`RenderArtifact` is unique by render job and kind. M6 persists `video`, `thumbnail`, `captions`,
+`project`, `manifest` and `report`, including bucket/key, content type, byte size and SHA-256.
+`QualityReport` is unique by render job and stores status, score basis points and the complete
+machine-readable check details.
+
 ## M1 implementation
 
 - Drizzle schema and migrations from an empty database
@@ -101,3 +110,12 @@ cancelled jobs are terminal.
 - immutable revision history ordered newest first
 - atomic revision creation guarded by the current revision number
 - not-found isolation for users outside the owning organization
+
+## M6 implementation
+
+- immutable render-job creation against the current or explicitly requested project revision
+- progress, cancellation, manual retry budget and structured diagnostic logs
+- tenant-scoped job details, artifact lookup and signed download URLs
+- atomic terminal persistence of six artifact kinds and one quality report
+- project status returns to `draft` on failure/cancellation and becomes `completed` only after
+  quality-gated success

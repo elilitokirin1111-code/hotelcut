@@ -279,3 +279,51 @@
   review interaction or persistence contracts.
 - Impact: the Studio is fully testable in isolation; M7 wires its adapter to selected tenant
   projects without changing editor commands.
+
+## ID-029: Final rendering stays behind a renderer-neutral adapter
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: keep Remotion types inside `@hotelcut/renderer`; domain, API, database and timeline
+  contracts exchange only canonical projects, asset sources, progress and artifact metadata.
+- Reason: persisted revisions and job orchestration must not depend on one rendering engine.
+- Impact: a future renderer implements `RendererAdapter` without migrating project documents.
+
+## ID-030: Remotion composes; FFmpeg normalizes and inspects
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: use Remotion for frame composition and FFmpeg for deterministic H.264/AAC
+  normalization, loudness, cover extraction, ffprobe, black detection and silence detection.
+- Reason: each engine is used for the part it models and operates most reliably.
+- Impact: the render-worker image must contain Chromium, FFmpeg and Chinese fonts.
+
+## ID-031: Quality control is a pure success gate
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: calculate eleven mandatory checks in `@hotelcut/quality-control` from explicit inputs
+  and allow job success only when none fail.
+- Reason: renderer completion alone does not prove the deliverable is usable.
+- Impact: quality-failed artifacts remain diagnosable, but PostgreSQL and BullMQ both record a
+  failed attempt rather than false success.
+
+## ID-032: Render retries reuse the immutable database job
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: retain one render job and increment its attempt when processing starts; give each
+  BullMQ dispatch a unique queue ID while including the expected attempt in a versioned payload.
+- Reason: retained BullMQ IDs can otherwise swallow a retry, while a new database job would split
+  its audit trail.
+- Impact: stale dispatches cannot start a non-queued job, and retries preserve logs, revision and
+  attempt budget.
+
+## ID-033: Artifacts become visible in one terminal persistence step
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: upload deterministic per-attempt objects, then upsert six artifact rows, one quality
+  report and the terminal job/project states in one PostgreSQL transaction.
+- Reason: partial database writeback can incorrectly expose an incomplete or successful render.
+- Impact: object cleanup for uploads left by a database outage is an operational M7+ concern.

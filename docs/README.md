@@ -18,5 +18,4 @@
 | `acceptance-tests.md`         | Milestone gates                       | Cross-cutting    |
 | `implementation-decisions.md` | Auditable architectural decisions     | Cross-cutting    |
 
-Documents owned by later milestones define constraints and acceptance targets. They do not mean
-the corresponding capability is already implemented.
+Documents state their implementation status explicitly; M0 through M6 are implemented.

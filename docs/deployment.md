@@ -18,9 +18,14 @@ The accepted Windows development machine keeps Docker Desktop and its WSL data u
 the real model, set `ANALYSIS_TRANSCRIPTION_PROVIDER=faster-whisper`; model files persist in the
 `whisper-cache` volume.
 
+The render worker uses a dedicated Debian image with Chromium, FFmpeg and Noto CJK fonts.
+Compose passes the internal MinIO endpoint so Remotion and FFmpeg can consume presigned assets
+inside the Docker network. `RENDER_WORKER_CONCURRENCY` controls parallel jobs, while
+`RENDER_CONCURRENCY` controls per-job Remotion frame concurrency.
+
 ## Production direction
 
-Production deployment is not implemented through M2. The intended separation is:
+Production deployment is not implemented through M6. The intended separation is:
 
 - stateless Web and API services
 - independently scalable analysis and render workers

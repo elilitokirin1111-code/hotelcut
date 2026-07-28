@@ -14,7 +14,7 @@ import {
   DomainNotFoundError,
   type HotelCutRepository,
 } from '@hotelcut/domain';
-import type { AnalysisQueue } from '@hotelcut/job-queue';
+import type { AnalysisQueue, RenderQueue } from '@hotelcut/job-queue';
 import {
   actorHeadersSchema,
   brandKitSchema,
@@ -33,11 +33,14 @@ import type { MultipartObjectStorage } from '@hotelcut/storage';
 
 import { assetRoutes } from './asset-routes.js';
 import { projectRoutes } from './project-routes.js';
+import { renderRoutes } from './render-routes.js';
 
 interface BuildAppOptions {
   analysisQueue?: AnalysisQueue;
+  downloadUrlTtlSeconds?: number;
   logger?: boolean;
   objectStorage?: MultipartObjectStorage;
+  renderQueue?: RenderQueue;
   repository?: HotelCutRepository;
   storageBucket?: string;
   uploadUrlTtlSeconds?: number;
@@ -351,6 +354,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     uploadUrlTtlSeconds: options.uploadUrlTtlSeconds ?? 900,
   });
   await app.register(projectRoutes, {
+    repository: options.repository,
+  });
+  await app.register(renderRoutes, {
+    downloadUrlTtlSeconds: options.downloadUrlTtlSeconds ?? 900,
+    objectStorage: options.objectStorage,
+    renderQueue: options.renderQueue,
     repository: options.repository,
   });
 

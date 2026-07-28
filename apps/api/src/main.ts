@@ -1,13 +1,14 @@
 import { buildApp } from './app.js';
 import { parseEnvironment } from './config.js';
 import { createDatabaseClient, PostgresHotelCutRepository } from '@hotelcut/database';
-import { BullMqAnalysisQueue } from '@hotelcut/job-queue';
+import { BullMqAnalysisQueue, BullMqRenderQueue } from '@hotelcut/job-queue';
 import { S3MultipartObjectStorage } from '@hotelcut/storage';
 
 const environment = parseEnvironment(process.env);
 const databaseClient = createDatabaseClient(environment.DATABASE_URL);
 const repository = new PostgresHotelCutRepository(databaseClient.db);
 const analysisQueue = new BullMqAnalysisQueue(environment.REDIS_URL);
+const renderQueue = new BullMqRenderQueue(environment.REDIS_URL);
 const objectStorage = new S3MultipartObjectStorage({
   endpoint: environment.S3_ENDPOINT,
   publicEndpoint: environment.S3_PUBLIC_ENDPOINT,
@@ -17,14 +18,16 @@ const objectStorage = new S3MultipartObjectStorage({
 });
 const app = await buildApp({
   analysisQueue,
+  downloadUrlTtlSeconds: environment.UPLOAD_URL_TTL_SECONDS,
   logger: true,
   objectStorage,
+  renderQueue,
   repository,
   storageBucket: environment.S3_BUCKET,
   uploadUrlTtlSeconds: environment.UPLOAD_URL_TTL_SECONDS,
 });
 app.addHook('onClose', async () => {
-  await Promise.all([databaseClient.close(), analysisQueue.close()]);
+  await Promise.all([databaseClient.close(), analysisQueue.close(), renderQueue.close()]);
 });
 
 try {
@@ -34,6 +37,6 @@ try {
   });
 } catch (error) {
   app.log.error(error);
-  await Promise.all([databaseClient.close(), analysisQueue.close()]);
+  await Promise.all([databaseClient.close(), analysisQueue.close(), renderQueue.close()]);
   process.exitCode = 1;
 }

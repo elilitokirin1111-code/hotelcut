@@ -33,7 +33,7 @@ describe('API health routes', () => {
     expect(response.json()).toMatchObject({ status: 'ready' });
   });
 
-  it('publishes the M5 OpenAPI document and UI', async () => {
+  it('publishes the M6 OpenAPI document and UI', async () => {
     const app = await buildApp();
     apps.push(app);
 
@@ -54,6 +54,11 @@ describe('API health routes', () => {
     expect(document.paths).toHaveProperty('/v1/assets/{assetId}/analysis/retry');
     expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/video-projects');
     expect(document.paths).toHaveProperty('/v1/video-projects/{id}/revisions');
+    expect(document.paths).toHaveProperty('/v1/video-projects/{id}/render-jobs');
+    expect(document.paths).toHaveProperty('/v1/render-jobs/{id}');
+    expect(document.paths).toHaveProperty('/v1/render-jobs/{id}/cancel');
+    expect(document.paths).toHaveProperty('/v1/render-jobs/{id}/retry');
+    expect(document.paths).toHaveProperty('/v1/render-artifacts/{id}/download');
     expect(uiResponse.statusCode).toBe(200);
   });
 

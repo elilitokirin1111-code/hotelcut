@@ -70,6 +70,17 @@ class FakeObjectStorage implements MultipartObjectStorage {
     void expiresInSeconds;
     return Promise.resolve('https://downloads.test/derivative');
   }
+
+  putObject(input: {
+    bucket: string;
+    key: string;
+    contentType: string;
+    body: Uint8Array;
+    checksumSha256: string;
+  }): Promise<void> {
+    void input;
+    return Promise.resolve();
+  }
 }
 
 class FakeAnalysisQueue implements AnalysisQueue {
