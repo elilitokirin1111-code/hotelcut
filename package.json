@@ -12,7 +12,7 @@
     "build": "turbo run build",
     "db:generate": "pnpm --filter @hotelcut/database db:generate",
     "db:migrate": "pnpm --filter @hotelcut/database db:migrate",
-    "db:seed": "pnpm --filter @hotelcut/database db:seed",
+    "db:seed": "pnpm --filter \"@hotelcut/database^...\" build && pnpm --filter @hotelcut/database db:seed",
     "dev": "docker compose up --build",
     "dev:apps": "turbo run dev --parallel",
     "dev:infra": "docker compose up -d postgres redis minio minio-init",
