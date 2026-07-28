@@ -33,7 +33,7 @@ describe('API health routes', () => {
     expect(response.json()).toMatchObject({ status: 'ready' });
   });
 
-  it('publishes the M2 OpenAPI document and UI', async () => {
+  it('publishes the M5 OpenAPI document and UI', async () => {
     const app = await buildApp();
     apps.push(app);
 
@@ -52,6 +52,29 @@ describe('API health routes', () => {
     expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/assets/uploads');
     expect(document.paths).toHaveProperty('/v1/assets/{assetId}');
     expect(document.paths).toHaveProperty('/v1/assets/{assetId}/analysis/retry');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/video-projects');
+    expect(document.paths).toHaveProperty('/v1/video-projects/{id}/revisions');
     expect(uiResponse.statusCode).toBe(200);
+  });
+
+  it('rejects an invalid project document before persistence', async () => {
+    const app = await buildApp();
+    apps.push(app);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/hotels/30000000-0000-4000-8000-000000000001/video-projects',
+      headers: { 'x-user-id': '20000000-0000-4000-8000-000000000001' },
+      payload: {
+        id: '70000000-0000-4000-8000-000000000001',
+        videoBriefId: '50000000-0000-4000-8000-000000000001',
+        name: 'Invalid project',
+        templateKey: 'hotel.host-broll',
+        projectDocument: {},
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
   });
 });

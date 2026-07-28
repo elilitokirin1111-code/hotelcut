@@ -6,10 +6,107 @@
   color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  font-family: Inter, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: #eef1ef;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #d6a76d;
+  outline-offset: 2px;
+}
+
+@layer components {
+  .topbar-icon-button {
+    @apply grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white/80 text-slate-600 transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0;
+  }
+
+  .editor-label {
+    @apply text-[10px] font-black uppercase tracking-[0.13em] text-slate-400;
+  }
+
+  .editor-field {
+    @apply rounded-xl border border-slate-200 bg-slate-50 px-3 py-2;
+  }
+
+  .editor-field > span {
+    @apply block text-[9px] font-semibold text-slate-400;
+  }
+
+  .editor-field > input {
+    @apply mt-1 w-full bg-transparent text-sm font-bold tabular-nums text-slate-700 outline-none;
+  }
+
+  .editor-input {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-700 outline-none transition focus:border-[#d6a76d] focus:bg-white;
+  }
+
+  .editor-textarea {
+    @apply w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium leading-5 text-slate-700 outline-none transition focus:border-[#d6a76d] focus:bg-white;
+  }
+
+  .editor-primary-button {
+    @apply flex items-center justify-center gap-2 rounded-xl bg-[#263138] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#172126] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0;
+  }
+
+  .editor-secondary-button {
+    @apply flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+}
+
+.studio-scrollbar {
+  scrollbar-color: #cbd4d1 transparent;
+  scrollbar-width: thin;
+}
+
+.studio-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.studio-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd4d1;
+}
+
+.preview-range,
+.timeline-range {
+  height: 4px;
+  appearance: none;
+  border-radius: 999px;
+  background: #dce3e0;
+  cursor: pointer;
+}
+
+.preview-range::-webkit-slider-thumb,
+.timeline-range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #d89b5d;
+  box-shadow: 0 2px 8px rgb(38 49 56 / 24%);
+}
+
+.preview-range::-moz-range-thumb,
+.timeline-range::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #d89b5d;
+  box-shadow: 0 2px 8px rgb(38 49 56 / 24%);
 }

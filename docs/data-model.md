@@ -1,6 +1,6 @@
 # Data model
 
-Status: M1 core model and M2 media lifecycle implemented.
+Status: M1 core model, M2 media lifecycle and M5 project revision persistence implemented.
 
 ## Tenant and hotel
 
@@ -29,6 +29,12 @@ and a hotel has at most one BrandKit.
 
 Original filenames are metadata only, never storage identities. Projects are revisioned, and
 renders bind to an immutable project revision.
+
+`VideoProject.currentRevision` is the optimistic concurrency pointer. Creating a project writes
+revision 1. Saving requires the caller's `baseRevision`; the repository atomically advances the
+pointer only when it still matches, then inserts the next immutable `ProjectRevision`. A stale
+caller receives a conflict and cannot silently overwrite newer work. Historical revision
+documents are never updated in place.
 
 Asset storage locations and project revision numbers are unique. Segment time ranges, byte sizes,
 multipart sizes/counts, job attempts, brief durations and score ranges are protected by database
@@ -87,3 +93,11 @@ cancelled jobs are terminal.
 - retry-safe analysis job persistence
 - automatic-segment replacement with manual-segment preservation
 - derivative upserts and structured per-attempt logs
+
+## M5 implementation
+
+- tenant-scoped project listing, creation and detail reads
+- renderer-independent project documents validated at the API boundary
+- immutable revision history ordered newest first
+- atomic revision creation guarded by the current revision number
+- not-found isolation for users outside the owning organization

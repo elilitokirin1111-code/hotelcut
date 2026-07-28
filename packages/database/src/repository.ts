@@ -8,6 +8,8 @@ import {
   DomainNotFoundError,
   type AssetUploadContext,
   type HotelCutRepository,
+  type PersistProjectRevisionInput,
+  type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
   type RegisteredAssetUpload,
@@ -27,9 +29,12 @@ import type {
   CreateVideoBriefInput,
   Hotel,
   Organization,
+  ProjectRevision,
   UpdateHotelInput,
   UpsertBrandKitInput,
   VideoBrief,
+  VideoProject,
+  VideoProjectDetail,
 } from '@hotelcut/schemas';
 import {
   analysisJobSchema,
@@ -37,7 +42,9 @@ import {
   assetSchema,
   assetSegmentSchema,
   assetUploadSchema,
+  projectRevisionSchema,
   videoBriefSchema,
+  videoProjectSchema,
 } from '@hotelcut/schemas';
 
 import * as schema from './schema.js';
@@ -65,6 +72,21 @@ function mapVideoBrief(row: typeof schema.videoBriefs.$inferSelect): VideoBrief 
     ...row,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
+  });
+}
+
+function mapVideoProject(row: typeof schema.videoProjects.$inferSelect): VideoProject {
+  return videoProjectSchema.parse({
+    ...row,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  });
+}
+
+function mapProjectRevision(row: typeof schema.projectRevisions.$inferSelect): ProjectRevision {
+  return projectRevisionSchema.parse({
+    ...row,
+    createdAt: toIso(row.createdAt),
   });
 }
 
@@ -303,6 +325,147 @@ export class PostgresHotelCutRepository implements HotelCutRepository {
       throw new DomainNotFoundError('Video brief not found');
     }
     return mapVideoBrief(row.brief);
+  }
+
+  async listVideoProjects(actorUserId: string, hotelId: string): Promise<VideoProject[]> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .select()
+      .from(schema.videoProjects)
+      .where(eq(schema.videoProjects.hotelId, hotelId))
+      .orderBy(desc(schema.videoProjects.updatedAt));
+
+    return rows.map(mapVideoProject);
+  }
+
+  async createVideoProject(
+    actorUserId: string,
+    hotelId: string,
+    input: PersistVideoProjectInput,
+  ): Promise<VideoProjectDetail> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const [brief] = await this.db
+      .select({ id: schema.videoBriefs.id })
+      .from(schema.videoBriefs)
+      .where(
+        and(eq(schema.videoBriefs.id, input.videoBriefId), eq(schema.videoBriefs.hotelId, hotelId)),
+      )
+      .limit(1);
+    if (!brief) {
+      throw new DomainNotFoundError('Video brief not found');
+    }
+
+    return this.db.transaction(async (transaction) => {
+      const [projectRow] = await transaction
+        .insert(schema.videoProjects)
+        .values({
+          id: input.id,
+          hotelId,
+          videoBriefId: input.videoBriefId,
+          name: input.name,
+          templateKey: input.templateKey,
+          status: 'draft',
+          currentRevision: 1,
+        })
+        .returning();
+      const [revisionRow] = await transaction
+        .insert(schema.projectRevisions)
+        .values({
+          id: randomUUID(),
+          videoProjectId: input.id,
+          revision: 1,
+          schemaVersion: input.schemaVersion,
+          projectDocument: input.projectDocument,
+          createdByUserId: actorUserId,
+        })
+        .returning();
+
+      if (!projectRow || !revisionRow) {
+        throw new Error('Video project creation did not return rows');
+      }
+      return {
+        project: mapVideoProject(projectRow),
+        currentRevision: mapProjectRevision(revisionRow),
+      };
+    });
+  }
+
+  async getVideoProject(actorUserId: string, projectId: string): Promise<VideoProjectDetail> {
+    const projectRow = await this.requireVideoProjectMember(actorUserId, projectId);
+    const [revisionRow] = await this.db
+      .select()
+      .from(schema.projectRevisions)
+      .where(
+        and(
+          eq(schema.projectRevisions.videoProjectId, projectId),
+          eq(schema.projectRevisions.revision, projectRow.currentRevision),
+        ),
+      )
+      .limit(1);
+    if (!revisionRow) {
+      throw new DomainNotFoundError('Current project revision not found');
+    }
+    return {
+      project: mapVideoProject(projectRow),
+      currentRevision: mapProjectRevision(revisionRow),
+    };
+  }
+
+  async listProjectRevisions(actorUserId: string, projectId: string): Promise<ProjectRevision[]> {
+    await this.requireVideoProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.projectRevisions)
+      .where(eq(schema.projectRevisions.videoProjectId, projectId))
+      .orderBy(desc(schema.projectRevisions.revision));
+    return rows.map(mapProjectRevision);
+  }
+
+  async saveProjectRevision(
+    actorUserId: string,
+    projectId: string,
+    input: PersistProjectRevisionInput,
+  ): Promise<VideoProjectDetail> {
+    await this.requireVideoProjectMember(actorUserId, projectId);
+
+    return this.db.transaction(async (transaction) => {
+      const now = new Date();
+      const nextRevision = input.baseRevision + 1;
+      const [projectRow] = await transaction
+        .update(schema.videoProjects)
+        .set({ currentRevision: nextRevision, updatedAt: now })
+        .where(
+          and(
+            eq(schema.videoProjects.id, projectId),
+            eq(schema.videoProjects.currentRevision, input.baseRevision),
+          ),
+        )
+        .returning();
+      if (!projectRow) {
+        throw new DomainConflictError(
+          'Project revision is stale; reload the current revision before saving',
+        );
+      }
+
+      const [revisionRow] = await transaction
+        .insert(schema.projectRevisions)
+        .values({
+          id: randomUUID(),
+          videoProjectId: projectId,
+          revision: nextRevision,
+          schemaVersion: input.schemaVersion,
+          projectDocument: input.projectDocument,
+          createdByUserId: actorUserId,
+        })
+        .returning();
+      if (!revisionRow) {
+        throw new Error('Project revision insert did not return a row');
+      }
+      return {
+        project: mapVideoProject(projectRow),
+        currentRevision: mapProjectRevision(revisionRow),
+      };
+    });
   }
 
   async listAssets(actorUserId: string, hotelId: string): Promise<Asset[]> {
@@ -666,5 +829,29 @@ export class PostgresHotelCutRepository implements HotelCutRepository {
       throw new DomainNotFoundError('Asset not found');
     }
     return row.asset;
+  }
+
+  private async requireVideoProjectMember(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<typeof schema.videoProjects.$inferSelect> {
+    const [row] = await this.db
+      .select({ project: schema.videoProjects })
+      .from(schema.videoProjects)
+      .innerJoin(schema.hotels, eq(schema.hotels.id, schema.videoProjects.hotelId))
+      .innerJoin(
+        schema.memberships,
+        and(
+          eq(schema.memberships.organizationId, schema.hotels.organizationId),
+          eq(schema.memberships.userId, actorUserId),
+        ),
+      )
+      .where(eq(schema.videoProjects.id, projectId))
+      .limit(1);
+
+    if (!row) {
+      throw new DomainNotFoundError('Video project not found');
+    }
+    return row.project;
   }
 }

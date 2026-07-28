@@ -176,3 +176,37 @@ Verified on 2026-07-27:
 - removing promotion media produced `SLOT_REQUIREMENT_UNMET` without fabricating a replacement
 - all three complete results matched their committed golden JSON byte-for-byte after stable
   normalization
+
+## M5 gate
+
+M5 is complete only when:
+
+- a hotel operator can review the project in a vertical preview
+- generated scenes and the video, caption, overlay and audio tracks are visible without JSON
+- one shot can be replaced while its clip identity and unrelated clips remain unchanged
+- video source in/out points can be adjusted without shifting the project timeline
+- title, caption and approved CTA copy can be corrected
+- background music can be replaced across all loops
+- every edit produces another schema-valid `HotelVideoProject`
+- undo and redo preserve immutable history and clear redo after a branch edit
+- rapid edits are batched into a debounced autosave
+- successful saves create immutable, sequential project revisions
+- a stale base revision returns conflict instead of overwriting newer work
+- project and revision reads remain tenant scoped
+
+## M5 verification record
+
+Verified on 2026-07-28:
+
+- the fictional six-scene hotel project rendered in the Studio preview, scene rail and simplified
+  timeline
+- the UI replaced a lobby shot, changed a caption and CTA, and exposed source in/out controls
+- command tests covered shot replacement, trimming, title, caption, CTA and music changes
+- the editor rejected incompatible targets and validated every resulting project
+- bounded history tests covered undo, redo and branch invalidation
+- Web tests proved caption preview updates and batched trim/CTA autosave to one revision
+- API contract tests rejected invalid project documents before repository persistence
+- PostgreSQL/API integration created revision 1, saved revision 2 and rejected a stale revision 1
+  save with HTTP 409
+- another tenant could not read the project or revision history
+- the desktop browser review found no console warnings or layout overlap at 1440 × 1000

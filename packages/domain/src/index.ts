@@ -11,13 +11,18 @@ import type {
   CreateAssetUploadInput,
   CreateHotelInput,
   CreateManualSegmentInput,
+  CreateVideoProjectInput,
   CreateVideoBriefInput,
   Hotel,
   Organization,
+  ProjectRevision,
+  SaveProjectRevisionInput,
   RenderJobStatus,
   UpdateHotelInput,
   UpsertBrandKitInput,
   VideoBrief,
+  VideoProject,
+  VideoProjectDetail,
 } from '@hotelcut/schemas';
 
 export interface RegisterAssetUploadInput extends CreateAssetUploadInput {
@@ -41,6 +46,14 @@ export interface AssetUploadContext extends RegisteredAssetUpload {
 export interface QueuedAssetAnalysis {
   asset: Asset;
   analysisJob: AnalysisJob;
+}
+
+export interface PersistVideoProjectInput extends CreateVideoProjectInput {
+  schemaVersion: string;
+}
+
+export interface PersistProjectRevisionInput extends SaveProjectRevisionInput {
+  schemaVersion: string;
 }
 
 export class DomainNotFoundError extends Error {
@@ -81,6 +94,19 @@ export interface HotelCutRepository {
     input: CreateVideoBriefInput,
   ): Promise<VideoBrief>;
   getVideoBrief(actorUserId: string, briefId: string): Promise<VideoBrief>;
+  listVideoProjects(actorUserId: string, hotelId: string): Promise<VideoProject[]>;
+  createVideoProject(
+    actorUserId: string,
+    hotelId: string,
+    input: PersistVideoProjectInput,
+  ): Promise<VideoProjectDetail>;
+  getVideoProject(actorUserId: string, projectId: string): Promise<VideoProjectDetail>;
+  listProjectRevisions(actorUserId: string, projectId: string): Promise<ProjectRevision[]>;
+  saveProjectRevision(
+    actorUserId: string,
+    projectId: string,
+    input: PersistProjectRevisionInput,
+  ): Promise<VideoProjectDetail>;
   listAssets(actorUserId: string, hotelId: string): Promise<Asset[]>;
   registerAssetUpload(
     actorUserId: string,

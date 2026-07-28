@@ -32,6 +32,7 @@ import {
 import type { MultipartObjectStorage } from '@hotelcut/storage';
 
 import { assetRoutes } from './asset-routes.js';
+import { projectRoutes } from './project-routes.js';
 
 interface BuildAppOptions {
   analysisQueue?: AnalysisQueue;
@@ -348,6 +349,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     objectStorage: options.objectStorage,
     repository: options.repository,
     uploadUrlTtlSeconds: options.uploadUrlTtlSeconds ?? 900,
+  });
+  await app.register(projectRoutes, {
+    repository: options.repository,
   });
 
   await app.register(swaggerUi, {

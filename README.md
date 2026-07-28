@@ -6,7 +6,7 @@ quality report.
 
 ## Milestone status
 
-M0 through M4 were completed and locally accepted on 2026-07-27. The repository now includes:
+M0 through M5 were completed and locally accepted on 2026-07-28. The repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -38,6 +38,12 @@ M0 through M4 were completed and locally accepted on 2026-07-27. The repository 
 - declarative slot templates for host presentation, room montage and hotel promotion
 - generation manifests, per-candidate score records, warnings and explanation logs
 - locked-shot regeneration and single-shot replacement
+- a pure, validated command editor for shot replacement, source trimming, copy and music changes
+- bounded undo and redo history with branch invalidation
+- a vertical review preview, scene rail and simplified multi-track timeline
+- no-JSON controls for title, caption, CTA and music editing
+- debounced autosave backed by immutable project revisions and optimistic concurrency
+- tenant-scoped project and revision APIs
 
 ## Prerequisites
 
@@ -138,6 +144,7 @@ packages/
   template-sdk/
   compiler/
   templates/
+  editor/
 infrastructure/
   docker/
   scripts/
@@ -156,14 +163,17 @@ See `packages/README.md` for package ownership.
   the configured model into the persistent Docker model cache.
 - M2 detects scenes, speech and VAD ranges. Black-frame, duplicate-fingerprint and waveform
   analysis remain follow-up analysis enhancements.
-- The render worker accepts only an M0 healthcheck job; real rendering begins in M6.
+- The M5 preview interprets project frames in the browser and is not a pixel-accurate final
+  renderer. The render worker accepts only an M0 healthcheck job; real rendering begins in M6.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
-- M4 is a library and fixture milestone. Project review UI, autosave and revision editing begin
-  in M5.
+- The M5 Studio currently uses a fictional local project adapter. The production API persistence
+  boundary is implemented and integration tested; authenticated hotel/project selection is an M7
+  workspace concern.
 
-## M5 readiness
+## M6 readiness
 
-All three M4 templates compile the fixed media library into valid, golden
-`HotelVideoProject` documents with manifests, score records and warnings. M5 may begin as a
-separate, reviewable milestone.
+M5 can review and correct a validated `HotelVideoProject` without exposing JSON. Every accepted
+change produces another validated document, and persistence creates an immutable revision using
+optimistic concurrency. M6 can consume a fixed revision through the renderer adapter without
+depending on browser preview implementation details.

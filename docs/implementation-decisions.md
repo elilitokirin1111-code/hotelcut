@@ -235,3 +235,47 @@
   or media produces warnings.
 - Reason: generated booking/contact claims can create operational and legal risk.
 - Impact: templates control placement and timing, not factual CTA content.
+
+## ID-025: Editing uses pure validated commands
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: express every M5 edit as a typed command that returns a new project and validates the
+  entire result against the canonical timeline schema.
+- Reason: UI controls, future automation and external editors need one mutation boundary without
+  exposing renderer or component state in persisted documents.
+- Impact: new editing capabilities add command variants and tests; consumers never patch project
+  JSON directly.
+
+## ID-026: Browser preview is a review interpreter
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: interpret project frames in the Web app for immediate review while keeping final
+  media decoding, audio mixing and pixel rendering behind the M6 renderer adapter.
+- Reason: M5 needs responsive corrections without prematurely coupling the canonical project to
+  Remotion or FFmpeg.
+- Impact: preview fidelity is sufficient for editorial timing and copy, but final-frame golden
+  tests belong to M6.
+
+## ID-027: Autosave creates immutable optimistic revisions
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: debounce rapid edits in the client and save the full validated project with a required
+  `baseRevision`; atomically advance the current pointer and insert an immutable revision.
+- Reason: silent last-write-wins would lose hotel operator changes, while rewriting history would
+  break auditability and render reproducibility.
+- Impact: stale editors receive HTTP 409 and must reload or reconcile before retrying.
+
+## ID-028: M5 Studio uses a fictional local adapter
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: demonstrate the M5 editor with a local fictional project and an injectable save
+  adapter while implementing and integration-testing the production project revision API
+  independently.
+- Reason: authenticated hotel/project workspace selection is owned by M7 and should not block
+  review interaction or persistence contracts.
+- Impact: the Studio is fully testable in isolation; M7 wires its adapter to selected tenant
+  projects without changing editor commands.

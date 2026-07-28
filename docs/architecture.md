@@ -99,6 +99,28 @@ HotelVideoProject  generation manifest  score records/warnings
 `@hotelcut/templates` owns the three immutable slot definitions. Neither package imports a
 renderer, persistence repository or UI type.
 
+## M5 editing flow
+
+```text
+Studio control -> typed editor command -> immutable validated HotelVideoProject
+                                              |
+                         +--------------------+--------------------+
+                         |                    |                    |
+                         v                    v                    v
+                    undo/redo            browser preview     debounced autosave
+                                                                   |
+                                                                   v
+Fastify project API -> optimistic revision check -> PostgreSQL project + immutable revision
+```
+
+`@hotelcut/editor` owns pure edit commands and history. The browser owns only presentation,
+frame selection and save scheduling. It does not mutate project JSON directly and does not
+import renderer types.
+
+The API compares `baseRevision` with the current project revision in the same transaction. A
+successful save advances the project pointer and inserts an immutable revision; a stale save
+returns conflict instead of overwriting another editor.
+
 ## Long-running work
 
 API requests create jobs and return identifiers. Analysis and rendering run in independent
@@ -110,5 +132,6 @@ workers, publish progress, persist terminal states and support idempotent retrie
 - M2: storage, job queue and media probe contracts (implemented)
 - M3: timeline schema, migration, OTIO prototype and template SDK (implemented)
 - M4: timeline compiler, hotel templates and generation explanations (implemented)
+- M5: preview, pure edit commands, undo/redo and project revisions (implemented)
 - M6: renderer contracts, implementations and quality control
 - M8: OpenCut adapter

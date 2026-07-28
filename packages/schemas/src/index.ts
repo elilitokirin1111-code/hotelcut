@@ -342,6 +342,24 @@ export const projectRevisionSchema = z.object({
   createdAt: dateTimeSchema,
 });
 
+export const createVideoProjectSchema = z.object({
+  id: idSchema,
+  videoBriefId: idSchema,
+  name: z.string().trim().min(1).max(160),
+  templateKey: z.string().trim().min(1).max(120),
+  projectDocument: z.record(z.string(), z.unknown()),
+});
+
+export const saveProjectRevisionSchema = z.object({
+  baseRevision: z.number().int().positive(),
+  projectDocument: z.record(z.string(), z.unknown()),
+});
+
+export const videoProjectDetailSchema = z.object({
+  project: videoProjectSchema,
+  currentRevision: projectRevisionSchema,
+});
+
 export const renderJobSchema = z.object({
   id: idSchema,
   videoProjectId: idSchema,
@@ -416,6 +434,9 @@ export type CreateManualSegmentInput = z.infer<typeof createManualSegmentSchema>
 export type AssetDerivativeKind = z.infer<typeof assetDerivativeKindSchema>;
 export type VideoProject = z.infer<typeof videoProjectSchema>;
 export type ProjectRevision = z.infer<typeof projectRevisionSchema>;
+export type CreateVideoProjectInput = z.infer<typeof createVideoProjectSchema>;
+export type SaveProjectRevisionInput = z.infer<typeof saveProjectRevisionSchema>;
+export type VideoProjectDetail = z.infer<typeof videoProjectDetailSchema>;
 export type RenderJob = z.infer<typeof renderJobSchema>;
 export type RenderJobStatus = z.infer<typeof renderJobStatusSchema>;
 export type RenderArtifact = z.infer<typeof renderArtifactSchema>;

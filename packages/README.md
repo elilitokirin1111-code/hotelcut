@@ -13,8 +13,9 @@ Shared domain packages are introduced by their owning milestone:
 - `template-sdk`: deterministic template input/output contracts and execution context
 - `compiler`: automatic filtering, scoring, selection, layout, manifest and regeneration
 - `templates`: three declarative hotel slot templates and golden fixtures
-- M5-M6: preview/editing, renderers and quality control
+- `editor`: pure validated edit commands, scene projections and bounded undo/redo history
+- M6: renderers and quality control
 - M8: OpenCut adapter
 
-The M1 through M4 packages are implemented. Later package boundaries remain unimplemented until
+The M1 through M5 packages are implemented. Later package boundaries remain unimplemented until
 their owning milestone.

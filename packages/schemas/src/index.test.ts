@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   assetSegmentSchema,
   createHotelSchema,
+  createVideoProjectSchema,
   createVideoBriefSchema,
   dateTimeSchema,
+  saveProjectRevisionSchema,
   upsertBrandKitSchema,
 } from './index.js';
 
@@ -69,5 +71,27 @@ describe('shared input schemas', () => {
         updatedAt: '2026-07-27T00:00:00.000Z',
       }),
     ).toThrow('Segment end must be after its start');
+  });
+
+  it('requires optimistic concurrency data for project revisions', () => {
+    const projectDocument = {
+      schemaVersion: '1.0.0',
+      id: '70000000-0000-4000-8000-000000000001',
+    };
+    expect(
+      createVideoProjectSchema.parse({
+        id: projectDocument.id,
+        videoBriefId: '50000000-0000-4000-8000-000000000001',
+        name: '  湖畔周末短片  ',
+        templateKey: 'hotel.host-broll',
+        projectDocument,
+      }),
+    ).toMatchObject({ name: '湖畔周末短片' });
+    expect(() =>
+      saveProjectRevisionSchema.parse({
+        baseRevision: 0,
+        projectDocument,
+      }),
+    ).toThrow();
   });
 });
