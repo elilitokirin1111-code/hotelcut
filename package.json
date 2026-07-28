@@ -21,7 +21,7 @@
     "format:check": "prettier --check . && node infrastructure/scripts/python.mjs -m ruff format --check apps/analysis-worker",
     "healthcheck": "node infrastructure/scripts/check-health.mjs",
     "lint": "pnpm lint:js && pnpm lint:python",
-    "lint:js": "eslint .",
+    "lint:js": "turbo run build && eslint .",
     "lint:python": "node infrastructure/scripts/python.mjs -m ruff check apps/analysis-worker",
     "test": "pnpm test:js && pnpm test:python",
     "test:e2e": "playwright test",
