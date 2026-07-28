@@ -6,7 +6,8 @@ quality report.
 
 ## Milestone status
 
-M0 through M6 were completed and locally accepted on 2026-07-28. The repository now includes:
+M0 through M6 were completed and locally accepted on 2026-07-28. M7 is in progress through
+small, reviewable workspace slices. The repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -51,6 +52,8 @@ M0 through M6 were completed and locally accepted on 2026-07-28. The repository 
 - tenant-scoped render-job, artifact and short-lived download APIs
 - a Chromium/FFmpeg render-worker image and full Compose wiring
 - fixed-media golden rendering for all three hotel templates
+- an explicit development seed-account entry for the M7 Web workspace
+- tenant-scoped organization and hotel discovery with search and hotel selection
 
 ## Prerequisites
 
@@ -177,15 +180,14 @@ See `packages/README.md` for package ownership.
   Remotion and FFmpeg.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
-- The M5 Studio currently uses a fictional local project adapter. The production API persistence
-  boundary is implemented and integration tested; authenticated hotel/project selection is an M7
-  workspace concern.
+- The M7 workspace now selects a tenant-scoped hotel through the production API, but formal email
+  authentication and production video-project selection are not yet wired. The M5 Studio still
+  uses its fictional local project adapter.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
-## M7 readiness
+## M7 progress
 
-M6 consumes an immutable project revision, renders the three initial templates, persists
-traceable progress and terminal state, uploads six artifact kinds, and refuses success when a
-mandatory quality check fails. M7 can now wire the Studio's production project selection to the
-render endpoints and present the resulting render center without changing editor or renderer
-contracts.
+The first M7 slice uses the documented development seed account to load only organizations and
+hotels visible to its actor identity, search the hotel list and enter a selected hotel workspace.
+Formal email authentication, hotel configuration, the asset library, production project
+selection, the render center, operation audit and quotas remain M7 work.

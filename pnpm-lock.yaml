@@ -148,6 +148,9 @@ importers:
       '@hotelcut/editor':
         specifier: workspace:*
         version: link:../../packages/editor
+      '@hotelcut/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@hotelcut/timeline':
         specifier: workspace:*
         version: link:../../packages/timeline

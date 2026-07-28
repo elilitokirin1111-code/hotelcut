@@ -12,10 +12,12 @@
 | `media-analysis.md`           | Upload and analysis pipeline          | M2               |
 | `rendering.md`                | Renderer adapter and jobs             | M6               |
 | `quality-control.md`          | Automated output checks               | M6               |
+| `workspace.md`                | Tenant-scoped hotel workspace         | M7               |
 | `opencut-integration.md`      | Future adapter boundary               | M8               |
 | `security.md`                 | Tenant, upload and worker protections | Cross-cutting    |
 | `deployment.md`               | Local and future deployment model     | M0+              |
 | `acceptance-tests.md`         | Milestone gates                       | Cross-cutting    |
 | `implementation-decisions.md` | Auditable architectural decisions     | Cross-cutting    |
 
-Documents state their implementation status explicitly; M0 through M6 are implemented.
+Documents state their implementation status explicitly; M0 through M6 are implemented and M7 is
+in progress.

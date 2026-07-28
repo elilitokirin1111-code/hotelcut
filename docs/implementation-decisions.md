@@ -327,3 +327,14 @@
   report and the terminal job/project states in one PostgreSQL transaction.
 - Reason: partial database writeback can incorrectly expose an incomplete or successful render.
 - Impact: object cleanup for uploads left by a database outage is an operational M7+ concern.
+
+## ID-034: M7 starts with an explicit development seed session
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: expose the documented database seed account as an explicit local-only entry, then
+  load organizations and hotels through the existing actor-scoped API boundary.
+- Reason: the product plan permits a seed account in development and basic email login later; a
+  fake password form or hidden hard-coded identity would misrepresent the authentication state.
+- Impact: the workspace can exercise real tenant isolation now, while the UI must continue to
+  label the session as development-only until formal email authentication replaces it.

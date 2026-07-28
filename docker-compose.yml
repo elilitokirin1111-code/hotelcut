@@ -203,6 +203,8 @@ services:
       args:
         APP_FILTER: '@hotelcut/web'
     command: ['pnpm', '--filter', '@hotelcut/web', 'preview', '--host', '0.0.0.0']
+    environment:
+      HOTELCUT_API_PROXY_TARGET: http://api:3000
     depends_on:
       api:
         condition: service_healthy

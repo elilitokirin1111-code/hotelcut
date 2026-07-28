@@ -248,3 +248,25 @@ Verified on 2026-07-28:
 - the database-enabled integration suite passed all six M1/M2/M5/M6 cases against the active
   PostgreSQL service
 - the desktop browser review found no console warnings or layout overlap at 1440 × 1000
+
+## M7 gate
+
+M7 is complete only when:
+
+- tenant permissions protect every hotel workspace operation
+- hotel list, configuration, assets, video projects and render center use production APIs
+- operation audit and basic quotas are enforced and visible
+- another hotel user cannot access assets, projects, render artifacts, BrandKit or upload URLs
+- development seed login is replaced or clearly separated from formal basic email authentication
+
+## M7 slice 1 verification record
+
+Verified on 2026-07-28:
+
+- the Web app exposes an explicit local seed-account entry without claiming production auth
+- the same-origin `/api` proxy reached the Compose API from the packaged Web container
+- organization and hotel responses were schema-validated and requested with the actor header
+- the visible hotel list supports name, city and organization search
+- selecting a hotel entered a workspace bound to that hotel and organization
+- Web typecheck, eight component/client tests and the production build passed
+- the browser flow completed login, list, search and selection with no console warnings or errors
