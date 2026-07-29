@@ -288,3 +288,24 @@ Verified on 2026-07-28:
 - format, lint, typecheck, unit tests, integration tests and the production build passed
 - the Chromium flow completed email login, hotel selection and workspace entry with no console or
   page errors
+
+## M7 slice 3 verification record
+
+Verified on 2026-07-29:
+
+- entering a selected hotel loaded schema-validated hotel detail and BrandKit responses through
+  the server-owned session
+- an accessible hotel without a BrandKit received editable client defaults without an automatic
+  database write
+- hotel profile and BrandKit forms saved independently through the administrator-scoped
+  production APIs, updated the visible hotel snapshot and preserved an existing Logo reference
+- Web client/component coverage passed 13 tests, including request methods and bodies, initial
+  BrandKit defaults, saved state, header refresh and stable asynchronous loading
+- the PostgreSQL/API integration test covered hotel update, BrandKit read/write and returned 404
+  for another tenant's BrandKit read and write attempts
+- all six integration files and seven database tests passed against the active PostgreSQL service
+- the Chromium E2E flow completed email login, hotel selection and both configuration saves with
+  no console or page errors
+- the rebuilt Compose stack passed every service health check; desktop 1280×720 and mobile
+  390×844 browser reviews showed no horizontal overflow or visual overlap
+- format, lint, typecheck, unit tests, integration tests and the production build passed

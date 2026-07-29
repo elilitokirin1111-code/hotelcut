@@ -106,6 +106,32 @@ describeWithDatabase('M1 domain and API integration', () => {
     expect(brandResponse.statusCode).toBe(200);
     expect(brandResponse.json()).toMatchObject({ hotelId: hotel.id });
 
+    const updateHotelResponse = await app.inject({
+      method: 'PATCH',
+      url: `/v1/hotels/${hotel.id}`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        city: '都江堰',
+        address: '虚构地址 18 号',
+      },
+    });
+    expect(updateHotelResponse.statusCode).toBe(200);
+    expect(updateHotelResponse.json()).toMatchObject({
+      city: '都江堰',
+      address: '虚构地址 18 号',
+    });
+
+    const brandReadResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotel.id}/brand-kit`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(brandReadResponse.statusCode).toBe(200);
+    expect(brandReadResponse.json()).toMatchObject({
+      endingText: '欢迎入住',
+      hotelId: hotel.id,
+    });
+
     const briefResponse = await app.inject({
       method: 'POST',
       url: `/v1/hotels/${hotel.id}/video-briefs`,
@@ -131,8 +157,28 @@ describeWithDatabase('M1 domain and API integration', () => {
       url: `/v1/video-briefs/${brief.id}`,
       headers: { 'x-user-id': outsiderUserId },
     });
+    const outsiderBrandResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotel.id}/brand-kit`,
+      headers: { 'x-user-id': outsiderUserId },
+    });
+    const outsiderBrandUpdateResponse = await app.inject({
+      method: 'PUT',
+      url: `/v1/hotels/${hotel.id}/brand-kit`,
+      headers: { 'x-user-id': outsiderUserId },
+      payload: {
+        primaryColor: '#111111',
+        secondaryColor: '#222222',
+        accentColor: '#333333',
+        fontFamily: 'Noto Sans SC',
+        subtitleStyle: 'clean',
+        endingText: '越权修改',
+      },
+    });
     expect(outsiderHotelResponse.statusCode, outsiderHotelResponse.body).toBe(404);
     expect(outsiderBriefResponse.statusCode, outsiderBriefResponse.body).toBe(404);
+    expect(outsiderBrandResponse.statusCode, outsiderBrandResponse.body).toBe(404);
+    expect(outsiderBrandUpdateResponse.statusCode, outsiderBrandUpdateResponse.body).toBe(404);
 
     await expect(
       client.sql`

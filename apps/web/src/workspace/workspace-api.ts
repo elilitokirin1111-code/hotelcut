@@ -1,10 +1,14 @@
 import {
   authSessionSchema,
+  brandKitSchema,
   hotelSchema,
   organizationSchema,
   type AuthSession,
+  type BrandKit,
   type Hotel,
   type Organization,
+  type UpdateHotelInput,
+  type UpsertBrandKitInput,
 } from '@hotelcut/schemas';
 import { z } from 'zod';
 
@@ -18,11 +22,19 @@ export interface WorkspaceSnapshot {
   organizations: Organization[];
 }
 
+export interface HotelConfiguration {
+  brandKit: BrandKit | null;
+  hotel: Hotel;
+}
+
 export interface WorkspaceApi {
   getSession(signal?: AbortSignal): Promise<AuthSession | null>;
   login(email: string, password: string): Promise<AuthSession>;
   logout(): Promise<void>;
   loadWorkspace(signal?: AbortSignal): Promise<WorkspaceSnapshot>;
+  loadHotelConfiguration(hotelId: string, signal?: AbortSignal): Promise<HotelConfiguration>;
+  updateHotel(hotelId: string, input: UpdateHotelInput): Promise<Hotel>;
+  saveBrandKit(hotelId: string, input: UpsertBrandKitInput): Promise<BrandKit>;
 }
 
 export class WorkspaceApiError extends Error {
@@ -65,12 +77,8 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
       },
     });
 
-  const request = async <T>(
-    path: string,
-    schema: z.ZodType<T>,
-    signal?: AbortSignal,
-  ): Promise<T> => {
-    const response = await fetchApi(path, signal ? { signal } : undefined);
+  const request = async <T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T> => {
+    const response = await fetchApi(path, init);
     if (!response.ok) {
       throw await parseError(response);
     }
@@ -110,10 +118,48 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
 
     async loadWorkspace(signal) {
       const [organizations, hotels] = await Promise.all([
-        request('/v1/organizations', organizationSchema.array(), signal),
-        request('/v1/hotels', hotelSchema.array(), signal),
+        request('/v1/organizations', organizationSchema.array(), signal ? { signal } : undefined),
+        request('/v1/hotels', hotelSchema.array(), signal ? { signal } : undefined),
       ]);
       return { hotels, organizations };
+    },
+
+    async loadHotelConfiguration(hotelId, signal) {
+      const encodedHotelId = encodeURIComponent(hotelId);
+      const hotel = await request(
+        `/v1/hotels/${encodedHotelId}`,
+        hotelSchema,
+        signal ? { signal } : undefined,
+      );
+      try {
+        const brandKit = await request(
+          `/v1/hotels/${encodedHotelId}/brand-kit`,
+          brandKitSchema,
+          signal ? { signal } : undefined,
+        );
+        return { brandKit, hotel };
+      } catch (error) {
+        if (error instanceof WorkspaceApiError && error.status === 404) {
+          return { brandKit: null, hotel };
+        }
+        throw error;
+      }
+    },
+
+    async updateHotel(hotelId, input) {
+      return request(`/v1/hotels/${encodeURIComponent(hotelId)}`, hotelSchema, {
+        body: JSON.stringify(input),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH',
+      });
+    },
+
+    async saveBrandKit(hotelId, input) {
+      return request(`/v1/hotels/${encodeURIComponent(hotelId)}/brand-kit`, brandKitSchema, {
+        body: JSON.stringify(input),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'PUT',
+      });
     },
   };
 }

@@ -56,10 +56,26 @@ The fictional seed account now exercises this formal boundary. It remains clearl
 local-only data; production must disable seeding. Password reset, email verification, login rate
 limiting and enterprise SSO remain later hardening or expansion work.
 
+## Slice 3: hotel and BrandKit configuration
+
+The third slice turns the first workspace module into a production-backed configuration flow:
+
+1. Entering a selected hotel loads its tenant-scoped hotel detail and BrandKit.
+2. An accessible hotel without a BrandKit receives editable client defaults but no database row
+   until the operator explicitly saves.
+3. Hotel profile and BrandKit forms save independently through the administrator-scoped
+   `PATCH /v1/hotels/:id` and `PUT /v1/hotels/:hotelId/brand-kit` routes.
+4. Successful hotel updates replace the selected hotel in the workspace snapshot so the header,
+   search list and next entry use the persisted value.
+5. BrandKit saving preserves an existing Logo asset reference. Logo selection remains disabled
+   until the asset-library slice can expose only same-hotel assets and validate ownership.
+
+The UI never accepts a raw Logo asset UUID. Contact and ending copy remain operator-supplied
+facts; the application does not invent booking or contact claims.
+
 ## Remaining M7 slices
 
-- editable hotel and BrandKit configuration
-- asset upload, analysis status, filtering and manual tagging
+- asset upload, analysis status, filtering, manual tagging and Logo selection
 - production video-project selection and Studio autosave adapter
 - render submission, progress, retry and artifact downloads
 - operation audit
@@ -75,5 +91,5 @@ pnpm --filter @hotelcut/web test
 pnpm --filter @hotelcut/web build
 ```
 
-Open `http://localhost:5173`, enter with the seed account, search for the fictional hotel and
-enter its workspace.
+Open `http://localhost:5173`, enter with the seed account, search for the fictional hotel, enter
+its workspace and save an updated hotel profile and BrandKit.

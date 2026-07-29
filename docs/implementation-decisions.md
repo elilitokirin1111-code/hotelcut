@@ -349,3 +349,16 @@
   sessions keep identity server-owned without pulling enterprise SSO into the MVP.
 - Impact: every protected API route resolves a current active user before tenant authorization;
   `x-user-id` is a non-production compatibility path and the seed credential is local-only.
+
+## ID-036: BrandKit editing defers Logo selection to the asset library
+
+- Date: 2026-07-29
+- Status: accepted
+- Decision: expose editable hotel and BrandKit text/style fields through existing
+  administrator-scoped APIs, preserve any current `logoAssetId`, and do not accept a raw Logo
+  asset ID in the Web form.
+- Reason: a useful Logo picker must list only same-hotel image assets and validate ownership;
+  exposing UUID entry before the M7 asset-library slice would create an unsafe and confusing
+  workflow.
+- Impact: the configuration slice is production-backed for hotel details and BrandKit defaults;
+  the asset-library slice owns Logo selection and its cross-hotel failure states.

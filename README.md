@@ -56,6 +56,7 @@ small, reviewable workspace slices. The repository now includes:
 - tenant-scoped organization and hotel discovery with search and hotel selection
 - scrypt-based email login with an HttpOnly opaque session cookie
 - PostgreSQL session revocation and server-derived actor identity on protected routes
+- editable hotel details and BrandKit defaults through administrator-scoped production APIs
 
 ## Prerequisites
 
@@ -186,15 +187,18 @@ See `packages/README.md` for package ownership.
   Remotion and FFmpeg.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
-- The M7 workspace now authenticates with a server-owned session and selects a tenant-scoped hotel
-  through production APIs, but production video-project selection is not yet wired. The M5 Studio
-  still uses its fictional local project adapter.
+- The M7 workspace now authenticates with a server-owned session, selects a tenant-scoped hotel
+  and edits its hotel/BrandKit configuration through production APIs, but production
+  video-project selection is not yet wired. The M5 Studio still uses its fictional local project
+  adapter.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
 ## M7 progress
 
 The first M7 slice added tenant-scoped hotel discovery and selection. The second slice adds
 email/password verification, revocable PostgreSQL sessions, HttpOnly cookie restoration and
-logout, and server-derived identity for all protected APIs. Hotel configuration, the asset
+logout, and server-derived identity for all protected APIs. The third slice adds editable hotel
+details and BrandKit defaults, preserves existing Logo references until the asset library can
+offer an ownership-checked selector, and covers BrandKit cross-tenant reads and writes. The asset
 library, production project selection, the render center, operation audit and quotas remain M7
 work.
