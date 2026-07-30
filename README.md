@@ -58,6 +58,8 @@ small, reviewable workspace slices. The repository now includes:
 - PostgreSQL session revocation and server-derived actor identity on protected routes
 - editable hotel details and BrandKit defaults through administrator-scoped production APIs
 - production-backed asset upload, analysis monitoring, filtering, preview, retry and manual tags
+- production VideoBrief, template selection, deterministic automatic compilation and revision-one
+  project preview
 
 ## Prerequisites
 
@@ -189,9 +191,9 @@ See `packages/README.md` for package ownership.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
 - The M7 workspace now authenticates with a server-owned session, selects a tenant-scoped hotel,
-  edits its hotel/BrandKit configuration and operates its video asset library through production
-  APIs, but production video-project generation is not yet wired. The M5 Studio still uses its
-  fictional local project adapter.
+  edits its hotel/BrandKit configuration, operates its video asset library and creates
+  automatically compiled production projects. Opening those projects in the full M5 Studio and
+  saving later edits still uses the fictional local adapter.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
 ## M7 progress
@@ -202,6 +204,7 @@ logout, and server-derived identity for all protected APIs. The third slice adds
 details and BrandKit defaults, preserves existing Logo references until the asset library can
 offer an ownership-checked selector, and covers BrandKit cross-tenant reads and writes. The fourth
 slice adds the production video asset library with chunked hashing, direct multipart upload,
-analysis monitoring, filtering, derivative preview, manual tags and safe retry. Production
-project generation and Studio persistence are the next priority; the render center, operation
-audit and quotas follow.
+analysis monitoring, filtering, derivative preview, manual tags and safe retry. The fifth slice
+adds a production VideoBrief form, template catalog, Chinese-to-canonical media-tag mapping,
+server-side deterministic compilation, revision-one persistence and result preview. Production
+Studio persistence is the next priority; the render center, operation audit and quotas follow.

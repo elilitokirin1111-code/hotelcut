@@ -329,3 +329,24 @@ Verified on 2026-07-30:
   tenant's asset listing and upload registration
 - the Chromium workflow covered ready and failed assets, multipart completion, retry, tagging and
   hotel/BrandKit saves without browser errors
+
+## M7 slice 5 verification record
+
+Verified on 2026-07-30:
+
+- the authenticated workspace exposed the three versioned templates, their supported durations
+  and required media-tag guidance
+- the workflow persisted a complete VideoBrief before generation and retained it for an explicit
+  retry when compilation failed
+- the API derived compiler input from the tenant-scoped Brief, BrandKit and ready asset detail;
+  it converted probe and segment timing to frames and mapped Chinese filenames/manual labels to
+  stable compiler tags
+- a PostgreSQL/API integration test created four tagged production assets, compiled all four
+  promotion slots, persisted immutable revision one, reloaded it and returned 404 to an outsider
+- the API and real browser rejected a zero-visual-slot compilation with an actionable retry
+  message, retained the Brief and verified that no empty video project was persisted
+- API and Web tests covered template contracts, media conversion, generation requests, project
+  persistence summaries and the vertical result preview
+- the Chromium workflow selected a template, saved a Brief, generated a project and displayed a
+  four-of-four slot result without browser errors; desktop and mobile reviews had no horizontal
+  overflow

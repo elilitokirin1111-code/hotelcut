@@ -374,3 +374,16 @@
 - Impact: storage CORS must allow the Web origin and expose `ETag`; direct storage requests never
   receive session cookies, and the API remains responsible for size/checksum validation before
   analysis is queued.
+
+## ID-038: Production compilation derives all media input on the server
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: accept only a tenant-scoped VideoBrief ID, catalog template key and optional seed at
+  the generation endpoint; load BrandKit and ready asset details through the repository, map
+  analyzed timing and operator labels into compiler input, then persist revision one.
+- Reason: accepting browser-supplied media candidates or project JSON would let clients bypass
+  tenant ownership, readiness and analysis guarantees.
+- Impact: the API depends on the pure compiler and template packages, compilation failures return
+  explicit validation errors, and the browser receives only the persisted project plus a compact
+  generation summary.

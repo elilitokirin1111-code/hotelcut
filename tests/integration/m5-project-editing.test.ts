@@ -10,7 +10,13 @@ import {
   PostgresHotelCutRepository,
   type DatabaseClient,
 } from '../../packages/database/src/index.js';
-import { memberships, organizations, users } from '../../packages/database/src/schema.js';
+import {
+  assets,
+  assetSegments,
+  memberships,
+  organizations,
+  users,
+} from '../../packages/database/src/schema.js';
 import {
   parseHotelVideoProject,
   type CaptionClip,
@@ -216,5 +222,258 @@ describeWithDatabase('M5 project editing integration', () => {
       headers: { 'x-user-id': outsiderUserId },
     });
     expect(outsiderResponse.statusCode).toBe(404);
+  });
+
+  it('compiles analyzed and manually tagged hotel assets into revision one', async () => {
+    const hotelResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/hotels',
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        organizationId,
+        name: 'M7 自动剪辑验收酒店',
+        city: '杭州',
+      },
+    });
+    expect(hotelResponse.statusCode).toBe(201);
+    const hotel = hotelResponse.json<{ id: string }>();
+
+    const brandKitResponse = await app.inject({
+      method: 'PUT',
+      url: `/v1/hotels/${hotel.id}/brand-kit`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        primaryColor: '#17324D',
+        secondaryColor: '#F5EFE6',
+        accentColor: '#C99A5B',
+        fontFamily: 'Noto Sans SC',
+        subtitleStyle: 'clean',
+        endingText: '住进一段慢时光',
+        contactText: '400-000-0000（演示）',
+        logoAssetId: null,
+      },
+    });
+    expect(brandKitResponse.statusCode, brandKitResponse.body).toBe(200);
+
+    const briefResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotel.id}/video-briefs`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        title: 'M7 湖畔周末礼遇',
+        platform: 'douyin',
+        durationSeconds: 20,
+        tone: '温暖高级',
+        objective: '提升周末咨询',
+        targetAudience: '周末度假客群',
+        callToAction: '联系酒店',
+      },
+    });
+    expect(briefResponse.statusCode).toBe(201);
+    const brief = briefResponse.json<{ id: string }>();
+
+    const taggedAssets = [
+      { id: randomUUID(), label: '酒店外观', filename: '酒店外观.mp4' },
+      { id: randomUUID(), label: '客房', filename: '湖景客房.mp4' },
+      { id: randomUUID(), label: '服务', filename: '前台服务.mp4' },
+      { id: randomUUID(), label: '活动优惠', filename: '周末套餐.mp4' },
+    ];
+    await client.db.insert(assets).values(
+      taggedAssets.map((asset, index) => ({
+        byteSize: 10_000_000,
+        checksumSha256: String(index + 1).repeat(64),
+        contentType: 'video/mp4',
+        hotelId: hotel.id,
+        id: asset.id,
+        kind: 'video' as const,
+        metadata: {
+          probe: {
+            audioChannels: 2,
+            audioCodec: 'aac',
+            durationMs: 10_000,
+            frameRate: 30,
+            height: 1_920,
+            rotation: 0,
+            videoCodec: 'h264',
+            width: 1_080,
+          },
+        },
+        originalFilename: asset.filename,
+        status: 'ready' as const,
+        storageBucket: 'hotelcut-local',
+        storageKey: `integration/m7-generation/${hotel.id}/${asset.id}.mp4`,
+      })),
+    );
+    await client.db.insert(assetSegments).values(
+      taggedAssets.map((asset) => ({
+        assetId: asset.id,
+        createdByUserId: ownerUserId,
+        endMs: 10_000,
+        id: randomUUID(),
+        kind: 'manual' as const,
+        label: asset.label,
+        metadata: {},
+        source: 'manual' as const,
+        startMs: 0,
+      })),
+    );
+
+    const templatesResponse = await app.inject({
+      method: 'GET',
+      url: '/v1/video-project-templates',
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(templatesResponse.statusCode).toBe(200);
+    expect(
+      templatesResponse.json<Array<{ key: string }>>().map((template) => template.key),
+    ).toEqual(['hotel.host-broll', 'hotel.room-montage', 'hotel.promotion']);
+
+    const generationResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotel.id}/video-projects/generate`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        seed: 20260730,
+        templateKey: 'hotel.promotion',
+        videoBriefId: brief.id,
+      },
+    });
+    expect(generationResponse.statusCode, generationResponse.body).toBe(201);
+    const generated = generationResponse.json<{
+      detail: {
+        project: { id: string; currentRevision: number; templateKey: string };
+        currentRevision: { projectDocument: HotelVideoProjectV1; revision: number };
+      };
+      generation: {
+        selectedSlots: number;
+        totalSlots: number;
+        usedAssetIds: string[];
+      };
+    }>();
+    expect(generated).toMatchObject({
+      detail: {
+        project: { currentRevision: 1, templateKey: 'hotel.promotion' },
+        currentRevision: { revision: 1 },
+      },
+      generation: {
+        selectedSlots: 4,
+        totalSlots: 4,
+      },
+    });
+    expect(generated.generation.usedAssetIds).toHaveLength(4);
+    expect(
+      generated.detail.currentRevision.projectDocument.tracks
+        .filter((track) => track.kind === 'video')
+        .flatMap((track) => track.clips),
+    ).toHaveLength(4);
+
+    const reloadResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/video-projects/${generated.detail.project.id}`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(reloadResponse.statusCode).toBe(200);
+    expect(reloadResponse.json()).toMatchObject({
+      project: { id: generated.detail.project.id, currentRevision: 1 },
+    });
+
+    const outsiderResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotel.id}/video-projects/generate`,
+      headers: { 'x-user-id': outsiderUserId },
+      payload: {
+        templateKey: 'hotel.promotion',
+        videoBriefId: brief.id,
+      },
+    });
+    expect(outsiderResponse.statusCode).toBe(404);
+
+    const untaggedHotelResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/hotels',
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        organizationId,
+        name: 'M7 无标签素材验收酒店',
+        city: '杭州',
+      },
+    });
+    const untaggedHotel = untaggedHotelResponse.json<{ id: string }>();
+    expect(untaggedHotelResponse.statusCode).toBe(201);
+    const untaggedBrandKitResponse = await app.inject({
+      method: 'PUT',
+      url: `/v1/hotels/${untaggedHotel.id}/brand-kit`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        primaryColor: '#17324D',
+        secondaryColor: '#F5EFE6',
+        accentColor: '#C99A5B',
+        fontFamily: 'Noto Sans SC',
+        subtitleStyle: 'clean',
+        endingText: '住进一段慢时光',
+        contactText: null,
+        logoAssetId: null,
+      },
+    });
+    expect(untaggedBrandKitResponse.statusCode).toBe(200);
+    const untaggedBriefResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${untaggedHotel.id}/video-briefs`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        title: '无标签素材不应生成项目',
+        platform: 'douyin',
+        durationSeconds: 20,
+        tone: '温暖高级',
+      },
+    });
+    expect(untaggedBriefResponse.statusCode).toBe(201);
+    const untaggedBrief = untaggedBriefResponse.json<{ id: string }>();
+    const untaggedAssetId = randomUUID();
+    await client.db.insert(assets).values({
+      byteSize: 10_000_000,
+      checksumSha256: 'f'.repeat(64),
+      contentType: 'video/mp4',
+      hotelId: untaggedHotel.id,
+      id: untaggedAssetId,
+      kind: 'video',
+      metadata: {
+        probe: {
+          audioChannels: 2,
+          audioCodec: 'aac',
+          durationMs: 10_000,
+          frameRate: 30,
+          height: 1_920,
+          rotation: 0,
+          videoCodec: 'h264',
+          width: 1_080,
+        },
+      },
+      originalFilename: 'untagged-source.mp4',
+      status: 'ready',
+      storageBucket: 'hotelcut-local',
+      storageKey: `integration/m7-generation/${untaggedHotel.id}/${untaggedAssetId}.mp4`,
+    });
+    const untaggedGenerationResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${untaggedHotel.id}/video-projects/generate`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        templateKey: 'hotel.promotion',
+        videoBriefId: untaggedBrief.id,
+      },
+    });
+    expect(untaggedGenerationResponse.statusCode).toBe(400);
+    expect(untaggedGenerationResponse.json()).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      message: '没有素材满足所选模板。请先为可用镜头添加模板建议标签后重试。',
+    });
+    const untaggedProjectsResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${untaggedHotel.id}/video-projects`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(untaggedProjectsResponse.statusCode).toBe(200);
+    expect(untaggedProjectsResponse.json()).toEqual([]);
   });
 });

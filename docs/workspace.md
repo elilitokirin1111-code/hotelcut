@@ -91,9 +91,29 @@ The fourth slice connects the hotel workspace to the complete M2 media pipeline:
 Compose explicitly exposes the MinIO `ETag` response header to the configured Web origins because
 multipart completion requires the exact server-returned value.
 
+## Slice 5: production automatic-edit workflow
+
+The fifth slice turns analyzed assets into a saved, editable project:
+
+1. The operator selects one of the three versioned HotelCut templates and sees its supported
+   duration and required media categories.
+2. The workspace saves a tenant-scoped VideoBrief with platform, duration, tone, audience,
+   objective and approved CTA copy.
+3. The API loads the persisted Brief, BrandKit and only ready assets visible to the actor.
+4. Chinese filenames and manual segment labels are mapped to the compiler's stable media tags;
+   probe timing, resolution, audio state, scene/speech/manual segments and transcript words are
+   converted to integer-frame candidates.
+5. The existing deterministic compiler selects and lays out clips. The API persists its validated
+   project as immutable revision one and returns slot, asset and warning summaries.
+6. The workspace shows a vertical review preview, track/clip counts and all persisted projects.
+   A failed compilation preserves the Brief and exposes an explicit retry.
+
+The browser never sends compiler media records or a project document. Those are derived on the
+server from tenant-authorized production data so a caller cannot smuggle another hotel's assets
+into a generated project.
+
 ## Remaining M7 slices
 
-- VideoBrief entry, template choice and production automatic compilation
 - production video-project selection and Studio autosave adapter
 - render submission, progress, retry and artifact downloads
 - ownership-checked BrandKit Logo selection
@@ -111,4 +131,5 @@ pnpm --filter @hotelcut/web build
 ```
 
 Open `http://localhost:5173`, enter with the seed account, search for the fictional hotel, enter
-its workspace, upload a video, wait for analysis and inspect its proxy or thumbnail.
+its workspace, upload and tag analyzed videos, then create an automatic-edit project from the
+Video Project module.

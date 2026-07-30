@@ -383,6 +383,115 @@ describe('workspace API client', () => {
     );
   });
 
+  it('creates a production brief and requests a persisted automatic edit', async () => {
+    const hotelId = '30000000-0000-4000-8000-000000000001';
+    const briefId = '50000000-0000-4000-8000-000000000001';
+    const projectId = '60000000-0000-4000-8000-000000000001';
+    const now = '2026-07-30T02:00:00.000Z';
+    const template = {
+      key: 'hotel.promotion',
+      version: '1.0.0',
+      name: '酒店活动推广',
+      description: '聚焦酒店、服务和活动权益',
+      minDurationSeconds: 15,
+      maxDurationSeconds: 25,
+      requiredTags: ['exterior', 'promotion', 'room', 'service'],
+    };
+    const brief = {
+      id: briefId,
+      hotelId,
+      title: '湖畔周末礼遇',
+      platform: 'douyin',
+      durationSeconds: 20,
+      aspectRatio: '9:16',
+      tone: '温暖高级',
+      language: 'zh-CN',
+      objective: '提升周末咨询',
+      targetAudience: '周末度假客群',
+      callToAction: '联系酒店',
+      createdAt: now,
+      updatedAt: now,
+    };
+    const project = {
+      id: projectId,
+      hotelId,
+      videoBriefId: briefId,
+      name: brief.title,
+      templateKey: template.key,
+      status: 'draft' as const,
+      currentRevision: 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const detail = {
+      project,
+      currentRevision: {
+        id: '61000000-0000-4000-8000-000000000001',
+        videoProjectId: projectId,
+        revision: 1,
+        schemaVersion: '1.0.0',
+        projectDocument: { id: projectId, schemaVersion: '1.0.0' },
+        createdByUserId: session.user.id,
+        createdAt: now,
+      },
+    };
+    const generated = {
+      detail,
+      generation: {
+        templateKey: template.key,
+        templateVersion: template.version,
+        seed: 20260730,
+        totalSlots: 4,
+        selectedSlots: 4,
+        usedAssetIds: ['70000000-0000-4000-8000-000000000001'],
+        warnings: [],
+      },
+    };
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify([template]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([project]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(brief), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(generated), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = createWorkspaceApi('/api');
+
+    await expect(api.listProjectTemplates()).resolves.toEqual([template]);
+    await expect(api.listVideoProjects(hotelId)).resolves.toEqual([project]);
+    await expect(
+      api.createVideoBrief(hotelId, {
+        aspectRatio: '9:16',
+        callToAction: '联系酒店',
+        durationSeconds: 20,
+        language: 'zh-CN',
+        objective: '提升周末咨询',
+        platform: 'douyin',
+        targetAudience: '周末度假客群',
+        title: '湖畔周末礼遇',
+        tone: '温暖高级',
+      }),
+    ).resolves.toEqual(brief);
+    await expect(
+      api.generateVideoProject(hotelId, {
+        seed: 20260730,
+        templateKey: template.key,
+        videoBriefId: briefId,
+      }),
+    ).resolves.toEqual(generated);
+    await expect(api.getVideoProject(projectId)).resolves.toEqual(detail);
+
+    expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({
+      body: JSON.stringify({
+        seed: 20260730,
+        templateKey: template.key,
+        videoBriefId: briefId,
+      }),
+      credentials: 'include',
+      method: 'POST',
+    });
+  });
+
   it('preserves an authentication or tenant API error', async () => {
     vi.stubGlobal(
       'fetch',

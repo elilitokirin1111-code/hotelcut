@@ -384,6 +384,44 @@ export const videoProjectDetailSchema = z.object({
   currentRevision: projectRevisionSchema,
 });
 
+export const projectTemplateSchema = z.object({
+  key: z.string().min(1).max(120),
+  version: z.string().regex(/^\d+\.\d+\.\d+$/),
+  name: z.string().min(1).max(160),
+  description: z.string().min(1).max(500),
+  minDurationSeconds: z.number().int().positive(),
+  maxDurationSeconds: z.number().int().positive(),
+  requiredTags: z.array(z.string().min(1).max(80)),
+});
+
+export const generateVideoProjectSchema = z.object({
+  videoBriefId: idSchema,
+  templateKey: z.string().trim().min(1).max(120),
+  seed: z.number().int().min(0).max(4_294_967_295).optional(),
+});
+
+export const generationWarningSchema = z.object({
+  code: z.string().min(1).max(120),
+  message: z.string().min(1).max(500),
+  severity: z.enum(['info', 'warning']),
+  path: z.string().min(1).optional(),
+});
+
+export const projectGenerationSummarySchema = z.object({
+  templateKey: z.string().min(1).max(120),
+  templateVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+  seed: z.number().int().min(0).max(4_294_967_295),
+  totalSlots: z.number().int().nonnegative(),
+  selectedSlots: z.number().int().nonnegative(),
+  usedAssetIds: z.array(idSchema),
+  warnings: z.array(generationWarningSchema),
+});
+
+export const generatedVideoProjectSchema = z.object({
+  detail: videoProjectDetailSchema,
+  generation: projectGenerationSummarySchema,
+});
+
 export const renderLogEntrySchema = z.object({
   timestamp: dateTimeSchema,
   level: z.enum(['info', 'warning', 'error']),
@@ -493,6 +531,10 @@ export type ProjectRevision = z.infer<typeof projectRevisionSchema>;
 export type CreateVideoProjectInput = z.infer<typeof createVideoProjectSchema>;
 export type SaveProjectRevisionInput = z.infer<typeof saveProjectRevisionSchema>;
 export type VideoProjectDetail = z.infer<typeof videoProjectDetailSchema>;
+export type ProjectTemplate = z.infer<typeof projectTemplateSchema>;
+export type GenerateVideoProjectInput = z.infer<typeof generateVideoProjectSchema>;
+export type ProjectGenerationSummary = z.infer<typeof projectGenerationSummarySchema>;
+export type GeneratedVideoProject = z.infer<typeof generatedVideoProjectSchema>;
 export type RenderJob = z.infer<typeof renderJobSchema>;
 export type RenderJobStatus = z.infer<typeof renderJobStatusSchema>;
 export type RenderLogEntry = z.infer<typeof renderLogEntrySchema>;

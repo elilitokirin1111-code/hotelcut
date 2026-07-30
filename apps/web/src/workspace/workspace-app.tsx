@@ -8,6 +8,7 @@ import type {
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { AssetLibrary } from './asset-library';
+import { AutomaticEditWorkflow } from './automatic-edit-workflow';
 import {
   createWorkspaceApi,
   WorkspaceApiError,
@@ -81,8 +82,8 @@ const workspaceModules = [
   {
     id: 'projects',
     title: '视频项目',
-    description: '创建视频、打开编辑器并管理项目修订',
-    available: false,
+    description: '填写需求、选择模板并自动生成可编辑项目',
+    available: true,
   },
   {
     id: 'renders',
@@ -152,7 +153,9 @@ function HotelWorkspace({
   const [logoAssetId, setLogoAssetId] = useState<string | null>(null);
   const [hotelSaveState, setHotelSaveState] = useState<SaveState>({ status: 'idle' });
   const [brandKitSaveState, setBrandKitSaveState] = useState<SaveState>({ status: 'idle' });
-  const [activeModule, setActiveModule] = useState<'assets' | 'configuration'>('assets');
+  const [activeModule, setActiveModule] = useState<'assets' | 'configuration' | 'projects'>(
+    'assets',
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -249,8 +252,8 @@ function HotelWorkspace({
             从酒店资料到成片交付，都在一个隔离工作空间内完成。
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            当前生产切片已接入租户身份、酒店选择、酒店配置与视频素材库。上传、分析和人工标签
-            都由服务端再次校验酒店成员权限，不会共享其他酒店的数据。
+            当前生产切片已接入租户身份、酒店配置、视频素材库和自动剪辑项目。上传、分析、
+            需求单、模板编排与项目保存都由服务端再次校验酒店成员权限。
           </p>
         </section>
 
@@ -546,6 +549,9 @@ function HotelWorkspace({
           </section>
         ) : null}
         {activeModule === 'assets' ? <AssetLibrary api={api} hotelId={hotel.id} /> : null}
+        {activeModule === 'projects' ? (
+          <AutomaticEditWorkflow api={api} hotelId={hotel.id} />
+        ) : null}
       </div>
     </main>
   );

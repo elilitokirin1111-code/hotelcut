@@ -8,8 +8,13 @@ import {
   completeAssetUploadResponseSchema,
   createAssetUploadResponseSchema,
   derivativeDownloadSchema,
+  generatedVideoProjectSchema,
   hotelSchema,
   organizationSchema,
+  projectTemplateSchema,
+  videoBriefSchema,
+  videoProjectDetailSchema,
+  videoProjectSchema,
   type Asset,
   type AssetDetail,
   type AssetDerivativeKind,
@@ -17,10 +22,17 @@ import {
   type AuthSession,
   type BrandKit,
   type CreateManualSegmentInput,
+  type CreateVideoBriefInput,
+  type GenerateVideoProjectInput,
+  type GeneratedVideoProject,
   type Hotel,
   type Organization,
+  type ProjectTemplate,
   type UpdateHotelInput,
   type UpsertBrandKitInput,
+  type VideoBrief,
+  type VideoProject,
+  type VideoProjectDetail,
 } from '@hotelcut/schemas';
 import { createSHA256 } from 'hash-wasm';
 import { z } from 'zod';
@@ -76,6 +88,14 @@ export interface WorkspaceApi {
   ): Promise<AssetUploadResult>;
   retryAssetAnalysis(assetId: string): Promise<AssetAnalysisRetryResult>;
   createManualSegment(assetId: string, input: CreateManualSegmentInput): Promise<AssetSegment>;
+  listProjectTemplates(signal?: AbortSignal): Promise<ProjectTemplate[]>;
+  listVideoProjects(hotelId: string, signal?: AbortSignal): Promise<VideoProject[]>;
+  getVideoProject(projectId: string, signal?: AbortSignal): Promise<VideoProjectDetail>;
+  createVideoBrief(hotelId: string, input: CreateVideoBriefInput): Promise<VideoBrief>;
+  generateVideoProject(
+    hotelId: string,
+    input: GenerateVideoProjectInput,
+  ): Promise<GeneratedVideoProject>;
   updateHotel(hotelId: string, input: UpdateHotelInput): Promise<Hotel>;
   saveBrandKit(hotelId: string, input: UpsertBrandKitInput): Promise<BrandKit>;
 }
@@ -390,6 +410,50 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
       });
+    },
+
+    async listProjectTemplates(signal) {
+      return request(
+        '/v1/video-project-templates',
+        projectTemplateSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async listVideoProjects(hotelId, signal) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/video-projects`,
+        videoProjectSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async getVideoProject(projectId, signal) {
+      return request(
+        `/v1/video-projects/${encodeURIComponent(projectId)}`,
+        videoProjectDetailSchema,
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async createVideoBrief(hotelId, input) {
+      return request(`/v1/hotels/${encodeURIComponent(hotelId)}/video-briefs`, videoBriefSchema, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+    },
+
+    async generateVideoProject(hotelId, input) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/video-projects/generate`,
+        generatedVideoProjectSchema,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(input),
+        },
+      );
     },
 
     async updateHotel(hotelId, input) {

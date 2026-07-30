@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { Asset, AuthSession } from '@hotelcut/schemas';
 
+import { demoProject } from '../editor/demo-data';
 import type { WorkspaceApi } from './workspace-api';
 import { WorkspaceApp } from './workspace-app';
 
@@ -96,6 +97,70 @@ const assets = [
     updatedAt: '2026-07-28T08:15:00.000Z',
   },
 ];
+const projectTemplates = [
+  {
+    key: 'hotel.host-broll',
+    version: '1.0.0',
+    name: '真人口播与环境穿插',
+    description: '真人讲解为主线，自动穿插大堂、客房和服务画面。',
+    minDurationSeconds: 30,
+    maxDurationSeconds: 60,
+    requiredTags: ['booking', 'lobby', 'room', 'welcome'],
+  },
+  {
+    key: 'hotel.promotion',
+    version: '1.0.0',
+    name: '酒店活动推广',
+    description: '聚焦酒店、服务和活动权益。',
+    minDurationSeconds: 15,
+    maxDurationSeconds: 25,
+    requiredTags: ['exterior', 'promotion', 'room', 'service'],
+  },
+];
+const videoBrief = {
+  id: '50000000-0000-4000-8000-000000000001',
+  hotelId: hotels[0]!.id,
+  title: '湖畔周末礼遇',
+  platform: 'douyin' as const,
+  durationSeconds: 30,
+  aspectRatio: '9:16' as const,
+  tone: '温暖高级',
+  language: 'zh-CN',
+  objective: '提升周末咨询',
+  targetAudience: '周末度假客群',
+  callToAction: '联系酒店',
+  createdAt: '2026-07-30T02:00:00.000Z',
+  updatedAt: '2026-07-30T02:00:00.000Z',
+};
+const videoProject = {
+  id: '60000000-0000-4000-8000-000000000001',
+  hotelId: hotels[0]!.id,
+  videoBriefId: videoBrief.id,
+  name: videoBrief.title,
+  templateKey: 'hotel.host-broll',
+  status: 'draft' as const,
+  currentRevision: 1,
+  createdAt: '2026-07-30T02:00:00.000Z',
+  updatedAt: '2026-07-30T02:00:00.000Z',
+};
+const generatedProjectDocument = {
+  ...demoProject,
+  hotelId: hotels[0]!.id,
+  id: videoProject.id,
+  name: videoProject.name,
+};
+const videoProjectDetail = {
+  project: videoProject,
+  currentRevision: {
+    id: '61000000-0000-4000-8000-000000000001',
+    videoProjectId: videoProject.id,
+    revision: 1,
+    schemaVersion: '1.0.0',
+    projectDocument: generatedProjectDocument,
+    createdByUserId: session.user.id,
+    createdAt: '2026-07-30T02:00:00.000Z',
+  },
+};
 
 function detailFor(asset: Asset) {
   return {
@@ -158,11 +223,15 @@ function detailFor(asset: Asset) {
 
 function createApi(initialSession: AuthSession | null): {
   api: WorkspaceApi;
+  createVideoBrief: ReturnType<typeof vi.fn<WorkspaceApi['createVideoBrief']>>;
   createManualSegment: ReturnType<typeof vi.fn<WorkspaceApi['createManualSegment']>>;
+  generateVideoProject: ReturnType<typeof vi.fn<WorkspaceApi['generateVideoProject']>>;
   getSession: ReturnType<typeof vi.fn<WorkspaceApi['getSession']>>;
   getAssetDerivativeDownload: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDerivativeDownload']>>;
   getAssetDetail: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDetail']>>;
   listAssets: ReturnType<typeof vi.fn<WorkspaceApi['listAssets']>>;
+  listProjectTemplates: ReturnType<typeof vi.fn<WorkspaceApi['listProjectTemplates']>>;
+  listVideoProjects: ReturnType<typeof vi.fn<WorkspaceApi['listVideoProjects']>>;
   loadHotelConfiguration: ReturnType<typeof vi.fn<WorkspaceApi['loadHotelConfiguration']>>;
   loadWorkspace: ReturnType<typeof vi.fn<WorkspaceApi['loadWorkspace']>>;
   login: ReturnType<typeof vi.fn<WorkspaceApi['login']>>;
@@ -233,6 +302,37 @@ function createApi(initialSession: AuthSession | null): {
         updatedAt: '2026-07-29T08:00:00.000Z',
       }),
     );
+  const listProjectTemplates = vi
+    .fn<WorkspaceApi['listProjectTemplates']>()
+    .mockResolvedValue(projectTemplates);
+  const listVideoProjects = vi.fn<WorkspaceApi['listVideoProjects']>().mockResolvedValue([]);
+  const getVideoProject = vi
+    .fn<WorkspaceApi['getVideoProject']>()
+    .mockResolvedValue(videoProjectDetail);
+  const createVideoBrief = vi
+    .fn<WorkspaceApi['createVideoBrief']>()
+    .mockImplementation((hotelId, input) =>
+      Promise.resolve({
+        ...videoBrief,
+        ...input,
+        callToAction: input.callToAction ?? null,
+        hotelId,
+        objective: input.objective ?? null,
+        targetAudience: input.targetAudience ?? null,
+      }),
+    );
+  const generateVideoProject = vi.fn<WorkspaceApi['generateVideoProject']>().mockResolvedValue({
+    detail: videoProjectDetail,
+    generation: {
+      seed: 20260730,
+      selectedSlots: 6,
+      templateKey: videoProject.templateKey,
+      templateVersion: '1.0.0',
+      totalSlots: 6,
+      usedAssetIds: [assets[0]!.id],
+      warnings: [],
+    },
+  });
   const saveBrandKit = vi.fn<WorkspaceApi['saveBrandKit']>().mockImplementation((hotelId, input) =>
     Promise.resolve({
       ...brandKit,
@@ -257,10 +357,15 @@ function createApi(initialSession: AuthSession | null): {
   return {
     api: {
       createManualSegment,
+      createVideoBrief,
+      generateVideoProject,
       getAssetDerivativeDownload,
       getAssetDetail,
       getSession,
+      getVideoProject,
       listAssets,
+      listProjectTemplates,
+      listVideoProjects,
       loadHotelConfiguration,
       loadWorkspace,
       login,
@@ -271,10 +376,14 @@ function createApi(initialSession: AuthSession | null): {
       uploadVideo,
     },
     createManualSegment,
+    createVideoBrief,
+    generateVideoProject,
     getAssetDerivativeDownload,
     getAssetDetail,
     getSession,
     listAssets,
+    listProjectTemplates,
+    listVideoProjects,
     loadHotelConfiguration,
     loadWorkspace,
     login,
@@ -456,6 +565,54 @@ describe('M7 email-authenticated hotel workspace', () => {
     expect(await screen.findByRole('button', { name: /可用于剪辑/ })).toBeInTheDocument();
     await waitFor(() => expect(getAssetDetail).toHaveBeenCalledTimes(2));
     expect(await screen.findByLabelText('素材代理视频预览')).toBeInTheDocument();
+  });
+
+  it('creates a brief, selects a template and saves an automatic edit project', async () => {
+    const { api, createVideoBrief, generateVideoProject, listProjectTemplates } =
+      createApi(session);
+    render(<WorkspaceApp api={api} />);
+    await screen.findByRole('heading', { name: '选择酒店' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
+    expect(await screen.findByRole('heading', { name: '创建自动剪辑项目' })).toBeInTheDocument();
+    await waitFor(() => expect(listProjectTemplates).toHaveBeenCalledWith(expect.any(AbortSignal)));
+
+    fireEvent.click(screen.getByLabelText(/酒店活动推广/));
+    fireEvent.change(screen.getByLabelText('项目标题'), {
+      target: { value: '湖畔周末礼遇' },
+    });
+    fireEvent.change(screen.getByLabelText('传播目标'), {
+      target: { value: '提升周末咨询' },
+    });
+    fireEvent.change(screen.getByLabelText('行动引导（仅使用已确认文案）'), {
+      target: { value: '联系酒店' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '生成并保存剪辑项目' }));
+
+    await waitFor(() =>
+      expect(createVideoBrief).toHaveBeenCalledWith(
+        hotels[0]!.id,
+        expect.objectContaining({
+          callToAction: '联系酒店',
+          durationSeconds: 20,
+          objective: '提升周末咨询',
+          title: '湖畔周末礼遇',
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(generateVideoProject).toHaveBeenCalledWith(
+        hotels[0]!.id,
+        expect.objectContaining({
+          templateKey: 'hotel.promotion',
+          videoBriefId: videoBrief.id,
+        }),
+      ),
+    );
+    expect(await screen.findByText(/自动剪辑已保存为项目修订 1/)).toBeInTheDocument();
+    expect(screen.getByText('已匹配 6/6 个画面槽位')).toBeInTheDocument();
+    expect(screen.getByText('编排无警告')).toBeInTheDocument();
   });
 
   it('shows a stable login error without entering the workspace', async () => {

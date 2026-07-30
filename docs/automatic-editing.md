@@ -87,3 +87,20 @@ pnpm templates:fixtures
 ```
 
 Template tests fail on any unapproved golden drift.
+
+## M7 production adapter
+
+`POST /v1/hotels/:hotelId/video-projects/generate` is the production orchestration boundary. It
+accepts only a tenant-scoped VideoBrief ID, a catalog template key and an optional deterministic
+seed. The API—not the browser—loads the Brief, BrandKit and ready asset details, converts
+millisecond analysis ranges to 30 fps integer frames and invokes the pure compiler.
+
+Manual Chinese labels and filenames are mapped to the stable tags used by the three templates;
+speech segments retain transcript and word timing. Compilation warnings remain visible, while a
+result with no usable clips is rejected instead of creating an empty project. Successful output
+is persisted as immutable project revision one, and the response summarizes matched slots, used
+assets and warnings for the workspace preview.
+
+`GET /v1/video-project-templates` exposes the supported version, duration range and required tag
+guidance. Both routes require the same server-owned identity boundary as the rest of the hotel
+workspace.

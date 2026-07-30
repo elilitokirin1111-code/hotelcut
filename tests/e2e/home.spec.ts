@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { demoProject } from '../../apps/web/src/editor/demo-data';
+
 const session = {
   user: {
     id: '20000000-0000-4000-8000-000000000001',
@@ -71,6 +73,8 @@ test('runs the authenticated hotel configuration and asset-production workspace'
     },
   ];
   let createdTag: Record<string, unknown> | null = null;
+  let createdBrief: Record<string, unknown> | null = null;
+  let generationRequest: Record<string, unknown> | null = null;
   let analysisRetried = false;
   let uploadCompleted = false;
   page.on('console', (message) => {
@@ -288,6 +292,99 @@ test('runs the authenticated hotel configuration and asset-production workspace'
       },
     });
   });
+  const projectId = '60000000-0000-4000-8000-000000000001';
+  const briefId = '50000000-0000-4000-8000-000000000001';
+  const generatedProjectDocument = {
+    ...demoProject,
+    hotelId: hotel.id,
+    id: projectId,
+    name: '湖畔周末礼遇',
+  };
+  const videoProject = {
+    id: projectId,
+    hotelId: hotel.id,
+    videoBriefId: briefId,
+    name: '湖畔周末礼遇',
+    templateKey: 'hotel.promotion',
+    status: 'draft',
+    currentRevision: 1,
+    createdAt: '2026-07-30T02:00:00.000Z',
+    updatedAt: '2026-07-30T02:00:00.000Z',
+  };
+  const videoProjectDetail = {
+    project: videoProject,
+    currentRevision: {
+      id: '61000000-0000-4000-8000-000000000001',
+      videoProjectId: projectId,
+      revision: 1,
+      schemaVersion: '1.0.0',
+      projectDocument: generatedProjectDocument,
+      createdByUserId: session.user.id,
+      createdAt: '2026-07-30T02:00:00.000Z',
+    },
+  };
+  await page.route('**/api/v1/video-project-templates', async (route) => {
+    await route.fulfill({
+      status: 200,
+      json: [
+        {
+          key: 'hotel.host-broll',
+          version: '1.0.0',
+          name: '真人口播与环境穿插',
+          description: '真人讲解为主线，自动穿插大堂、客房和服务画面。',
+          minDurationSeconds: 30,
+          maxDurationSeconds: 60,
+          requiredTags: ['booking', 'lobby', 'room', 'welcome'],
+        },
+        {
+          key: 'hotel.promotion',
+          version: '1.0.0',
+          name: '酒店活动推广',
+          description: '聚焦酒店、服务和活动权益。',
+          minDurationSeconds: 15,
+          maxDurationSeconds: 25,
+          requiredTags: ['exterior', 'promotion', 'room', 'service'],
+        },
+      ],
+    });
+  });
+  await page.route('**/api/v1/hotels/*/video-projects', async (route) => {
+    await route.fulfill({ status: 200, json: [] });
+  });
+  await page.route('**/api/v1/hotels/*/video-briefs', async (route) => {
+    createdBrief = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 201,
+      json: {
+        id: briefId,
+        hotelId: hotel.id,
+        ...createdBrief,
+        createdAt: '2026-07-30T02:00:00.000Z',
+        updatedAt: '2026-07-30T02:00:00.000Z',
+      },
+    });
+  });
+  await page.route('**/api/v1/hotels/*/video-projects/generate', async (route) => {
+    generationRequest = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      status: 201,
+      json: {
+        detail: videoProjectDetail,
+        generation: {
+          templateKey: 'hotel.promotion',
+          templateVersion: '1.0.0',
+          seed: 20260730,
+          totalSlots: 4,
+          selectedSlots: 4,
+          usedAssetIds: [assets[0]!.id],
+          warnings: [],
+        },
+      },
+    });
+  });
+  await page.route('**/api/v1/video-projects/*', async (route) => {
+    await route.fulfill({ status: 200, json: videoProjectDetail });
+  });
   await page.route('**/api/v1/hotels', async (route) => {
     await route.fulfill({
       status: 200,
@@ -346,6 +443,27 @@ test('runs the authenticated hotel configuration and asset-production workspace'
     accentColor: '#b87333',
     endingText: '今晚，住进湖畔慢时光',
     logoAssetId: null,
+  });
+
+  await page.getByRole('button', { name: '打开视频项目' }).click();
+  await expect(page.getByRole('heading', { name: '创建自动剪辑项目' })).toBeVisible();
+  await page.getByText('酒店活动推广', { exact: true }).click();
+  await page.getByLabel('项目标题').fill('湖畔周末礼遇');
+  await page.getByLabel('传播目标').fill('提升周末咨询');
+  await page.getByLabel('行动引导（仅使用已确认文案）').fill('联系酒店');
+  await page.getByRole('button', { name: '生成并保存剪辑项目' }).click();
+  await expect(page.getByText('自动剪辑已保存为项目修订 1')).toBeVisible();
+  await expect(page.getByText('已匹配 4/4 个画面槽位')).toBeVisible();
+  await expect(page.getByText('编排无警告')).toBeVisible();
+  expect(createdBrief).toMatchObject({
+    callToAction: '联系酒店',
+    durationSeconds: 20,
+    objective: '提升周末咨询',
+    title: '湖畔周末礼遇',
+  });
+  expect(generationRequest).toMatchObject({
+    templateKey: 'hotel.promotion',
+    videoBriefId: briefId,
   });
   expect(browserErrors).toEqual([]);
 });

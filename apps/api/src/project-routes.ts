@@ -1,9 +1,15 @@
+import { randomInt, randomUUID } from 'node:crypto';
+
+import { compileVideo } from '@hotelcut/compiler';
 import type { HotelCutRepository } from '@hotelcut/domain';
 import {
   createVideoProjectSchema,
   errorResponseSchema,
+  generatedVideoProjectSchema,
+  generateVideoProjectSchema,
   hotelIdParamsSchema,
   idParamsSchema,
+  projectTemplateSchema,
   projectRevisionSchema,
   saveProjectRevisionSchema,
   videoProjectDetailSchema,
@@ -13,6 +19,13 @@ import { parseHotelVideoProject, type HotelVideoProjectV1 } from '@hotelcut/time
 import type { FastifyPluginCallback } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+
+import {
+  buildCompilerInput,
+  projectTemplates,
+  resolveProjectTemplate,
+  summarizeGeneration,
+} from './project-generation.js';
 
 interface ProjectRouteOptions {
   repository?: HotelCutRepository | undefined;
@@ -46,6 +59,106 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
     }
     return options.repository;
   };
+
+  app.get(
+    '/v1/video-project-templates',
+    {
+      schema: {
+        response: {
+          200: z.array(projectTemplateSchema),
+          400: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'List supported automatic-edit templates',
+        tags: ['video-projects'],
+      },
+    },
+    () => [...projectTemplates],
+  );
+
+  app.post(
+    '/v1/hotels/:hotelId/video-projects/generate',
+    {
+      schema: {
+        body: generateVideoProjectSchema,
+        params: hotelIdParamsSchema,
+        response: {
+          201: generatedVideoProjectSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Compile analyzed hotel assets into a new editable project',
+        tags: ['video-projects'],
+      },
+    },
+    async (request, reply) => {
+      const store = repository();
+      const brief = await store.getVideoBrief(request.actorUserId, request.body.videoBriefId);
+      if (brief.hotelId !== request.params.hotelId) {
+        throw new ProjectRequestError('Video brief does not belong to the selected hotel');
+      }
+      const brandKit = await store.getBrandKit(request.actorUserId, request.params.hotelId);
+      const assets = await store.listAssets(request.actorUserId, request.params.hotelId);
+      const readyAssets = assets.filter((asset) => asset.status === 'ready');
+      if (readyAssets.length === 0) {
+        throw new ProjectRequestError(
+          'Automatic editing requires at least one analyzed, ready video asset',
+        );
+      }
+
+      let template;
+      try {
+        template = resolveProjectTemplate(request.body.templateKey);
+      } catch {
+        throw new ProjectRequestError(
+          `Unknown automatic-edit template: ${request.body.templateKey}`,
+        );
+      }
+
+      const projectId = randomUUID();
+      const seed = request.body.seed ?? randomInt(0, 4_294_967_296);
+      const assetDetails = await Promise.all(
+        readyAssets.map((asset) => store.getAssetDetail(request.actorUserId, asset.id)),
+      );
+      let compilation: ReturnType<typeof compileVideo>;
+      try {
+        const input = buildCompilerInput({
+          assetDetails,
+          brandKit,
+          brief,
+          projectId,
+          seed,
+          template,
+        });
+        compilation = compileVideo(input, template);
+      } catch (error) {
+        if (error instanceof Error) {
+          throw new ProjectRequestError(`Automatic editing failed: ${error.message}`);
+        }
+        throw error;
+      }
+      const generation = summarizeGeneration(compilation);
+      if (generation.selectedSlots === 0) {
+        throw new ProjectRequestError(
+          '没有素材满足所选模板。请先为可用镜头添加模板建议标签后重试。',
+        );
+      }
+      const detail = await store.createVideoProject(request.actorUserId, request.params.hotelId, {
+        id: projectId,
+        name: brief.title,
+        projectDocument: compilation.project,
+        schemaVersion: compilation.project.schemaVersion,
+        templateKey: template.id,
+        videoBriefId: brief.id,
+      });
+      return reply.code(201).send({
+        detail,
+        generation,
+      });
+    },
+  );
 
   app.get(
     '/v1/hotels/:hotelId/video-projects',

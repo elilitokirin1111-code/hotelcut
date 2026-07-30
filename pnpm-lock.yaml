@@ -53,6 +53,9 @@ importers:
       '@hotelcut/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@hotelcut/compiler':
+        specifier: workspace:*
+        version: link:../../packages/compiler
       '@hotelcut/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -71,6 +74,9 @@ importers:
       '@hotelcut/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@hotelcut/templates':
+        specifier: workspace:*
+        version: link:../../packages/templates
       '@hotelcut/timeline':
         specifier: workspace:*
         version: link:../../packages/timeline

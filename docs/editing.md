@@ -53,6 +53,8 @@ saves remain visibly failed and may be retried without an uncontrolled retry loo
 The implemented routes are:
 
 - `GET/POST /v1/hotels/:hotelId/video-projects`
+- `POST /v1/hotels/:hotelId/video-projects/generate`
+- `GET /v1/video-project-templates`
 - `GET /v1/video-projects/:id`
 - `GET/POST /v1/video-projects/:id/revisions`
 
@@ -60,6 +62,7 @@ Project creation persists revision 1. Revision creation uses optimistic concurre
 HTTP 409 for a stale base revision. Repository joins enforce membership, so a caller outside the
 organization receives the same not-found response as an unknown project.
 
-M5 ships a fictional local Studio adapter so the editing surface is independently demonstrable.
-The API boundary is ready for the authenticated hotel/project workspace to select and save real
-projects in M7.
+M7 now creates and previews production-backed revision-one projects. M5 still ships the
+fictional local Studio save adapter so the full editing surface remains independently
+demonstrable; the next workspace slice will open a selected production project in Studio and
+replace that adapter with the optimistic-concurrency revision API.
