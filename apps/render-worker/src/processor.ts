@@ -108,18 +108,36 @@ async function uploadArtifact(
   };
 }
 
-function artifactDefinitions(
+async function artifactDefinitions(
   output: RendererOutput,
   reportPath: string,
-): Array<{
-  kind: RenderArtifactKind;
-  path: string;
-  contentType: string;
-}> {
+): Promise<
+  Array<{
+    kind: RenderArtifactKind;
+    path: string;
+    contentType: string;
+  }>
+> {
+  const captionsStats = await stat(output.captionsPath).catch(() => null);
+  const captionsArtifact:
+    | {
+        kind: RenderArtifactKind;
+        path: string;
+        contentType: string;
+      }
+    | undefined =
+    captionsStats?.isFile() && captionsStats.size > 0
+      ? {
+          kind: 'captions',
+          path: output.captionsPath,
+          contentType: 'application/x-subrip',
+        }
+      : undefined;
+
   return [
     { kind: 'video', path: output.videoPath, contentType: 'video/mp4' },
     { kind: 'thumbnail', path: output.thumbnailPath, contentType: 'image/jpeg' },
-    { kind: 'captions', path: output.captionsPath, contentType: 'application/x-subrip' },
+    ...(captionsArtifact ? [captionsArtifact] : []),
     { kind: 'project', path: output.projectPath, contentType: 'application/json' },
     { kind: 'manifest', path: output.manifestPath, contentType: 'application/json' },
     { kind: 'report', path: reportPath, contentType: 'application/json' },
@@ -249,8 +267,9 @@ export function createRenderProcessor(dependencies: RenderProcessorDependencies)
       const reportPath = join(outputDirectory, 'quality-report.json');
       await writeFile(reportPath, `${JSON.stringify(quality, null, 2)}\n`, 'utf8');
 
+      const artifactList = await artifactDefinitions(rendered, reportPath);
       const artifacts = await Promise.all(
-        artifactDefinitions(rendered, reportPath).map((artifact) =>
+        artifactList.map((artifact) =>
           uploadArtifact(
             dependencies.objectStorage,
             dependencies.bucket,

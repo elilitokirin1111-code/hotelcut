@@ -7,7 +7,8 @@ quality report.
 ## Milestone status
 
 M0 through M6 were completed and locally accepted on 2026-07-28. M7 is in progress through
-small, reviewable workspace slices. The repository now includes:
+small, reviewable workspace slices, including the production render-delivery center. The
+repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -193,7 +194,8 @@ See `packages/README.md` for package ownership.
 - The M7 workspace now authenticates with a server-owned session, selects a tenant-scoped hotel,
   edits its hotel/BrandKit configuration, operates its video asset library and creates
   automatically compiled production projects. Generated and saved projects now open in the full
-  Studio and persist later edits as immutable production revisions.
+  Studio, persist later edits as immutable production revisions and can be rendered into
+  quality-checked downloadable delivery artifacts.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
 ## M7 progress
@@ -208,4 +210,6 @@ analysis monitoring, filtering, derivative preview, manual tags and safe retry. 
 adds a production VideoBrief form, template catalog, Chinese-to-canonical media-tag mapping,
 server-side deterministic compilation, revision-one persistence and result preview. Production
 Studio persistence is now connected with debounced autosave, manual save, conflict recovery and
-same-hotel asset validation. The render center, operation audit and quotas follow.
+same-hotel asset validation. The seventh slice connects render submission, live progress,
+cancellation, retry, quality reports and short-lived artifact downloads. Operation audit, Logo
+selection and quotas follow.

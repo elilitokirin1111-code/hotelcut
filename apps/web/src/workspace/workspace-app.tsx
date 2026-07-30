@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { AssetLibrary } from './asset-library';
 import { AutomaticEditWorkflow } from './automatic-edit-workflow';
+import { RenderCenter } from './render-center';
 import {
   createWorkspaceApi,
   WorkspaceApiError,
@@ -89,7 +90,7 @@ const workspaceModules = [
     id: 'renders',
     title: '渲染中心',
     description: '查看进度、质量报告并下载交付产物',
-    available: false,
+    available: true,
   },
 ] as const;
 
@@ -153,9 +154,9 @@ function HotelWorkspace({
   const [logoAssetId, setLogoAssetId] = useState<string | null>(null);
   const [hotelSaveState, setHotelSaveState] = useState<SaveState>({ status: 'idle' });
   const [brandKitSaveState, setBrandKitSaveState] = useState<SaveState>({ status: 'idle' });
-  const [activeModule, setActiveModule] = useState<'assets' | 'configuration' | 'projects'>(
-    'assets',
-  );
+  const [activeModule, setActiveModule] = useState<
+    'assets' | 'configuration' | 'projects' | 'renders'
+  >('assets');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -253,7 +254,7 @@ function HotelWorkspace({
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
             当前生产切片已接入租户身份、酒店配置、视频素材库、自动剪辑和 Studio
-            修订保存。上传、分析、需求单、模板编排、素材替换与项目保存都由服务端再次校验酒店成员权限。
+            修订保存，并可锁定修订提交渲染、查看质检结果和下载交付产物。上传、分析、需求单、模板编排、素材替换、项目保存与下载授权都由服务端再次校验酒店成员权限。
           </p>
         </section>
 
@@ -552,6 +553,7 @@ function HotelWorkspace({
         {activeModule === 'projects' ? (
           <AutomaticEditWorkflow api={api} hotelId={hotel.id} />
         ) : null}
+        {activeModule === 'renders' ? <RenderCenter api={api} hotelId={hotel.id} /> : null}
       </div>
     </main>
   );

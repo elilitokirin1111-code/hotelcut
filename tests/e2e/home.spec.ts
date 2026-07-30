@@ -76,6 +76,9 @@ test('runs the authenticated hotel configuration and asset-production workspace'
   let createdBrief: Record<string, unknown> | null = null;
   let generationRequest: Record<string, unknown> | null = null;
   let savedRevisionRequest: Record<string, unknown> | null = null;
+  let renderCreated = false;
+  let renderDetailPolls = 0;
+  let artifactDownloadRequested = false;
   let analysisRetried = false;
   let uploadCompleted = false;
   page.on('console', (message) => {
@@ -350,7 +353,10 @@ test('runs the authenticated hotel configuration and asset-production workspace'
     });
   });
   await page.route('**/api/v1/hotels/*/video-projects', async (route) => {
-    await route.fulfill({ status: 200, json: [] });
+    await route.fulfill({
+      status: 200,
+      json: generationRequest ? [videoProject] : [],
+    });
   });
   await page.route('**/api/v1/hotels/*/video-briefs', async (route) => {
     createdBrief = route.request().postDataJSON() as Record<string, unknown>;
@@ -400,6 +406,106 @@ test('runs the authenticated hotel configuration and asset-production workspace'
       return;
     }
     await route.fulfill({ status: 200, json: videoProjectDetail });
+  });
+  const renderJobId = '80000000-0000-4000-8000-000000000001';
+  const artifactId = '81000000-0000-4000-8000-000000000001';
+  const renderJob = {
+    id: renderJobId,
+    videoProjectId: projectId,
+    projectRevisionId: '61000000-0000-4000-8000-000000000002',
+    requestedByUserId: session.user.id,
+    status: 'queued',
+    attempt: 0,
+    maxAttempts: 3,
+    progressBasisPoints: 0,
+    inputHash: 'd'.repeat(64),
+    logs: [],
+    cancelRequestedAt: null,
+    errorCode: null,
+    errorMessage: null,
+    startedAt: null,
+    finishedAt: null,
+    createdAt: '2026-07-30T04:00:00.000Z',
+    updatedAt: '2026-07-30T04:00:00.000Z',
+  };
+  const completedRenderJob = {
+    ...renderJob,
+    status: 'succeeded',
+    progressBasisPoints: 10_000,
+    logs: [
+      {
+        timestamp: '2026-07-30T04:00:30.000Z',
+        level: 'info',
+        stage: 'validating',
+        message: 'Quality control completed',
+        details: {},
+      },
+    ],
+    startedAt: '2026-07-30T04:00:01.000Z',
+    finishedAt: '2026-07-30T04:00:30.000Z',
+    updatedAt: '2026-07-30T04:00:30.000Z',
+  };
+  const renderArtifact = {
+    id: artifactId,
+    renderJobId,
+    kind: 'video',
+    storageBucket: 'hotelcut-local',
+    storageKey: `renders/${renderJobId}/video.mp4`,
+    contentType: 'video/mp4',
+    byteSize: 12_345,
+    checksumSha256: 'e'.repeat(64),
+    createdAt: '2026-07-30T04:00:30.000Z',
+  };
+  await page.route('**/api/v1/video-projects/*/render-jobs', async (route) => {
+    if (route.request().method() === 'POST') {
+      renderCreated = true;
+      await route.fulfill({ status: 201, json: renderJob });
+      return;
+    }
+    await route.fulfill({ status: 200, json: renderCreated ? [renderJob] : [] });
+  });
+  await page.route('**/api/v1/render-jobs/*', async (route) => {
+    renderDetailPolls += 1;
+    const completed = renderDetailPolls >= 2;
+    await route.fulfill({
+      status: 200,
+      json: {
+        job: completed
+          ? completedRenderJob
+          : { ...renderJob, status: 'rendering', progressBasisPoints: 6_500 },
+        artifacts: completed ? [renderArtifact] : [],
+        qualityReport: completed
+          ? {
+              id: '82000000-0000-4000-8000-000000000001',
+              renderJobId,
+              status: 'passed',
+              scoreBasisPoints: 10_000,
+              details: {
+                summary: { passed: 11, warnings: 0, failed: 0 },
+                checks: [
+                  {
+                    name: 'video_duration',
+                    status: 'passed',
+                    message: 'Rendered duration matches the project',
+                  },
+                ],
+              },
+              createdAt: '2026-07-30T04:00:30.000Z',
+            }
+          : null,
+      },
+    });
+  });
+  await page.route('**/api/v1/render-artifacts/*/download', async (route) => {
+    artifactDownloadRequested = true;
+    await route.fulfill({
+      status: 200,
+      json: {
+        artifact: renderArtifact,
+        downloadUrl: 'https://downloads.test/video.mp4?ttl=900',
+        expiresAt: '2026-07-30T04:15:00.000Z',
+      },
+    });
   });
   await page.route('**/api/v1/hotels', async (route) => {
     await route.fulfill({
@@ -492,5 +598,17 @@ test('runs the authenticated hotel configuration and asset-production workspace'
   await expect(page.getByText('修订 2')).toBeVisible();
   await page.getByRole('button', { name: '返回项目列表' }).click();
   await expect(page.getByRole('heading', { name: '创建自动剪辑项目' })).toBeVisible();
+
+  await page.getByRole('button', { name: '打开渲染中心' }).click();
+  await expect(page.getByRole('heading', { name: '渲染中心', level: 2 })).toBeVisible();
+  await page.getByRole('button', { name: '渲染当前修订 2' }).click();
+  await expect.poll(() => renderCreated).toBe(true);
+  await expect(page.getByText('质检通过')).toBeVisible();
+  await page.getByRole('button', { name: '生成下载链接' }).click();
+  await expect.poll(() => artifactDownloadRequested).toBe(true);
+  await expect(page.getByRole('link', { name: '下载成片视频' })).toHaveAttribute(
+    'href',
+    'https://downloads.test/video.mp4?ttl=900',
+  );
   expect(browserErrors).toEqual([]);
 });

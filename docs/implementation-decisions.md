@@ -400,3 +400,17 @@
 - Impact: rapid changes create one auditable revision, stale editors receive HTTP 409 with an
   explicit reload action, and cross-hotel or incompatible media references fail before
   persistence.
+
+## ID-040: Render delivery treats persisted job detail as the source of truth
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: submit the current project through the existing immutable-revision render endpoint,
+  poll only the selected active job and present persisted status, logs, quality report and
+  artifacts. Request artifact download URLs individually from the API.
+- Reason: queue progress alone cannot prove that post-processing, mandatory quality checks or
+  artifact persistence completed, and browser-constructed object URLs would bypass membership
+  authorization.
+- Impact: Studio edits after submission cannot mutate the render input; cancellation and retry
+  continue to follow the server state machine and attempt budget; every download uses a
+  short-lived membership-checked URL without exposing storage credentials.

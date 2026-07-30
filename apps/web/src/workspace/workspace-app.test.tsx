@@ -223,21 +223,27 @@ function detailFor(asset: Asset) {
 
 function createApi(initialSession: AuthSession | null): {
   api: WorkspaceApi;
+  cancelRenderJob: ReturnType<typeof vi.fn<WorkspaceApi['cancelRenderJob']>>;
+  createRenderJob: ReturnType<typeof vi.fn<WorkspaceApi['createRenderJob']>>;
   createVideoBrief: ReturnType<typeof vi.fn<WorkspaceApi['createVideoBrief']>>;
   createManualSegment: ReturnType<typeof vi.fn<WorkspaceApi['createManualSegment']>>;
   generateVideoProject: ReturnType<typeof vi.fn<WorkspaceApi['generateVideoProject']>>;
   getSession: ReturnType<typeof vi.fn<WorkspaceApi['getSession']>>;
   getAssetDerivativeDownload: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDerivativeDownload']>>;
   getAssetDetail: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDetail']>>;
+  getRenderArtifactDownload: ReturnType<typeof vi.fn<WorkspaceApi['getRenderArtifactDownload']>>;
+  getRenderJob: ReturnType<typeof vi.fn<WorkspaceApi['getRenderJob']>>;
   getVideoProject: ReturnType<typeof vi.fn<WorkspaceApi['getVideoProject']>>;
   listAssets: ReturnType<typeof vi.fn<WorkspaceApi['listAssets']>>;
   listProjectTemplates: ReturnType<typeof vi.fn<WorkspaceApi['listProjectTemplates']>>;
+  listRenderJobs: ReturnType<typeof vi.fn<WorkspaceApi['listRenderJobs']>>;
   listVideoProjects: ReturnType<typeof vi.fn<WorkspaceApi['listVideoProjects']>>;
   loadHotelConfiguration: ReturnType<typeof vi.fn<WorkspaceApi['loadHotelConfiguration']>>;
   loadWorkspace: ReturnType<typeof vi.fn<WorkspaceApi['loadWorkspace']>>;
   login: ReturnType<typeof vi.fn<WorkspaceApi['login']>>;
   logout: ReturnType<typeof vi.fn<WorkspaceApi['logout']>>;
   retryAssetAnalysis: ReturnType<typeof vi.fn<WorkspaceApi['retryAssetAnalysis']>>;
+  retryRenderJob: ReturnType<typeof vi.fn<WorkspaceApi['retryRenderJob']>>;
   saveBrandKit: ReturnType<typeof vi.fn<WorkspaceApi['saveBrandKit']>>;
   saveProjectRevision: ReturnType<typeof vi.fn<WorkspaceApi['saveProjectRevision']>>;
   updateHotel: ReturnType<typeof vi.fn<WorkspaceApi['updateHotel']>>;
@@ -308,6 +314,22 @@ function createApi(initialSession: AuthSession | null): {
     .fn<WorkspaceApi['listProjectTemplates']>()
     .mockResolvedValue(projectTemplates);
   const listVideoProjects = vi.fn<WorkspaceApi['listVideoProjects']>().mockResolvedValue([]);
+  const listRenderJobs = vi.fn<WorkspaceApi['listRenderJobs']>().mockResolvedValue([]);
+  const createRenderJob = vi
+    .fn<WorkspaceApi['createRenderJob']>()
+    .mockRejectedValue(new Error('Render not configured in this workspace test'));
+  const getRenderJob = vi
+    .fn<WorkspaceApi['getRenderJob']>()
+    .mockRejectedValue(new Error('Render not configured in this workspace test'));
+  const cancelRenderJob = vi
+    .fn<WorkspaceApi['cancelRenderJob']>()
+    .mockRejectedValue(new Error('Render not configured in this workspace test'));
+  const retryRenderJob = vi
+    .fn<WorkspaceApi['retryRenderJob']>()
+    .mockRejectedValue(new Error('Render not configured in this workspace test'));
+  const getRenderArtifactDownload = vi
+    .fn<WorkspaceApi['getRenderArtifactDownload']>()
+    .mockRejectedValue(new Error('Render not configured in this workspace test'));
   const getVideoProject = vi
     .fn<WorkspaceApi['getVideoProject']>()
     .mockResolvedValue(videoProjectDetail);
@@ -378,41 +400,53 @@ function createApi(initialSession: AuthSession | null): {
   });
   return {
     api: {
+      cancelRenderJob,
+      createRenderJob,
       createManualSegment,
       createVideoBrief,
       generateVideoProject,
       getAssetDerivativeDownload,
       getAssetDetail,
+      getRenderArtifactDownload,
+      getRenderJob,
       getSession,
       getVideoProject,
       listAssets,
       listProjectTemplates,
+      listRenderJobs,
       listVideoProjects,
       loadHotelConfiguration,
       loadWorkspace,
       login,
       logout,
       retryAssetAnalysis,
+      retryRenderJob,
       saveBrandKit,
       saveProjectRevision,
       updateHotel,
       uploadVideo,
     },
+    cancelRenderJob,
+    createRenderJob,
     createManualSegment,
     createVideoBrief,
     generateVideoProject,
     getAssetDerivativeDownload,
     getAssetDetail,
+    getRenderArtifactDownload,
+    getRenderJob,
     getVideoProject,
     getSession,
     listAssets,
     listProjectTemplates,
+    listRenderJobs,
     listVideoProjects,
     loadHotelConfiguration,
     loadWorkspace,
     login,
     logout,
     retryAssetAnalysis,
+    retryRenderJob,
     saveBrandKit,
     saveProjectRevision,
     updateHotel,
@@ -452,6 +486,21 @@ describe('M7 email-authenticated hotel workspace', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '返回酒店列表' }));
     expect(screen.getByRole('heading', { name: '选择酒店' })).toBeInTheDocument();
+  });
+
+  it('opens the tenant-scoped render center module', async () => {
+    const { api, listVideoProjects } = createApi(session);
+    render(<WorkspaceApp api={api} />);
+    await screen.findByRole('heading', { name: '选择酒店' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开渲染中心' }));
+
+    expect(await screen.findByRole('heading', { name: '渲染中心', level: 2 })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(listVideoProjects).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal)),
+    );
+    expect(screen.getByText('还没有可渲染的视频项目')).toBeInTheDocument();
   });
 
   it('loads, edits and saves hotel and BrandKit configuration', async () => {

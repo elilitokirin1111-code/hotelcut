@@ -7,11 +7,15 @@ import {
   brandKitSchema,
   completeAssetUploadResponseSchema,
   createAssetUploadResponseSchema,
+  createRenderJobSchema,
   derivativeDownloadSchema,
   generatedVideoProjectSchema,
   hotelSchema,
   organizationSchema,
   projectTemplateSchema,
+  renderArtifactDownloadSchema,
+  renderJobDetailSchema,
+  renderJobSchema,
   videoBriefSchema,
   videoProjectDetailSchema,
   videoProjectSchema,
@@ -22,12 +26,15 @@ import {
   type AuthSession,
   type BrandKit,
   type CreateManualSegmentInput,
+  type CreateRenderJobInput,
   type CreateVideoBriefInput,
   type GenerateVideoProjectInput,
   type GeneratedVideoProject,
   type Hotel,
   type Organization,
   type ProjectTemplate,
+  type RenderJob,
+  type RenderJobDetail,
   type SaveProjectRevisionInput,
   type UpdateHotelInput,
   type UpsertBrandKitInput,
@@ -67,6 +74,7 @@ export interface AssetUploadProgress {
 export type AssetUploadResult = z.infer<typeof completeAssetUploadResponseSchema>;
 export type AssetAnalysisRetryResult = z.infer<typeof analysisRetryResponseSchema>;
 export type AssetDerivativeDownload = z.infer<typeof derivativeDownloadSchema>;
+export type RenderArtifactDownload = z.infer<typeof renderArtifactDownloadSchema>;
 
 export interface WorkspaceApi {
   getSession(signal?: AbortSignal): Promise<AuthSession | null>;
@@ -96,6 +104,15 @@ export interface WorkspaceApi {
     projectId: string,
     input: SaveProjectRevisionInput,
   ): Promise<VideoProjectDetail>;
+  listRenderJobs(projectId: string, signal?: AbortSignal): Promise<RenderJob[]>;
+  createRenderJob(projectId: string, input?: CreateRenderJobInput): Promise<RenderJob>;
+  getRenderJob(renderJobId: string, signal?: AbortSignal): Promise<RenderJobDetail>;
+  cancelRenderJob(renderJobId: string): Promise<RenderJob>;
+  retryRenderJob(renderJobId: string): Promise<RenderJob>;
+  getRenderArtifactDownload(
+    artifactId: string,
+    signal?: AbortSignal,
+  ): Promise<RenderArtifactDownload>;
   createVideoBrief(hotelId: string, input: CreateVideoBriefInput): Promise<VideoBrief>;
   generateVideoProject(
     hotelId: string,
@@ -450,6 +467,54 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
         },
+      );
+    },
+
+    async listRenderJobs(projectId, signal) {
+      return request(
+        `/v1/video-projects/${encodeURIComponent(projectId)}/render-jobs`,
+        renderJobSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async createRenderJob(projectId, input = createRenderJobSchema.parse({})) {
+      return request(
+        `/v1/video-projects/${encodeURIComponent(projectId)}/render-jobs`,
+        renderJobSchema,
+        {
+          body: JSON.stringify(input),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async getRenderJob(renderJobId, signal) {
+      return request(
+        `/v1/render-jobs/${encodeURIComponent(renderJobId)}`,
+        renderJobDetailSchema,
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async cancelRenderJob(renderJobId) {
+      return request(`/v1/render-jobs/${encodeURIComponent(renderJobId)}/cancel`, renderJobSchema, {
+        method: 'POST',
+      });
+    },
+
+    async retryRenderJob(renderJobId) {
+      return request(`/v1/render-jobs/${encodeURIComponent(renderJobId)}/retry`, renderJobSchema, {
+        method: 'POST',
+      });
+    },
+
+    async getRenderArtifactDownload(artifactId, signal) {
+      return request(
+        `/v1/render-artifacts/${encodeURIComponent(artifactId)}/download`,
+        renderArtifactDownloadSchema,
+        signal ? { signal } : undefined,
       );
     },
 

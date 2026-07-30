@@ -517,6 +517,110 @@ describe('workspace API client', () => {
     });
   });
 
+  it('operates the production render lifecycle and artifact download API', async () => {
+    const projectId = '60000000-0000-4000-8000-000000000001';
+    const renderJobId = '80000000-0000-4000-8000-000000000001';
+    const artifactId = '81000000-0000-4000-8000-000000000001';
+    const now = '2026-07-30T04:00:00.000Z';
+    const job = {
+      id: renderJobId,
+      videoProjectId: projectId,
+      projectRevisionId: '61000000-0000-4000-8000-000000000001',
+      requestedByUserId: session.user.id,
+      status: 'succeeded' as const,
+      attempt: 0,
+      maxAttempts: 3,
+      progressBasisPoints: 10_000,
+      inputHash: 'd'.repeat(64),
+      logs: [
+        {
+          timestamp: now,
+          level: 'info' as const,
+          stage: 'validating' as const,
+          message: 'Quality control completed',
+          details: {},
+        },
+      ],
+      cancelRequestedAt: null,
+      errorCode: null,
+      errorMessage: null,
+      startedAt: now,
+      finishedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const artifact = {
+      id: artifactId,
+      renderJobId,
+      kind: 'video' as const,
+      storageBucket: 'hotelcut-local',
+      storageKey: `renders/${renderJobId}/video.mp4`,
+      contentType: 'video/mp4',
+      byteSize: 12_345,
+      checksumSha256: 'e'.repeat(64),
+      createdAt: now,
+    };
+    const detail = {
+      job,
+      artifacts: [artifact],
+      qualityReport: {
+        id: '82000000-0000-4000-8000-000000000001',
+        renderJobId,
+        status: 'passed' as const,
+        scoreBasisPoints: 10_000,
+        details: { summary: { passed: 11, warnings: 0, failed: 0 } },
+        createdAt: now,
+      },
+    };
+    const cancelledJob = {
+      ...job,
+      status: 'cancelled' as const,
+      cancelRequestedAt: now,
+      progressBasisPoints: 2_500,
+    };
+    const retriedJob = {
+      ...job,
+      status: 'queued' as const,
+      attempt: 1,
+      progressBasisPoints: 0,
+      finishedAt: null,
+    };
+    const download = {
+      artifact,
+      downloadUrl: 'https://downloads.test/video.mp4?ttl=900',
+      expiresAt: '2026-07-30T04:15:00.000Z',
+    };
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify([job]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(job), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(cancelledJob), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(retriedJob), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(download), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = createWorkspaceApi('/api');
+
+    await expect(api.listRenderJobs(projectId)).resolves.toEqual([job]);
+    await expect(api.createRenderJob(projectId)).resolves.toEqual(job);
+    await expect(api.getRenderJob(renderJobId)).resolves.toEqual(detail);
+    await expect(api.cancelRenderJob(renderJobId)).resolves.toEqual(cancelledJob);
+    await expect(api.retryRenderJob(renderJobId)).resolves.toEqual(retriedJob);
+    await expect(api.getRenderArtifactDownload(artifactId)).resolves.toEqual(download);
+
+    expect(fetchMock.mock.calls[1]).toEqual([
+      `/api/v1/video-projects/${projectId}/render-jobs`,
+      expect.objectContaining({
+        body: '{}',
+        credentials: 'include',
+        method: 'POST',
+      }),
+    ]);
+    expect(fetchMock.mock.calls[3]?.[0]).toBe(`/api/v1/render-jobs/${renderJobId}/cancel`);
+    expect(fetchMock.mock.calls[4]?.[0]).toBe(`/api/v1/render-jobs/${renderJobId}/retry`);
+    expect(fetchMock.mock.calls[5]?.[0]).toBe(`/api/v1/render-artifacts/${artifactId}/download`);
+  });
+
   it('preserves an authentication or tenant API error', async () => {
     vi.stubGlobal(
       'fetch',

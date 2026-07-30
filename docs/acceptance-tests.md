@@ -368,3 +368,28 @@ Verified on 2026-07-30:
   continued to pass
 - Web component/client tests and the Chromium workflow covered Studio entry, caption editing,
   production autosave, project-list return and conflict recovery
+
+## M7 slice 7 verification record
+
+Verified on 2026-07-30:
+
+- the hotel workspace exposed the production Render Center and listed only projects returned by
+  the selected hotel's authenticated project API
+- submitting a render locked the current immutable project revision and immediately exposed the
+  persisted queue attempt, progress bar and structured stage logs
+- active jobs polled detail until a persisted terminal state and exposed safe cancellation;
+  failed or cancelled attempts exposed retry only while the server attempt budget remained
+- completed attempts displayed the quality score, passed/warning/failed summary and individual
+  Worker checks rather than inferring delivery success from progress alone
+- each persisted video, thumbnail, caption, report, project or manifest artifact requested its
+  own short-lived membership-checked download URL
+- Web client and component coverage exercised submission, polling, cancellation, retry, quality
+  details and download preparation; the Chromium workflow covered Studio revision two through
+  completed render delivery without browser errors
+- a real Compose browser run uploaded and analyzed a 15-second asset, compiled an immutable
+  project revision, followed live rendering to quality control and prepared a membership-checked
+  video download URL; the run also proved that captionless projects omit the empty optional SRT
+  instead of violating the positive-size artifact constraint
+- the same real run surfaced the mandatory abnormal-silence failure with a 91 quality score while
+  still retaining five diagnostic/delivery artifacts, confirming that terminal delivery state is
+  driven by persisted quality results rather than progress reaching 100%
