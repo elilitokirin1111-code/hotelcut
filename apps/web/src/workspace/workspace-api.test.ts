@@ -205,6 +205,184 @@ describe('workspace API client', () => {
     });
   });
 
+  it('loads asset production data and submits retry and manual-tag operations', async () => {
+    const asset = {
+      id: '70000000-0000-4000-8000-000000000001',
+      hotelId: '30000000-0000-4000-8000-000000000001',
+      kind: 'video' as const,
+      status: 'ready' as const,
+      originalFilename: 'room-tour.mp4',
+      contentType: 'video/mp4',
+      byteSize: 8_388_608,
+      storageBucket: 'hotelcut-local',
+      storageKey: 'hotels/demo/assets/room-tour/original',
+      checksumSha256: 'a'.repeat(64),
+      metadata: { durationMs: 30_000 },
+      createdAt: '2026-07-28T08:00:00.000Z',
+      updatedAt: '2026-07-28T08:05:00.000Z',
+    };
+    const detail = {
+      ...asset,
+      derivatives: [],
+      segments: [],
+      analysisJobs: [],
+    };
+    const retry = {
+      analysisJobId: '72000000-0000-4000-8000-000000000001',
+      assetId: asset.id,
+      status: 'queued' as const,
+    };
+    const segment = {
+      id: '73000000-0000-4000-8000-000000000001',
+      assetId: asset.id,
+      startMs: 0,
+      endMs: 30_000,
+      label: '湖景房',
+      kind: 'manual' as const,
+      source: 'manual' as const,
+      scoreBasisPoints: null,
+      createdByUserId: session.user.id,
+      metadata: { role: 'operator-tag' },
+      createdAt: '2026-07-29T08:00:00.000Z',
+      updatedAt: '2026-07-29T08:00:00.000Z',
+    };
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify([asset]), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ expiresInSeconds: 900, url: 'https://media.test/proxy.mp4' }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify(retry), { status: 202 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(segment), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const api = createWorkspaceApi('/api');
+
+    await expect(api.listAssets(asset.hotelId)).resolves.toEqual([asset]);
+    await expect(api.getAssetDetail(asset.id)).resolves.toEqual(detail);
+    await expect(api.getAssetDerivativeDownload(asset.id, 'proxy')).resolves.toEqual({
+      expiresInSeconds: 900,
+      url: 'https://media.test/proxy.mp4',
+    });
+    await expect(api.retryAssetAnalysis(asset.id)).resolves.toEqual(retry);
+    await expect(
+      api.createManualSegment(asset.id, {
+        endMs: 30_000,
+        label: '湖景房',
+        metadata: { role: 'operator-tag' },
+        scoreBasisPoints: null,
+        startMs: 0,
+      }),
+    ).resolves.toEqual(segment);
+
+    expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({
+      credentials: 'include',
+      method: 'POST',
+    });
+    expect(fetchMock.mock.calls[4]?.[1]).toMatchObject({
+      body: JSON.stringify({
+        endMs: 30_000,
+        label: '湖景房',
+        metadata: { role: 'operator-tag' },
+        scoreBasisPoints: null,
+        startMs: 0,
+      }),
+      credentials: 'include',
+      method: 'POST',
+    });
+  });
+
+  it('hashes and uploads a video through presigned multipart storage URLs', async () => {
+    const assetId = '70000000-0000-4000-8000-000000000001';
+    const uploadId = 'provider-upload-1';
+    const now = '2026-07-29T08:00:00.000Z';
+    const registration = {
+      asset: {
+        id: assetId,
+        hotelId: '30000000-0000-4000-8000-000000000001',
+        kind: 'video',
+        status: 'registered',
+        originalFilename: 'room-tour.mp4',
+        contentType: 'video/mp4',
+        byteSize: 3,
+        storageBucket: 'hotelcut-local',
+        storageKey: 'hotels/demo/assets/room-tour/original',
+        checksumSha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+        metadata: {},
+        createdAt: now,
+        updatedAt: now,
+      },
+      upload: {
+        id: '74000000-0000-4000-8000-000000000001',
+        assetId,
+        providerUploadId: uploadId,
+        partSize: 8 * 1024 * 1024,
+        partCount: 1,
+        status: 'initiated',
+        expiresAt: '2026-07-29T08:15:00.000Z',
+        completedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+      parts: [
+        {
+          partNumber: 1,
+          url: 'https://uploads.test/part-1',
+          expiresAt: '2026-07-29T08:15:00.000Z',
+        },
+      ],
+    };
+    const completion = {
+      assetId,
+      analysisJobId: '72000000-0000-4000-8000-000000000001',
+      status: 'queued',
+    };
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify(registration), { status: 201 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200, headers: { ETag: '"etag-1"' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(completion), { status: 202 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const progress = vi.fn();
+    const file = new File([new Uint8Array([1, 2, 3])], 'room-tour.mp4', {
+      type: 'video/mp4',
+    });
+
+    await expect(
+      createWorkspaceApi('/api').uploadVideo(registration.asset.hotelId, file, progress),
+    ).resolves.toEqual(completion);
+
+    const registrationBodyText = fetchMock.mock.calls[0]?.[1]?.body;
+    if (typeof registrationBodyText !== 'string') {
+      throw new Error('Expected the upload registration body to be JSON text');
+    }
+    const registrationBody = JSON.parse(registrationBodyText) as Record<string, unknown>;
+    expect(registrationBody).toMatchObject({
+      byteSize: 3,
+      checksumSha256: registration.asset.checksumSha256,
+      contentType: 'video/mp4',
+      kind: 'video',
+      originalFilename: 'room-tour.mp4',
+      partSize: 8 * 1024 * 1024,
+    });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('https://uploads.test/part-1');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'PUT' });
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
+      body: JSON.stringify({
+        parts: [{ etag: '"etag-1"', partNumber: 1 }],
+        uploadId,
+      }),
+      credentials: 'include',
+      method: 'POST',
+    });
+    expect(progress).toHaveBeenLastCalledWith(
+      expect.objectContaining({ percent: 100, phase: 'finalizing' }),
+    );
+  });
+
   it('preserves an authentication or tenant API error', async () => {
     vi.stubGlobal(
       'fetch',

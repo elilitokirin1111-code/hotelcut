@@ -286,6 +286,7 @@ Verified on 2026-07-28:
 - the rebuilt Compose stack passed every service health check; a real login saw one tenant-scoped
   organization and the revoked cookie received HTTP 401
 - format, lint, typecheck, unit tests, integration tests and the production build passed
+
 - the Chromium flow completed email login, hotel selection and workspace entry with no console or
   page errors
 
@@ -309,3 +310,22 @@ Verified on 2026-07-29:
 - the rebuilt Compose stack passed every service health check; desktop 1280×720 and mobile
   390×844 browser reviews showed no horizontal overflow or visual overlap
 - format, lint, typecheck, unit tests, integration tests and the production build passed
+
+## M7 slice 4 verification record
+
+Verified on 2026-07-30:
+
+- the workspace listed only the selected hotel's production assets and loaded validated detail,
+  analysis jobs, logs, segments and derivative download responses
+- a real browser incrementally hashed and uploaded a generated MP4 through presigned multipart
+  URLs, received exposed MinIO ETags and completed registration without buffering the full file
+- the analysis worker changed the uploaded asset from waiting to ready and the selected detail
+  refreshed when the list state changed
+- operators could filter the library, inspect proxy or thumbnail derivatives, retry a failed
+  analysis and add a manual time-range label
+- Web tests covered client contracts, SHA-256 multipart completion, progress, status refresh,
+  retry and manual tagging
+- the PostgreSQL/API integration test covered owner listing and returned 404 for another
+  tenant's asset listing and upload registration
+- the Chromium workflow covered ready and failed assets, multipart completion, retry, tagging and
+  hotel/BrandKit saves without browser errors

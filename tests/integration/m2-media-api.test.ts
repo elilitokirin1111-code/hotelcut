@@ -224,12 +224,44 @@ describeWithDatabase('M2 media API integration', () => {
     expect(manualResponse.statusCode, manualResponse.body).toBe(201);
     expect(manualResponse.json()).toMatchObject({ kind: 'manual', source: 'manual' });
 
+    const ownerListResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotelId}/assets`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(ownerListResponse.statusCode, ownerListResponse.body).toBe(200);
+    expect(ownerListResponse.json<{ id: string }[]>()).toEqual([
+      expect.objectContaining({ id: registration.asset.id }),
+    ]);
+
     const outsiderResponse = await app.inject({
       method: 'GET',
       url: `/v1/assets/${registration.asset.id}`,
       headers: { 'x-user-id': outsiderUserId },
     });
     expect(outsiderResponse.statusCode, outsiderResponse.body).toBe(404);
+
+    const outsiderListResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotelId}/assets`,
+      headers: { 'x-user-id': outsiderUserId },
+    });
+    expect(outsiderListResponse.statusCode, outsiderListResponse.body).toBe(404);
+
+    const outsiderUploadResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/uploads`,
+      headers: { 'x-user-id': outsiderUserId },
+      payload: {
+        kind: 'video',
+        originalFilename: 'cross-tenant.mp4',
+        contentType: 'video/mp4',
+        byteSize: 35_687,
+        checksumSha256: checksum,
+        partSize: 5 * 1024 * 1024,
+      },
+    });
+    expect(outsiderUploadResponse.statusCode, outsiderUploadResponse.body).toBe(404);
 
     await client.sql`
       update assets set status = 'failed' where id = ${registration.asset.id}

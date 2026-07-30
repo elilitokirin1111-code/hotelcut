@@ -7,6 +7,7 @@ import type {
 } from '@hotelcut/schemas';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { AssetLibrary } from './asset-library';
 import {
   createWorkspaceApi,
   WorkspaceApiError,
@@ -66,21 +67,25 @@ interface BrandKitDraft {
 
 const workspaceModules = [
   {
+    id: 'configuration',
     title: '酒店配置',
     description: '基础信息、品牌色、字幕样式与默认片尾',
     available: true,
   },
   {
+    id: 'assets',
     title: '素材库',
     description: '上传、分析状态、标签、镜头切分与转写',
-    available: false,
+    available: true,
   },
   {
+    id: 'projects',
     title: '视频项目',
     description: '创建视频、打开编辑器并管理项目修订',
     available: false,
   },
   {
+    id: 'renders',
     title: '渲染中心',
     description: '查看进度、质量报告并下载交付产物',
     available: false,
@@ -147,6 +152,7 @@ function HotelWorkspace({
   const [logoAssetId, setLogoAssetId] = useState<string | null>(null);
   const [hotelSaveState, setHotelSaveState] = useState<SaveState>({ status: 'idle' });
   const [brandKitSaveState, setBrandKitSaveState] = useState<SaveState>({ status: 'idle' });
+  const [activeModule, setActiveModule] = useState<'assets' | 'configuration'>('assets');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -243,8 +249,8 @@ function HotelWorkspace({
             从酒店资料到成片交付，都在一个隔离工作空间内完成。
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            当前切片已接入租户身份、酒店选择、酒店资料与品牌配置。所有保存操作都由服务端
-            再次校验管理员权限，不会共享其他酒店的数据。
+            当前生产切片已接入租户身份、酒店选择、酒店配置与视频素材库。上传、分析和人工标签
+            都由服务端再次校验酒店成员权限，不会共享其他酒店的数据。
           </p>
         </section>
 
@@ -254,7 +260,9 @@ function HotelWorkspace({
         >
           {workspaceModules.map((module, index) => (
             <article
-              className="rounded-3xl border border-white/80 bg-white/75 p-5 shadow-[0_14px_45px_rgba(35,52,60,.08)]"
+              className={`rounded-3xl border bg-white/75 p-5 shadow-[0_14px_45px_rgba(35,52,60,.08)] ${
+                module.id === activeModule ? 'border-[#d6a76d]' : 'border-white/80'
+              }`}
               key={module.title}
             >
               <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#f3e5d4] text-sm font-black text-[#8d5d30]">
@@ -262,265 +270,282 @@ function HotelWorkspace({
               </div>
               <h3 className="mt-5 text-base font-black">{module.title}</h3>
               <p className="mt-2 text-xs leading-5 text-slate-500">{module.description}</p>
-              <p className="mt-5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-                {module.available ? '当前切片已接入' : '后续切片接入'}
-              </p>
+              {module.available ? (
+                <button
+                  aria-pressed={module.id === activeModule}
+                  className="mt-5 text-[10px] font-black uppercase tracking-[0.14em] text-[#8d5d30]"
+                  onClick={() => setActiveModule(module.id)}
+                  type="button"
+                >
+                  {module.id === activeModule ? '正在查看' : `打开${module.title}`}
+                </button>
+              ) : (
+                <p className="mt-5 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+                  后续切片接入
+                </p>
+              )}
             </article>
           ))}
         </section>
 
-        <section
-          aria-label="酒店资料与品牌配置"
-          className="mt-5 rounded-[28px] border border-white/80 bg-white/75 p-6 shadow-[0_18px_60px_rgba(35,52,60,.09)] lg:p-8"
-        >
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9a6b3c]">
-                Configuration
-              </p>
-              <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">酒店资料与品牌配置</h2>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
-                这些信息会成为后续素材、模板、字幕和片尾的酒店级默认值。
-              </p>
+        {activeModule === 'configuration' ? (
+          <section
+            aria-label="酒店资料与品牌配置"
+            className="mt-5 rounded-[28px] border border-white/80 bg-white/75 p-6 shadow-[0_18px_60px_rgba(35,52,60,.09)] lg:p-8"
+          >
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9a6b3c]">
+                  Configuration
+                </p>
+                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">酒店资料与品牌配置</h2>
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  这些信息会成为后续素材、模板、字幕和片尾的酒店级默认值。
+                </p>
+              </div>
+              {configurationState.status === 'ready' ? (
+                <p className="rounded-full bg-emerald-50 px-4 py-2 text-[10px] font-black text-emerald-700">
+                  {configurationState.hasPersistedBrandKit
+                    ? 'BrandKit 已配置'
+                    : '等待首次保存 BrandKit'}
+                </p>
+              ) : null}
             </div>
-            {configurationState.status === 'ready' ? (
-              <p className="rounded-full bg-emerald-50 px-4 py-2 text-[10px] font-black text-emerald-700">
-                {configurationState.hasPersistedBrandKit
-                  ? 'BrandKit 已配置'
-                  : '等待首次保存 BrandKit'}
-              </p>
+
+            {configurationState.status === 'loading' ? (
+              <p className="mt-8 text-sm font-semibold text-slate-500">正在加载酒店配置…</p>
             ) : null}
-          </div>
 
-          {configurationState.status === 'loading' ? (
-            <p className="mt-8 text-sm font-semibold text-slate-500">正在加载酒店配置…</p>
-          ) : null}
+            {configurationState.status === 'error' ? (
+              <div className="mt-7 rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                <p className="text-sm font-black text-rose-800">酒店配置加载失败</p>
+                <p className="mt-2 text-xs leading-5 text-rose-700">{configurationState.message}</p>
+                <button
+                  className="editor-secondary-button mt-4"
+                  onClick={() => setConfigurationVersion((version) => version + 1)}
+                  type="button"
+                >
+                  重新加载
+                </button>
+              </div>
+            ) : null}
 
-          {configurationState.status === 'error' ? (
-            <div className="mt-7 rounded-2xl border border-rose-200 bg-rose-50 p-5">
-              <p className="text-sm font-black text-rose-800">酒店配置加载失败</p>
-              <p className="mt-2 text-xs leading-5 text-rose-700">{configurationState.message}</p>
-              <button
-                className="editor-secondary-button mt-4"
-                onClick={() => setConfigurationVersion((version) => version + 1)}
-                type="button"
-              >
-                重新加载
-              </button>
-            </div>
-          ) : null}
-
-          {configurationState.status === 'ready' ? (
-            <div className="mt-7 grid gap-5 xl:grid-cols-2">
-              <form
-                aria-label="酒店资料"
-                className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 lg:p-6"
-                onSubmit={(event) => void saveHotel(event)}
-              >
-                <h3 className="text-base font-black">酒店资料</h3>
-                <p className="mt-1 text-xs text-slate-500">用于工作空间识别与门店级时区处理。</p>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="text-xs font-black text-slate-700">酒店名称</span>
-                    <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={160}
-                      onChange={(event) => {
-                        setHotelDraft((draft) => ({ ...draft, name: event.target.value }));
-                        setHotelSaveState({ status: 'idle' });
-                      }}
-                      required
-                      value={hotelDraft.name}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-black text-slate-700">城市</span>
-                    <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={100}
-                      onChange={(event) => {
-                        setHotelDraft((draft) => ({ ...draft, city: event.target.value }));
-                        setHotelSaveState({ status: 'idle' });
-                      }}
-                      required
-                      value={hotelDraft.city}
-                    />
-                  </label>
-                  <label className="block sm:col-span-2">
-                    <span className="text-xs font-black text-slate-700">地址</span>
-                    <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={300}
-                      onChange={(event) => {
-                        setHotelDraft((draft) => ({ ...draft, address: event.target.value }));
-                        setHotelSaveState({ status: 'idle' });
-                      }}
-                      placeholder="可选"
-                      value={hotelDraft.address}
-                    />
-                  </label>
-                  <label className="block sm:col-span-2">
-                    <span className="text-xs font-black text-slate-700">时区</span>
-                    <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={80}
-                      onChange={(event) => {
-                        setHotelDraft((draft) => ({ ...draft, timezone: event.target.value }));
-                        setHotelSaveState({ status: 'idle' });
-                      }}
-                      required
-                      value={hotelDraft.timezone}
-                    />
-                  </label>
-                </div>
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button
-                    className="rounded-xl bg-[#263138] px-5 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60"
-                    disabled={hotelSaveState.status === 'saving'}
-                    type="submit"
-                  >
-                    {hotelSaveState.status === 'saving' ? '正在保存…' : '保存酒店资料'}
-                  </button>
-                  {hotelSaveState.status === 'saved' || hotelSaveState.status === 'error' ? (
-                    <p
-                      className={`text-xs font-semibold ${
-                        hotelSaveState.status === 'saved' ? 'text-emerald-700' : 'text-rose-700'
-                      }`}
-                    >
-                      {hotelSaveState.message}
-                    </p>
-                  ) : null}
-                </div>
-              </form>
-
-              <form
-                aria-label="品牌配置"
-                className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 lg:p-6"
-                onSubmit={(event) => void saveBrandKit(event)}
-              >
-                <div
-                  aria-label="品牌色预览"
-                  className="h-16 rounded-2xl border border-white shadow-inner"
-                  style={{
-                    background: `linear-gradient(110deg, ${brandKitDraft.primaryColor} 0 45%, ${brandKitDraft.secondaryColor} 45% 76%, ${brandKitDraft.accentColor} 76%)`,
-                  }}
-                />
-                <h3 className="mt-5 text-base font-black">BrandKit</h3>
-                <p className="mt-1 text-xs text-slate-500">品牌色、字体、字幕样式与默认片尾。</p>
-                <div className="mt-5 grid gap-4 sm:grid-cols-3">
-                  {(
-                    [
-                      ['primaryColor', '品牌主色'],
-                      ['secondaryColor', '品牌辅色'],
-                      ['accentColor', '强调色'],
-                    ] as const
-                  ).map(([field, label]) => (
-                    <label className="block" key={field}>
-                      <span className="text-xs font-black text-slate-700">{label}</span>
+            {configurationState.status === 'ready' ? (
+              <div className="mt-7 grid gap-5 xl:grid-cols-2">
+                <form
+                  aria-label="酒店资料"
+                  className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 lg:p-6"
+                  onSubmit={(event) => void saveHotel(event)}
+                >
+                  <h3 className="text-base font-black">酒店资料</h3>
+                  <p className="mt-1 text-xs text-slate-500">用于工作空间识别与门店级时区处理。</p>
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-700">酒店名称</span>
                       <input
-                        aria-label={label}
-                        className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1.5"
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={160}
+                        onChange={(event) => {
+                          setHotelDraft((draft) => ({ ...draft, name: event.target.value }));
+                          setHotelSaveState({ status: 'idle' });
+                        }}
+                        required
+                        value={hotelDraft.name}
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-700">城市</span>
+                      <input
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={100}
+                        onChange={(event) => {
+                          setHotelDraft((draft) => ({ ...draft, city: event.target.value }));
+                          setHotelSaveState({ status: 'idle' });
+                        }}
+                        required
+                        value={hotelDraft.city}
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="text-xs font-black text-slate-700">地址</span>
+                      <input
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={300}
+                        onChange={(event) => {
+                          setHotelDraft((draft) => ({ ...draft, address: event.target.value }));
+                          setHotelSaveState({ status: 'idle' });
+                        }}
+                        placeholder="可选"
+                        value={hotelDraft.address}
+                      />
+                    </label>
+                    <label className="block sm:col-span-2">
+                      <span className="text-xs font-black text-slate-700">时区</span>
+                      <input
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={80}
+                        onChange={(event) => {
+                          setHotelDraft((draft) => ({ ...draft, timezone: event.target.value }));
+                          setHotelSaveState({ status: 'idle' });
+                        }}
+                        required
+                        value={hotelDraft.timezone}
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <button
+                      className="rounded-xl bg-[#263138] px-5 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60"
+                      disabled={hotelSaveState.status === 'saving'}
+                      type="submit"
+                    >
+                      {hotelSaveState.status === 'saving' ? '正在保存…' : '保存酒店资料'}
+                    </button>
+                    {hotelSaveState.status === 'saved' || hotelSaveState.status === 'error' ? (
+                      <p
+                        className={`text-xs font-semibold ${
+                          hotelSaveState.status === 'saved' ? 'text-emerald-700' : 'text-rose-700'
+                        }`}
+                      >
+                        {hotelSaveState.message}
+                      </p>
+                    ) : null}
+                  </div>
+                </form>
+
+                <form
+                  aria-label="品牌配置"
+                  className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5 lg:p-6"
+                  onSubmit={(event) => void saveBrandKit(event)}
+                >
+                  <div
+                    aria-label="品牌色预览"
+                    className="h-16 rounded-2xl border border-white shadow-inner"
+                    style={{
+                      background: `linear-gradient(110deg, ${brandKitDraft.primaryColor} 0 45%, ${brandKitDraft.secondaryColor} 45% 76%, ${brandKitDraft.accentColor} 76%)`,
+                    }}
+                  />
+                  <h3 className="mt-5 text-base font-black">BrandKit</h3>
+                  <p className="mt-1 text-xs text-slate-500">品牌色、字体、字幕样式与默认片尾。</p>
+                  <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                    {(
+                      [
+                        ['primaryColor', '品牌主色'],
+                        ['secondaryColor', '品牌辅色'],
+                        ['accentColor', '强调色'],
+                      ] as const
+                    ).map(([field, label]) => (
+                      <label className="block" key={field}>
+                        <span className="text-xs font-black text-slate-700">{label}</span>
+                        <input
+                          aria-label={label}
+                          className="mt-2 h-11 w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-1.5"
+                          onChange={(event) => {
+                            setBrandKitDraft((draft) => ({
+                              ...draft,
+                              [field]: event.target.value,
+                            }));
+                            setBrandKitSaveState({ status: 'idle' });
+                          }}
+                          type="color"
+                          value={brandKitDraft[field]}
+                        />
+                      </label>
+                    ))}
+                    <label className="block sm:col-span-2">
+                      <span className="text-xs font-black text-slate-700">品牌字体</span>
+                      <input
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={120}
                         onChange={(event) => {
                           setBrandKitDraft((draft) => ({
                             ...draft,
-                            [field]: event.target.value,
+                            fontFamily: event.target.value,
                           }));
                           setBrandKitSaveState({ status: 'idle' });
                         }}
-                        type="color"
-                        value={brandKitDraft[field]}
+                        required
+                        value={brandKitDraft.fontFamily}
                       />
                     </label>
-                  ))}
-                  <label className="block sm:col-span-2">
-                    <span className="text-xs font-black text-slate-700">品牌字体</span>
-                    <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={120}
-                      onChange={(event) => {
-                        setBrandKitDraft((draft) => ({
-                          ...draft,
-                          fontFamily: event.target.value,
-                        }));
-                        setBrandKitSaveState({ status: 'idle' });
-                      }}
-                      required
-                      value={brandKitDraft.fontFamily}
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-black text-slate-700">字幕样式</span>
-                    <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={80}
-                      onChange={(event) => {
-                        setBrandKitDraft((draft) => ({
-                          ...draft,
-                          subtitleStyle: event.target.value,
-                        }));
-                        setBrandKitSaveState({ status: 'idle' });
-                      }}
-                      required
-                      value={brandKitDraft.subtitleStyle}
-                    />
-                  </label>
-                  <label className="block sm:col-span-3">
-                    <span className="text-xs font-black text-slate-700">默认片尾文案</span>
-                    <textarea
-                      className="mt-2 min-h-20 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={300}
-                      onChange={(event) => {
-                        setBrandKitDraft((draft) => ({
-                          ...draft,
-                          endingText: event.target.value,
-                        }));
-                        setBrandKitSaveState({ status: 'idle' });
-                      }}
-                      value={brandKitDraft.endingText}
-                    />
-                  </label>
-                  <label className="block sm:col-span-3">
-                    <span className="text-xs font-black text-slate-700">联系信息</span>
-                    <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
-                      maxLength={200}
-                      onChange={(event) => {
-                        setBrandKitDraft((draft) => ({
-                          ...draft,
-                          contactText: event.target.value,
-                        }));
-                        setBrandKitSaveState({ status: 'idle' });
-                      }}
-                      placeholder="可选；只填写已审核的真实信息"
-                      value={brandKitDraft.contactText}
-                    />
-                  </label>
-                </div>
-                <p className="mt-4 text-[10px] leading-4 text-slate-400">
-                  Logo 将在素材库切片提供安全选择器；当前保存会保留已有 Logo 关联。
-                </p>
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button
-                    className="rounded-xl bg-[#263138] px-5 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60"
-                    disabled={brandKitSaveState.status === 'saving'}
-                    type="submit"
-                  >
-                    {brandKitSaveState.status === 'saving' ? '正在保存…' : '保存品牌配置'}
-                  </button>
-                  {brandKitSaveState.status === 'saved' || brandKitSaveState.status === 'error' ? (
-                    <p
-                      className={`text-xs font-semibold ${
-                        brandKitSaveState.status === 'saved' ? 'text-emerald-700' : 'text-rose-700'
-                      }`}
+                    <label className="block">
+                      <span className="text-xs font-black text-slate-700">字幕样式</span>
+                      <input
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={80}
+                        onChange={(event) => {
+                          setBrandKitDraft((draft) => ({
+                            ...draft,
+                            subtitleStyle: event.target.value,
+                          }));
+                          setBrandKitSaveState({ status: 'idle' });
+                        }}
+                        required
+                        value={brandKitDraft.subtitleStyle}
+                      />
+                    </label>
+                    <label className="block sm:col-span-3">
+                      <span className="text-xs font-black text-slate-700">默认片尾文案</span>
+                      <textarea
+                        className="mt-2 min-h-20 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={300}
+                        onChange={(event) => {
+                          setBrandKitDraft((draft) => ({
+                            ...draft,
+                            endingText: event.target.value,
+                          }));
+                          setBrandKitSaveState({ status: 'idle' });
+                        }}
+                        value={brandKitDraft.endingText}
+                      />
+                    </label>
+                    <label className="block sm:col-span-3">
+                      <span className="text-xs font-black text-slate-700">联系信息</span>
+                      <input
+                        className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#d6a76d]"
+                        maxLength={200}
+                        onChange={(event) => {
+                          setBrandKitDraft((draft) => ({
+                            ...draft,
+                            contactText: event.target.value,
+                          }));
+                          setBrandKitSaveState({ status: 'idle' });
+                        }}
+                        placeholder="可选；只填写已审核的真实信息"
+                        value={brandKitDraft.contactText}
+                      />
+                    </label>
+                  </div>
+                  <p className="mt-4 text-[10px] leading-4 text-slate-400">
+                    Logo 将在素材库切片提供安全选择器；当前保存会保留已有 Logo 关联。
+                  </p>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <button
+                      className="rounded-xl bg-[#263138] px-5 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-60"
+                      disabled={brandKitSaveState.status === 'saving'}
+                      type="submit"
                     >
-                      {brandKitSaveState.message}
-                    </p>
-                  ) : null}
-                </div>
-              </form>
-            </div>
-          ) : null}
-        </section>
+                      {brandKitSaveState.status === 'saving' ? '正在保存…' : '保存品牌配置'}
+                    </button>
+                    {brandKitSaveState.status === 'saved' ||
+                    brandKitSaveState.status === 'error' ? (
+                      <p
+                        className={`text-xs font-semibold ${
+                          brandKitSaveState.status === 'saved'
+                            ? 'text-emerald-700'
+                            : 'text-rose-700'
+                        }`}
+                      >
+                        {brandKitSaveState.message}
+                      </p>
+                    ) : null}
+                  </div>
+                </form>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+        {activeModule === 'assets' ? <AssetLibrary api={api} hotelId={hotel.id} /> : null}
       </div>
     </main>
   );

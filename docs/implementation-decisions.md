@@ -362,3 +362,15 @@
   workflow.
 - Impact: the configuration slice is production-backed for hotel details and BrandKit defaults;
   the asset-library slice owns Logo selection and its cross-hotel failure states.
+
+## ID-037: Browser uploads hash and transfer video incrementally
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: compute SHA-256 from bounded browser slices, upload presigned multipart parts with
+  bounded concurrency and complete the upload with the exact MinIO `ETag` values.
+- Reason: whole-file buffering makes normal hotel footage unsafe on memory-constrained browsers,
+  while application-proxied uploads add avoidable server bandwidth and timeout pressure.
+- Impact: storage CORS must allow the Web origin and expose `ETag`; direct storage requests never
+  receive session cookies, and the API remains responsible for size/checksum validation before
+  analysis is queued.

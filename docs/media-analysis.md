@@ -51,3 +51,11 @@ Reprocessing is idempotent:
 
 The asset detail response includes normalized probe/transcript metadata, derivatives, segments
 and structured analysis logs.
+
+## M7 browser workflow
+
+The hotel workspace uses the M2 API directly. It hashes files in bounded slices, uploads
+presigned parts with bounded concurrency, reports hashing and upload progress, then follows the
+asset state until analysis is terminal. MinIO must allow the configured Web origins and expose
+the multipart `ETag` header. Signed proxy and thumbnail URLs remain short-lived and storage
+requests do not include application credentials.

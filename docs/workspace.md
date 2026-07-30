@@ -73,11 +73,30 @@ The third slice turns the first workspace module into a production-backed config
 The UI never accepts a raw Logo asset UUID. Contact and ending copy remain operator-supplied
 facts; the application does not invent booking or contact claims.
 
+## Slice 4: production video asset library
+
+The fourth slice connects the hotel workspace to the complete M2 media pipeline:
+
+1. The browser hashes videos incrementally and uploads presigned MinIO parts with bounded
+   concurrency and visible phase progress.
+2. Tenant-scoped production APIs list assets and load detail, analysis logs and signed
+   derivatives.
+3. The library filters by file name and processing state, polls only while work is active and
+   refreshes the selected detail when analysis changes.
+4. Operators can retry failed analysis and add manual time-range tags without replacing
+   automatic scene, speech or VAD segments.
+5. Upload and derivative URLs remain short-lived; direct storage requests do not receive the
+   application session cookie.
+
+Compose explicitly exposes the MinIO `ETag` response header to the configured Web origins because
+multipart completion requires the exact server-returned value.
+
 ## Remaining M7 slices
 
-- asset upload, analysis status, filtering, manual tagging and Logo selection
+- VideoBrief entry, template choice and production automatic compilation
 - production video-project selection and Studio autosave adapter
 - render submission, progress, retry and artifact downloads
+- ownership-checked BrandKit Logo selection
 - operation audit
 - basic quotas and quota failure states
 - end-to-end cross-tenant tests for assets, projects, artifacts, BrandKit and upload URLs
@@ -92,4 +111,4 @@ pnpm --filter @hotelcut/web build
 ```
 
 Open `http://localhost:5173`, enter with the seed account, search for the fictional hotel, enter
-its workspace and save an updated hotel profile and BrandKit.
+its workspace, upload a video, wait for analysis and inspect its proxy or thumbnail.

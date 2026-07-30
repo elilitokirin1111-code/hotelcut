@@ -57,6 +57,7 @@ small, reviewable workspace slices. The repository now includes:
 - scrypt-based email login with an HttpOnly opaque session cookie
 - PostgreSQL session revocation and server-derived actor identity on protected routes
 - editable hotel details and BrandKit defaults through administrator-scoped production APIs
+- production-backed asset upload, analysis monitoring, filtering, preview, retry and manual tags
 
 ## Prerequisites
 
@@ -187,10 +188,10 @@ See `packages/README.md` for package ownership.
   Remotion and FFmpeg.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
-- The M7 workspace now authenticates with a server-owned session, selects a tenant-scoped hotel
-  and edits its hotel/BrandKit configuration through production APIs, but production
-  video-project selection is not yet wired. The M5 Studio still uses its fictional local project
-  adapter.
+- The M7 workspace now authenticates with a server-owned session, selects a tenant-scoped hotel,
+  edits its hotel/BrandKit configuration and operates its video asset library through production
+  APIs, but production video-project generation is not yet wired. The M5 Studio still uses its
+  fictional local project adapter.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
 ## M7 progress
@@ -199,6 +200,8 @@ The first M7 slice added tenant-scoped hotel discovery and selection. The second
 email/password verification, revocable PostgreSQL sessions, HttpOnly cookie restoration and
 logout, and server-derived identity for all protected APIs. The third slice adds editable hotel
 details and BrandKit defaults, preserves existing Logo references until the asset library can
-offer an ownership-checked selector, and covers BrandKit cross-tenant reads and writes. The asset
-library, production project selection, the render center, operation audit and quotas remain M7
-work.
+offer an ownership-checked selector, and covers BrandKit cross-tenant reads and writes. The fourth
+slice adds the production video asset library with chunked hashing, direct multipart upload,
+analysis monitoring, filtering, derivative preview, manual tags and safe retry. Production
+project generation and Studio persistence are the next priority; the render center, operation
+audit and quotas follow.
