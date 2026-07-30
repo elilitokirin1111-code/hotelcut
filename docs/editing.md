@@ -46,7 +46,9 @@ branch and discards the former redo stack.
 
 The Web app batches rapid edits behind a debounce. The save adapter receives the complete
 validated project and its `baseRevision`. Successful saves advance the visible revision; failed
-saves remain visibly failed and may be retried without an uncontrolled retry loop.
+saves remain visibly failed and may be retried without an uncontrolled retry loop. Production
+Studio also exposes immediate save, blocks returning to the list while dirty and warns on browser
+unload.
 
 ## Project API
 
@@ -60,9 +62,10 @@ The implemented routes are:
 
 Project creation persists revision 1. Revision creation uses optimistic concurrency and returns
 HTTP 409 for a stale base revision. Repository joins enforce membership, so a caller outside the
-organization receives the same not-found response as an unknown project.
+organization receives the same not-found response as an unknown project. Before persistence, the
+API verifies that every visual/audio clip references a ready, compatible asset belonging to the
+persisted project hotel.
 
-M7 now creates and previews production-backed revision-one projects. M5 still ships the
-fictional local Studio save adapter so the full editing surface remains independently
-demonstrable; the next workspace slice will open a selected production project in Studio and
-replace that adapter with the optimistic-concurrency revision API.
+M7 now opens generated and saved production projects in the same Studio surface. Debounced edits
+use the optimistic-concurrency revision API, and a stale editor offers an explicit reload of the
+server revision. The fictional adapter remains only as an isolated component-test/demo default.

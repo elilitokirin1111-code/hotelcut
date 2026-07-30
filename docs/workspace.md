@@ -112,9 +112,25 @@ The browser never sends compiler media records or a project document. Those are 
 server from tenant-authorized production data so a caller cannot smuggle another hotel's assets
 into a generated project.
 
+## Slice 6: production Studio and autosave
+
+The sixth slice connects the existing no-JSON editor to selected production projects:
+
+1. A generated or previously saved project opens directly in HotelCut Studio.
+2. The scene rail, preview, timeline and inspector operate on the persisted project document.
+3. Ready video, image and audio assets from the selected hotel become the replacement catalog.
+4. Rapid edits are debounced into `POST /v1/video-projects/:id/revisions`; a manual save action is
+   available while changes are pending.
+5. Successful saves advance the visible immutable revision. HTTP 409 leaves the local edit
+   visibly failed and offers an explicit server-revision reload instead of overwriting it.
+6. The API validates every referenced clip asset against the persisted project hotel, ready
+   state and compatible media kind before creating a revision.
+
+The Studio prevents returning to the project list while local changes remain unsaved. Browser
+unload also receives a native unsaved-change warning.
+
 ## Remaining M7 slices
 
-- production video-project selection and Studio autosave adapter
 - render submission, progress, retry and artifact downloads
 - ownership-checked BrandKit Logo selection
 - operation audit
@@ -127,6 +143,7 @@ into a generated project.
 docker compose up -d --build web
 pnpm --filter @hotelcut/web typecheck
 pnpm --filter @hotelcut/web test
+pnpm test:e2e
 pnpm --filter @hotelcut/web build
 ```
 

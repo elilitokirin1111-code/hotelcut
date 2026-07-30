@@ -11,6 +11,8 @@ import type {
 import { hotelVideoProjectV1Schema, type HotelVideoProjectV1 } from '@hotelcut/timeline';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
+import { ProjectStudio } from '../App';
+import type { DemoArtwork, EditorAsset } from '../editor/demo-data';
 import { StudioPreview } from '../editor/studio-preview';
 import type { WorkspaceApi } from './workspace-api';
 
@@ -75,6 +77,60 @@ const tagLabels: Record<string, string> = {
   welcome: '欢迎开场',
 };
 
+const productionArtwork: readonly DemoArtwork[] = [
+  'room',
+  'lake',
+  'lobby',
+  'breakfast',
+  'suite',
+  'spa',
+  'host',
+];
+
+const productionColors: ReadonlyArray<readonly [string, string]> = [
+  ['#78624f', '#263138'],
+  ['#5f7d82', '#24343c'],
+  ['#a27654', '#3d312a'],
+  ['#b68a58', '#5e4731'],
+];
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function numberValue(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function assetDurationFrames(asset: Asset): number {
+  const probe = asRecord(asset.metadata['probe']);
+  const durationMs =
+    numberValue(asset.metadata['durationMs']) ?? numberValue(probe['durationMs']) ?? 0;
+  const frameRate =
+    numberValue(asset.metadata['frameRate']) ?? numberValue(probe['frameRate']) ?? 30;
+  return Math.max(1, Math.round((durationMs / 1_000) * frameRate));
+}
+
+function productionEditorAsset(asset: Asset, index: number): EditorAsset | null {
+  if (asset.status !== 'ready' || !['audio', 'image', 'logo', 'video'].includes(asset.kind)) {
+    return null;
+  }
+  const durationFrames = assetDurationFrames(asset);
+  const durationSeconds = Math.max(1, Math.round(durationFrames / 30));
+  const editorKind = asset.kind === 'logo' ? 'image' : asset.kind;
+  return {
+    artwork: productionArtwork[index % productionArtwork.length] ?? 'room',
+    colors: productionColors[index % productionColors.length] ?? ['#78624f', '#263138'],
+    detail: `${asset.kind === 'audio' ? '音频' : editorKind === 'image' ? '图片' : '视频'} · ${durationSeconds} 秒`,
+    durationFrames,
+    id: asset.id,
+    kind: editorKind as EditorAsset['kind'],
+    name: asset.originalFilename,
+  };
+}
+
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : '自动剪辑请求失败';
 }
@@ -112,6 +168,8 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
   const [generation, setGeneration] = useState<ProjectGenerationSummary | null>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [studioSessionVersion, setStudioSessionVersion] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -151,10 +209,21 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
     loadState.status === 'ready'
       ? (loadState.data.templates.find((template) => template.key === templateKey) ?? null)
       : null;
-  const readyAssets =
-    loadState.status === 'ready'
-      ? loadState.data.assets.filter((asset) => asset.status === 'ready')
-      : [];
+  const readyAssets = useMemo(
+    () =>
+      loadState.status === 'ready'
+        ? loadState.data.assets.filter((asset) => asset.status === 'ready')
+        : [],
+    [loadState],
+  );
+  const studioAssets = useMemo(
+    () =>
+      readyAssets.flatMap((asset, index) => {
+        const mapped = productionEditorAsset(asset, index);
+        return mapped ? [mapped] : [];
+      }),
+    [readyAssets],
+  );
   const previewProject = useMemo(
     () => (selectedDetail ? projectDocument(selectedDetail) : null),
     [selectedDetail],
@@ -252,7 +321,7 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
     }
   };
 
-  const openProject = async (projectId: string) => {
+  const openProject = async (projectId: string, openStudio = false) => {
     setCreateState({ status: 'idle' });
     setGeneration(null);
     try {
@@ -260,9 +329,51 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
       setSelectedDetail(detail);
       setCurrentFrame(0);
       setIsPlaying(false);
+      setStudioOpen(openStudio);
     } catch (error) {
       setCreateState({ message: formatError(error), status: 'error' });
     }
+  };
+
+  const saveStudioRevision = async (
+    project: HotelVideoProjectV1,
+    baseRevision: number,
+  ): Promise<number> => {
+    if (!selectedDetail) {
+      throw new Error('没有可保存的项目');
+    }
+    const detail = await api.saveProjectRevision(selectedDetail.project.id, {
+      baseRevision,
+      projectDocument: project,
+    });
+    setSelectedDetail(detail);
+    setLoadState((state) =>
+      state.status === 'ready'
+        ? {
+            data: {
+              ...state.data,
+              projects: state.data.projects.map((candidate) =>
+                candidate.id === detail.project.id ? detail.project : candidate,
+              ),
+            },
+            status: 'ready',
+          }
+        : state,
+    );
+    return detail.currentRevision.revision;
+  };
+
+  const reloadStudioRevision = async () => {
+    if (!selectedDetail) {
+      return;
+    }
+    const detail = await api.getVideoProject(selectedDetail.project.id);
+    setSelectedDetail(detail);
+    setStudioSessionVersion((version) => version + 1);
+    setCreateState({
+      message: `已加载服务器修订 ${detail.currentRevision.revision}`,
+      status: 'success',
+    });
   };
 
   if (loadState.status === 'loading') {
@@ -286,6 +397,21 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
           重新加载
         </button>
       </section>
+    );
+  }
+
+  if (studioOpen && previewProject && selectedDetail) {
+    return (
+      <ProjectStudio
+        assets={studioAssets}
+        embedded
+        initialProject={previewProject}
+        initialRevision={selectedDetail.currentRevision.revision}
+        key={`${selectedDetail.project.id}-${studioSessionVersion}`}
+        onClose={() => setStudioOpen(false)}
+        onReload={reloadStudioRevision}
+        onSaveRevision={saveStudioRevision}
+      />
     );
   }
 
@@ -524,6 +650,7 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
                 </p>
                 <div className="mt-4 overflow-hidden rounded-2xl bg-[#10181c]">
                   <StudioPreview
+                    assets={studioAssets}
                     currentFrame={currentFrame}
                     isPlaying={isPlaying}
                     onScrub={setCurrentFrame}
@@ -562,6 +689,13 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
                     )}
                   </div>
                 ) : null}
+                <button
+                  className="mt-4 w-full rounded-xl bg-[#e2b174] px-4 py-3 text-xs font-black text-[#263138] transition hover:-translate-y-0.5"
+                  onClick={() => setStudioOpen(true)}
+                  type="button"
+                >
+                  进入 Studio 编辑
+                </button>
               </>
             ) : (
               <div className="mt-4 rounded-2xl border border-dashed border-white/15 p-6 text-center">
@@ -588,9 +722,10 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
               ) : (
                 loadState.data.projects.map((project) => (
                   <button
+                    aria-label={`在 Studio 中打开 ${project.name}`}
                     className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-3 text-left transition hover:border-[#d9b489]"
                     key={project.id}
-                    onClick={() => void openProject(project.id)}
+                    onClick={() => void openProject(project.id, true)}
                     type="button"
                   >
                     <span className="min-w-0">

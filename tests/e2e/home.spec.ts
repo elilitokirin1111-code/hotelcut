@@ -75,6 +75,7 @@ test('runs the authenticated hotel configuration and asset-production workspace'
   let createdTag: Record<string, unknown> | null = null;
   let createdBrief: Record<string, unknown> | null = null;
   let generationRequest: Record<string, unknown> | null = null;
+  let savedRevisionRequest: Record<string, unknown> | null = null;
   let analysisRetried = false;
   let uploadCompleted = false;
   page.on('console', (message) => {
@@ -382,7 +383,22 @@ test('runs the authenticated hotel configuration and asset-production workspace'
       },
     });
   });
-  await page.route('**/api/v1/video-projects/*', async (route) => {
+  await page.route('**/api/v1/video-projects/**', async (route) => {
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.pathname.endsWith('/revisions') && route.request().method() === 'POST') {
+      savedRevisionRequest = route.request().postDataJSON() as Record<string, unknown>;
+      const baseRevision = Number(savedRevisionRequest['baseRevision']);
+      videoProject.currentRevision = baseRevision + 1;
+      videoProjectDetail.currentRevision = {
+        ...videoProjectDetail.currentRevision,
+        id: '61000000-0000-4000-8000-000000000002',
+        projectDocument: savedRevisionRequest['projectDocument'] as typeof generatedProjectDocument,
+        revision: baseRevision + 1,
+        createdAt: '2026-07-30T02:05:00.000Z',
+      };
+      await route.fulfill({ status: 201, json: videoProjectDetail });
+      return;
+    }
     await route.fulfill({ status: 200, json: videoProjectDetail });
   });
   await page.route('**/api/v1/hotels', async (route) => {
@@ -465,5 +481,16 @@ test('runs the authenticated hotel configuration and asset-production workspace'
     templateKey: 'hotel.promotion',
     videoBriefId: briefId,
   });
+
+  await page.getByRole('button', { name: '进入 Studio 编辑' }).click();
+  await expect(page.getByRole('heading', { name: 'HotelCut Studio' })).toBeVisible();
+  await page.getByRole('button', { name: '文案' }).click();
+  await page.getByLabel('字幕文本').fill('湖畔周末，慢下来住一晚');
+  await page.getByRole('button', { name: '应用字幕' }).click();
+  await expect.poll(() => savedRevisionRequest).not.toBeNull();
+  expect(savedRevisionRequest).toMatchObject({ baseRevision: 1 });
+  await expect(page.getByText('修订 2')).toBeVisible();
+  await page.getByRole('button', { name: '返回项目列表' }).click();
+  await expect(page.getByRole('heading', { name: '创建自动剪辑项目' })).toBeVisible();
   expect(browserErrors).toEqual([]);
 });

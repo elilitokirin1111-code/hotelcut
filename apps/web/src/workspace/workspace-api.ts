@@ -28,6 +28,7 @@ import {
   type Hotel,
   type Organization,
   type ProjectTemplate,
+  type SaveProjectRevisionInput,
   type UpdateHotelInput,
   type UpsertBrandKitInput,
   type VideoBrief,
@@ -91,6 +92,10 @@ export interface WorkspaceApi {
   listProjectTemplates(signal?: AbortSignal): Promise<ProjectTemplate[]>;
   listVideoProjects(hotelId: string, signal?: AbortSignal): Promise<VideoProject[]>;
   getVideoProject(projectId: string, signal?: AbortSignal): Promise<VideoProjectDetail>;
+  saveProjectRevision(
+    projectId: string,
+    input: SaveProjectRevisionInput,
+  ): Promise<VideoProjectDetail>;
   createVideoBrief(hotelId: string, input: CreateVideoBriefInput): Promise<VideoBrief>;
   generateVideoProject(
     hotelId: string,
@@ -433,6 +438,18 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
         `/v1/video-projects/${encodeURIComponent(projectId)}`,
         videoProjectDetailSchema,
         signal ? { signal } : undefined,
+      );
+    },
+
+    async saveProjectRevision(projectId, input) {
+      return request(
+        `/v1/video-projects/${encodeURIComponent(projectId)}/revisions`,
+        videoProjectDetailSchema,
+        {
+          body: JSON.stringify(input),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
       );
     },
 

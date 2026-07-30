@@ -350,3 +350,21 @@ Verified on 2026-07-30:
 - the Chromium workflow selected a template, saved a Brief, generated a project and displayed a
   four-of-four slot result without browser errors; desktop and mobile reviews had no horizontal
   overflow
+
+## M7 slice 6 verification record
+
+Verified on 2026-07-30:
+
+- generated and saved production projects opened in the existing Studio scene rail, preview,
+  inspector and simplified timeline
+- caption edits were debounced into revision two through the authenticated production API and
+  the visible revision state advanced after persistence
+- an HTTP 409 autosave conflict remained visible and the operator could explicitly load the
+  current server revision
+- the Studio blocked list navigation while local edits were pending and registered a browser
+  unload warning for unsaved changes
+- API integration rejected a ready video belonging to another hotel before writing a project
+  revision, while same-hotel project creation, autosave, reload and stale-revision rejection
+  continued to pass
+- Web component/client tests and the Chromium workflow covered Studio entry, caption editing,
+  production autosave, project-list return and conflict recovery

@@ -51,6 +51,31 @@ function validateProjectDocument(value: unknown): HotelVideoProjectV1 {
   }
 }
 
+async function validateProjectAssets(
+  store: HotelCutRepository,
+  actorUserId: string,
+  hotelId: string,
+  project: HotelVideoProjectV1,
+): Promise<void> {
+  const availableAssets = new Map(
+    (await store.listAssets(actorUserId, hotelId)).map((asset) => [asset.id, asset]),
+  );
+  for (const clip of project.tracks.flatMap((track) => track.clips)) {
+    if (clip.kind === 'caption' || clip.kind === 'text') {
+      continue;
+    }
+    const asset = availableAssets.get(clip.assetId);
+    const compatibleKind =
+      asset &&
+      (clip.kind === 'image'
+        ? asset.kind === 'image' || asset.kind === 'logo'
+        : asset.kind === clip.kind);
+    if (!asset || asset.status !== 'ready' || !compatibleKind) {
+      throw new ProjectRequestError(`项目片段 ${clip.id} 引用了当前酒店不可用或类型不匹配的素材。`);
+    }
+  }
+}
+
 export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastify, options) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
   const repository = (): HotelCutRepository => {
@@ -203,15 +228,18 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
       if (projectDocument.hotelId !== request.params.hotelId) {
         throw new ProjectRequestError('Project document hotelId must match the route hotelId');
       }
-      const result = await repository().createVideoProject(
+      const store = repository();
+      await validateProjectAssets(
+        store,
         request.actorUserId,
         request.params.hotelId,
-        {
-          ...request.body,
-          projectDocument,
-          schemaVersion: projectDocument.schemaVersion,
-        },
+        projectDocument,
       );
+      const result = await store.createVideoProject(request.actorUserId, request.params.hotelId, {
+        ...request.body,
+        projectDocument,
+        schemaVersion: projectDocument.schemaVersion,
+      });
       return reply.code(201).send(result);
     },
   );
@@ -274,15 +302,24 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
       if (projectDocument.id !== request.params.id) {
         throw new ProjectRequestError('Project document id must match the route project id');
       }
-      const result = await repository().saveProjectRevision(
+      const store = repository();
+      const currentProject = await store.getVideoProject(request.actorUserId, request.params.id);
+      if (projectDocument.hotelId !== currentProject.project.hotelId) {
+        throw new ProjectRequestError(
+          'Project document hotelId must match the persisted project hotelId',
+        );
+      }
+      await validateProjectAssets(
+        store,
         request.actorUserId,
-        request.params.id,
-        {
-          ...request.body,
-          projectDocument,
-          schemaVersion: projectDocument.schemaVersion,
-        },
+        currentProject.project.hotelId,
+        projectDocument,
       );
+      const result = await store.saveProjectRevision(request.actorUserId, request.params.id, {
+        ...request.body,
+        projectDocument,
+        schemaVersion: projectDocument.schemaVersion,
+      });
       return reply.code(201).send(result);
     },
   );

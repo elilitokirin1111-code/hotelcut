@@ -82,7 +82,7 @@ const workspaceModules = [
   {
     id: 'projects',
     title: '视频项目',
-    description: '填写需求、选择模板并自动生成可编辑项目',
+    description: '自动生成、Studio 编辑与修订自动保存',
     available: true,
   },
   {
@@ -252,8 +252,8 @@ function HotelWorkspace({
             从酒店资料到成片交付，都在一个隔离工作空间内完成。
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60">
-            当前生产切片已接入租户身份、酒店配置、视频素材库和自动剪辑项目。上传、分析、
-            需求单、模板编排与项目保存都由服务端再次校验酒店成员权限。
+            当前生产切片已接入租户身份、酒店配置、视频素材库、自动剪辑和 Studio
+            修订保存。上传、分析、需求单、模板编排、素材替换与项目保存都由服务端再次校验酒店成员权限。
           </p>
         </section>
 

@@ -107,17 +107,32 @@ export function useProjectEditor(
     return () => window.clearTimeout(timer);
   }, [autosaveDelayMs, flushSave, retryTick, session.changeVersion]);
 
+  const isDirty = session.changeVersion !== savedVersionRef.current;
+
+  useEffect(() => {
+    if (!isDirty) {
+      return;
+    }
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    return () => window.removeEventListener('beforeunload', warnBeforeUnload);
+  }, [isDirty]);
+
   return {
     project: session.history.present,
     revision,
     saveState,
     saveError,
     lastSavedAt,
+    isDirty,
     canUndo: session.history.past.length > 0,
     canRedo: session.history.future.length > 0,
     execute: (command: EditorCommand) => dispatch({ type: 'command', command }),
     undo: () => dispatch({ type: 'undo' }),
     redo: () => dispatch({ type: 'redo' }),
+    saveNow: flushSave,
     retrySave: () => setRetryTick((value) => value + 1),
   };
 }

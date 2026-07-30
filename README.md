@@ -192,8 +192,8 @@ See `packages/README.md` for package ownership.
 - OpenCut is documentation and adapter planning only.
 - The M7 workspace now authenticates with a server-owned session, selects a tenant-scoped hotel,
   edits its hotel/BrandKit configuration, operates its video asset library and creates
-  automatically compiled production projects. Opening those projects in the full M5 Studio and
-  saving later edits still uses the fictional local adapter.
+  automatically compiled production projects. Generated and saved projects now open in the full
+  Studio and persist later edits as immutable production revisions.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
 ## M7 progress
@@ -207,4 +207,5 @@ slice adds the production video asset library with chunked hashing, direct multi
 analysis monitoring, filtering, derivative preview, manual tags and safe retry. The fifth slice
 adds a production VideoBrief form, template catalog, Chinese-to-canonical media-tag mapping,
 server-side deterministic compilation, revision-one persistence and result preview. Production
-Studio persistence is the next priority; the render center, operation audit and quotas follow.
+Studio persistence is now connected with debounced autosave, manual save, conflict recovery and
+same-hotel asset validation. The render center, operation audit and quotas follow.

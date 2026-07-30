@@ -104,3 +104,8 @@ assets and warnings for the workspace preview.
 `GET /v1/video-project-templates` exposes the supported version, duration range and required tag
 guidance. Both routes require the same server-owned identity boundary as the rest of the hotel
 workspace.
+
+The resulting project can be opened in production Studio without another conversion step.
+Studio edits preserve the canonical document, create sequential immutable revisions and may only
+introduce ready assets from the same hotel. A stale `baseRevision` returns HTTP 409 and is resolved
+by explicitly loading the current server revision.

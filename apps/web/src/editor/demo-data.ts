@@ -4,7 +4,7 @@ export type DemoArtwork = 'host' | 'lake' | 'room' | 'breakfast' | 'lobby' | 'su
 
 export interface EditorAsset {
   id: string;
-  kind: 'video' | 'audio';
+  kind: 'video' | 'image' | 'audio';
   name: string;
   detail: string;
   durationFrames: number;
@@ -445,6 +445,9 @@ export const demoProject = parseHotelVideoProject({
   },
 });
 
-export function findEditorAsset(assetId: string): EditorAsset | undefined {
-  return editorAssets.find((asset) => asset.id === assetId);
+export function findEditorAsset(
+  assetId: string,
+  assets: readonly EditorAsset[] = editorAssets,
+): EditorAsset | undefined {
+  return assets.find((asset) => asset.id === assetId);
 }

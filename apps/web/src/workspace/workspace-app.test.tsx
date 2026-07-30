@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Asset, AuthSession } from '@hotelcut/schemas';
 
 import { demoProject } from '../editor/demo-data';
-import type { WorkspaceApi } from './workspace-api';
+import { WorkspaceApiError, type WorkspaceApi } from './workspace-api';
 import { WorkspaceApp } from './workspace-app';
 
 const organization = {
@@ -229,6 +229,7 @@ function createApi(initialSession: AuthSession | null): {
   getSession: ReturnType<typeof vi.fn<WorkspaceApi['getSession']>>;
   getAssetDerivativeDownload: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDerivativeDownload']>>;
   getAssetDetail: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDetail']>>;
+  getVideoProject: ReturnType<typeof vi.fn<WorkspaceApi['getVideoProject']>>;
   listAssets: ReturnType<typeof vi.fn<WorkspaceApi['listAssets']>>;
   listProjectTemplates: ReturnType<typeof vi.fn<WorkspaceApi['listProjectTemplates']>>;
   listVideoProjects: ReturnType<typeof vi.fn<WorkspaceApi['listVideoProjects']>>;
@@ -238,6 +239,7 @@ function createApi(initialSession: AuthSession | null): {
   logout: ReturnType<typeof vi.fn<WorkspaceApi['logout']>>;
   retryAssetAnalysis: ReturnType<typeof vi.fn<WorkspaceApi['retryAssetAnalysis']>>;
   saveBrandKit: ReturnType<typeof vi.fn<WorkspaceApi['saveBrandKit']>>;
+  saveProjectRevision: ReturnType<typeof vi.fn<WorkspaceApi['saveProjectRevision']>>;
   updateHotel: ReturnType<typeof vi.fn<WorkspaceApi['updateHotel']>>;
   uploadVideo: ReturnType<typeof vi.fn<WorkspaceApi['uploadVideo']>>;
 } {
@@ -333,6 +335,26 @@ function createApi(initialSession: AuthSession | null): {
       warnings: [],
     },
   });
+  const saveProjectRevision = vi
+    .fn<WorkspaceApi['saveProjectRevision']>()
+    .mockImplementation((projectId, input) =>
+      Promise.resolve({
+        project: {
+          ...videoProject,
+          currentRevision: input.baseRevision + 1,
+          id: projectId,
+          updatedAt: '2026-07-30T02:05:00.000Z',
+        },
+        currentRevision: {
+          ...videoProjectDetail.currentRevision,
+          id: '61000000-0000-4000-8000-000000000002',
+          projectDocument: input.projectDocument,
+          revision: input.baseRevision + 1,
+          videoProjectId: projectId,
+          createdAt: '2026-07-30T02:05:00.000Z',
+        },
+      }),
+    );
   const saveBrandKit = vi.fn<WorkspaceApi['saveBrandKit']>().mockImplementation((hotelId, input) =>
     Promise.resolve({
       ...brandKit,
@@ -372,6 +394,7 @@ function createApi(initialSession: AuthSession | null): {
       logout,
       retryAssetAnalysis,
       saveBrandKit,
+      saveProjectRevision,
       updateHotel,
       uploadVideo,
     },
@@ -380,6 +403,7 @@ function createApi(initialSession: AuthSession | null): {
     generateVideoProject,
     getAssetDerivativeDownload,
     getAssetDetail,
+    getVideoProject,
     getSession,
     listAssets,
     listProjectTemplates,
@@ -390,6 +414,7 @@ function createApi(initialSession: AuthSession | null): {
     logout,
     retryAssetAnalysis,
     saveBrandKit,
+    saveProjectRevision,
     updateHotel,
     uploadVideo,
   };
@@ -613,6 +638,71 @@ describe('M7 email-authenticated hotel workspace', () => {
     expect(await screen.findByText(/自动剪辑已保存为项目修订 1/)).toBeInTheDocument();
     expect(screen.getByText('已匹配 6/6 个画面槽位')).toBeInTheDocument();
     expect(screen.getByText('编排无警告')).toBeInTheDocument();
+  });
+
+  it('opens a generated project in Studio and autosaves an immutable revision', async () => {
+    const { api, saveProjectRevision } = createApi(session);
+    render(<WorkspaceApp api={api} />);
+    await screen.findByRole('heading', { name: '选择酒店' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
+    await screen.findByRole('heading', { name: '创建自动剪辑项目' });
+    fireEvent.change(screen.getByLabelText('项目标题'), {
+      target: { value: '湖畔周末礼遇' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '生成并保存剪辑项目' }));
+    await screen.findByText(/自动剪辑已保存为项目修订 1/);
+    fireEvent.click(screen.getByRole('button', { name: '进入 Studio 编辑' }));
+
+    expect(await screen.findByRole('heading', { name: 'HotelCut Studio' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '文案' }));
+    fireEvent.change(screen.getByLabelText('字幕文本'), {
+      target: { value: '湖畔周末，慢下来住一晚' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '应用字幕' }));
+
+    await waitFor(() => expect(saveProjectRevision).toHaveBeenCalled(), { timeout: 2_500 });
+    const savedRevision = saveProjectRevision.mock.calls[0];
+    expect(savedRevision?.[0]).toBe(videoProject.id);
+    expect(savedRevision?.[1].baseRevision).toBe(1);
+    expect(savedRevision?.[1].projectDocument).toMatchObject({ id: videoProject.id });
+    expect(await screen.findByText('修订 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '返回项目列表' }));
+    expect(await screen.findByRole('heading', { name: '创建自动剪辑项目' })).toBeInTheDocument();
+  });
+
+  it('reloads the server revision after an autosave conflict', async () => {
+    const { api, getVideoProject, saveProjectRevision } = createApi(session);
+    saveProjectRevision.mockRejectedValue(
+      new WorkspaceApiError(409, 'CONFLICT', '项目修订已变化，请重新加载'),
+    );
+    render(<WorkspaceApp api={api} />);
+    await screen.findByRole('heading', { name: '选择酒店' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
+    await screen.findByRole('heading', { name: '创建自动剪辑项目' });
+    fireEvent.change(screen.getByLabelText('项目标题'), {
+      target: { value: '冲突恢复验收' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '生成并保存剪辑项目' }));
+    await screen.findByText(/自动剪辑已保存为项目修订 1/);
+    fireEvent.click(screen.getByRole('button', { name: '进入 Studio 编辑' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: '文案' }));
+    fireEvent.change(screen.getByLabelText('字幕文本'), {
+      target: { value: '这是一条产生版本冲突的修改' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '应用字幕' }));
+
+    expect(
+      await screen.findByText('项目修订已变化，请重新加载', {}, { timeout: 2_500 }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '加载服务器最新修订' }));
+    await waitFor(() => expect(getVideoProject).toHaveBeenCalledWith(videoProject.id));
+    expect(await screen.findByText('所有修改已保存')).toBeInTheDocument();
+    expect(screen.getByText('修订 1')).toBeInTheDocument();
   });
 
   it('shows a stable login error without entering the workspace', async () => {

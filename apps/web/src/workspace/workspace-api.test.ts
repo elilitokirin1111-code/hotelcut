@@ -447,13 +447,24 @@ describe('workspace API client', () => {
         warnings: [],
       },
     };
+    const revisedDetail = {
+      project: { ...project, currentRevision: 2, updatedAt: '2026-07-30T02:05:00.000Z' },
+      currentRevision: {
+        ...detail.currentRevision,
+        id: '61000000-0000-4000-8000-000000000002',
+        revision: 2,
+        projectDocument: { id: projectId, schemaVersion: '1.0.0', edited: true },
+        createdAt: '2026-07-30T02:05:00.000Z',
+      },
+    };
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(JSON.stringify([template]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify([project]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify(brief), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify(generated), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify(detail), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(revisedDetail), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
     const api = createWorkspaceApi('/api');
 
@@ -480,12 +491,26 @@ describe('workspace API client', () => {
       }),
     ).resolves.toEqual(generated);
     await expect(api.getVideoProject(projectId)).resolves.toEqual(detail);
+    await expect(
+      api.saveProjectRevision(projectId, {
+        baseRevision: 1,
+        projectDocument: revisedDetail.currentRevision.projectDocument,
+      }),
+    ).resolves.toEqual(revisedDetail);
 
     expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({
       body: JSON.stringify({
         seed: 20260730,
         templateKey: template.key,
         videoBriefId: briefId,
+      }),
+      credentials: 'include',
+      method: 'POST',
+    });
+    expect(fetchMock.mock.calls[5]?.[1]).toMatchObject({
+      body: JSON.stringify({
+        baseRevision: 1,
+        projectDocument: revisedDetail.currentRevision.projectDocument,
       }),
       credentials: 'include',
       method: 'POST',

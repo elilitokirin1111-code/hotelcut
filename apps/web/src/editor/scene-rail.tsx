@@ -1,10 +1,11 @@
 import { getEditorScenes } from '@hotelcut/editor';
 import type { HotelVideoProjectV1 } from '@hotelcut/timeline';
 
-import { findEditorAsset } from './demo-data';
+import { editorAssets, findEditorAsset, type EditorAsset } from './demo-data';
 import { PreviewArtwork } from './preview-artwork';
 
 interface SceneRailProps {
+  assets?: readonly EditorAsset[];
   project: HotelVideoProjectV1;
   selectedClipId: string | null;
   onSelect: (clipId: string, startFrame: number) => void;
@@ -23,7 +24,12 @@ function formatDuration(frames: number, frameRate: number): string {
   return `${(frames / frameRate).toFixed(1)}s`;
 }
 
-export function SceneRail({ project, selectedClipId, onSelect }: SceneRailProps) {
+export function SceneRail({
+  assets = editorAssets,
+  project,
+  selectedClipId,
+  onSelect,
+}: SceneRailProps) {
   const scenes = getEditorScenes(project);
 
   return (
@@ -43,7 +49,7 @@ export function SceneRail({ project, selectedClipId, onSelect }: SceneRailProps)
 
       <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 studio-scrollbar">
         {scenes.map((scene, index) => {
-          const asset = findEditorAsset(scene.assetId);
+          const asset = findEditorAsset(scene.assetId, assets);
           const selected = scene.clipId === selectedClipId;
           return (
             <button

@@ -2,7 +2,7 @@ import { getEditorScenes } from '@hotelcut/editor';
 import type { Clip, HotelVideoProjectV1 } from '@hotelcut/timeline';
 import { useEffect, useMemo, useState } from 'react';
 
-import { demoProject } from './editor/demo-data';
+import { demoProject, editorAssets, type EditorAsset } from './editor/demo-data';
 import { Icon, type IconName } from './editor/icon';
 import { Inspector } from './editor/inspector';
 import { SceneRail } from './editor/scene-rail';
@@ -19,6 +19,17 @@ interface AppProps {
   initialRevision?: number;
   autosaveDelayMs?: number;
   onSaveRevision?: SaveProjectRevision;
+}
+
+export interface ProjectStudioProps {
+  assets?: readonly EditorAsset[];
+  autosaveDelayMs?: number;
+  embedded?: boolean;
+  initialProject: HotelVideoProjectV1;
+  initialRevision: number;
+  onClose?: () => void;
+  onReload?: () => void | Promise<void>;
+  onSaveRevision: SaveProjectRevision;
 }
 
 const navigation: Array<{ label: string; icon: IconName; active?: boolean }> = [
@@ -43,12 +54,16 @@ async function saveDemoRevision(
   return baseRevision + 1;
 }
 
-export function App({
-  initialProject = demoProject,
-  initialRevision = 1,
+export function ProjectStudio({
+  assets = editorAssets,
+  initialProject,
+  initialRevision,
   autosaveDelayMs = 800,
-  onSaveRevision = saveDemoRevision,
-}: AppProps) {
+  onSaveRevision,
+  embedded = false,
+  onClose,
+  onReload,
+}: ProjectStudioProps) {
   const editor = useProjectEditor(initialProject, onSaveRevision, initialRevision, autosaveDelayMs);
   const scenes = useMemo(() => getEditorScenes(editor.project), [editor.project]);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(
@@ -76,11 +91,14 @@ export function App({
   };
 
   return (
-    <main className="min-h-screen bg-[#eef1ef] text-[#263138]">
-      <div className="flex min-h-screen">
+    <main
+      aria-label="HotelCut Studio"
+      className={`${embedded ? 'min-h-[720px] rounded-[28px]' : 'min-h-screen'} overflow-hidden bg-[#eef1ef] text-[#263138]`}
+    >
+      <div className={`flex ${embedded ? 'min-h-[720px]' : 'min-h-screen'}`}>
         <nav
           aria-label="主导航"
-          className="sticky top-0 hidden h-screen w-[82px] shrink-0 flex-col items-center border-r border-white/70 bg-[#24343c] py-5 text-white shadow-[12px_0_40px_rgba(27,42,48,.12)] lg:flex"
+          className={`${embedded ? 'hidden' : 'sticky top-0 hidden lg:flex'} h-screen w-[82px] shrink-0 flex-col items-center border-r border-white/70 bg-[#24343c] py-5 text-white shadow-[12px_0_40px_rgba(27,42,48,.12)]`}
         >
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#e2b174] text-xl font-black text-[#263138] shadow-lg">
             H
@@ -123,7 +141,7 @@ export function App({
                   HotelCut Studio
                 </h1>
                 <span className="rounded-full bg-[#edf6f3] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#3f7c73]">
-                  M5 Editor
+                  {embedded ? 'Production Editor' : 'M5 Editor'}
                 </span>
               </div>
             </div>
@@ -165,12 +183,34 @@ export function App({
               >
                 <Icon className="h-[18px] w-[18px]" name="redo" />
               </button>
+              {editor.isDirty ? (
+                <button
+                  className="hidden rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:border-slate-400 md:block"
+                  onClick={() => void editor.saveNow()}
+                  type="button"
+                >
+                  立即保存
+                </button>
+              ) : null}
               <button
-                className="hidden rounded-xl bg-[#263138] px-4 py-2.5 text-xs font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#172126] md:block"
-                title="渲染将在 M6 开放"
+                aria-label={onClose ? '返回项目列表' : '完成编辑'}
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#263138] text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#172126] disabled:cursor-wait disabled:opacity-45 md:h-auto md:w-auto md:px-4 md:py-2.5 md:text-xs md:font-bold"
+                disabled={Boolean(onClose) && editor.isDirty}
+                onClick={onClose}
+                title={
+                  onClose
+                    ? editor.isDirty
+                      ? '请等待修改保存后返回'
+                      : '返回自动剪辑项目列表'
+                    : '渲染将在 M6 开放'
+                }
                 type="button"
               >
-                完成编辑
+                <Icon
+                  className={`h-[18px] w-[18px] md:hidden ${onClose ? 'rotate-180' : ''}`}
+                  name={onClose ? 'chevron' : 'check'}
+                />
+                <span className="hidden md:inline">{onClose ? '返回项目列表' : '完成编辑'}</span>
               </button>
             </div>
           </header>
@@ -178,6 +218,7 @@ export function App({
           <div className="p-4 xl:p-6">
             <div className="grid min-h-[620px] gap-4 xl:grid-cols-[260px_minmax(360px,1fr)_340px]">
               <SceneRail
+                assets={assets}
                 onSelect={(clipId, startFrame) => {
                   setSelectedClipId(clipId);
                   setCurrentFrame(startFrame);
@@ -187,6 +228,7 @@ export function App({
               />
 
               <StudioPreview
+                assets={assets}
                 currentFrame={currentFrame}
                 isPlaying={isPlaying}
                 onScrub={setCurrentFrame}
@@ -195,6 +237,7 @@ export function App({
               />
 
               <Inspector
+                assets={assets}
                 currentFrame={currentFrame}
                 execute={editor.execute}
                 project={editor.project}
@@ -212,22 +255,60 @@ export function App({
               />
             </div>
 
-            <div className="mt-3 flex items-center justify-between px-2 text-[10px] text-slate-400">
-              <p>
-                {editor.saveError ??
-                  (editor.lastSavedAt
-                    ? `上次保存 ${editor.lastSavedAt.toLocaleTimeString('zh-CN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })}`
-                    : '修改将在停止操作后自动保存')}
-              </p>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-2 text-[10px] text-slate-400">
+              <div className="flex flex-wrap items-center gap-2">
+                <p>
+                  {editor.saveError ??
+                    (editor.lastSavedAt
+                      ? `上次保存 ${editor.lastSavedAt.toLocaleTimeString('zh-CN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })}`
+                      : '修改将在停止操作后自动保存')}
+                </p>
+                {editor.saveState === 'error' ? (
+                  <>
+                    <button
+                      className="rounded-lg bg-rose-50 px-2.5 py-1 font-bold text-rose-700"
+                      onClick={editor.retrySave}
+                      type="button"
+                    >
+                      重试保存
+                    </button>
+                    {onReload ? (
+                      <button
+                        className="rounded-lg bg-slate-100 px-2.5 py-1 font-bold text-slate-700"
+                        onClick={() => void onReload()}
+                        type="button"
+                      >
+                        加载服务器最新修订
+                      </button>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
               <p className="font-semibold">HotelVideoProject v{editor.project.schemaVersion}</p>
             </div>
           </div>
         </div>
       </div>
     </main>
+  );
+}
+
+export function App({
+  initialProject = demoProject,
+  initialRevision = 1,
+  autosaveDelayMs = 800,
+  onSaveRevision = saveDemoRevision,
+}: AppProps) {
+  return (
+    <ProjectStudio
+      autosaveDelayMs={autosaveDelayMs}
+      initialProject={initialProject}
+      initialRevision={initialRevision}
+      onSaveRevision={onSaveRevision}
+    />
   );
 }

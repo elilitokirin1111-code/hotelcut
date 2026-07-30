@@ -387,3 +387,16 @@
 - Impact: the API depends on the pure compiler and template packages, compilation failures return
   explicit validation errors, and the browser receives only the persisted project plus a compact
   generation summary.
+
+## ID-039: Production Studio saves immutable whole-document revisions
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: reuse the M5 command/history editor for tenant-scoped projects, debounce complete
+  validated documents into the existing revision endpoint and retain optimistic concurrency.
+  Validate every referenced media asset against the persisted project hotel before saving.
+- Reason: a second editor model or browser-authored patch format would split timeline behavior,
+  while accepting arbitrary asset UUIDs would bypass the hotel ownership and readiness boundary.
+- Impact: rapid changes create one auditable revision, stale editors receive HTTP 409 with an
+  explicit reload action, and cross-hotel or incompatible media references fail before
+  persistence.

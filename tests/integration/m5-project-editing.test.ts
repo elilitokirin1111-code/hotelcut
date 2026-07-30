@@ -131,6 +131,28 @@ describeWithDatabase('M5 project editing integration', () => {
       hotelId: hotel.id,
       name: 'M5 湖畔短片',
     });
+    const referencedAssets = new Map<string, 'audio' | 'image' | 'video'>();
+    for (const clip of projectDocument.tracks.flatMap((track) => track.clips)) {
+      if (clip.kind === 'audio' || clip.kind === 'image' || clip.kind === 'video') {
+        referencedAssets.set(clip.assetId, clip.kind);
+      }
+    }
+    await client.db.insert(assets).values(
+      [...referencedAssets].map(([id, kind], index) => ({
+        byteSize: 1_000_000,
+        checksumSha256: index.toString(16).padStart(64, '0'),
+        contentType:
+          kind === 'audio' ? 'audio/mpeg' : kind === 'image' ? 'image/jpeg' : 'video/mp4',
+        hotelId: hotel.id,
+        id,
+        kind,
+        metadata: { durationMs: 30_000, frameRate: 30 },
+        originalFilename: `fixture-${kind}-${index}`,
+        status: 'ready' as const,
+        storageBucket: 'hotelcut-local',
+        storageKey: `integration/m5-editor/${hotel.id}/${id}`,
+      })),
+    );
     const createResponse = await app.inject({
       method: 'POST',
       url: `/v1/hotels/${hotel.id}/video-projects`,
@@ -189,6 +211,58 @@ describeWithDatabase('M5 project editing integration', () => {
       },
     });
     expect(staleSaveResponse.statusCode).toBe(409);
+
+    const otherHotelResponse = await app.inject({
+      method: 'POST',
+      url: '/v1/hotels',
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        organizationId,
+        name: 'M5 其他门店',
+        city: '苏州',
+      },
+    });
+    expect(otherHotelResponse.statusCode).toBe(201);
+    const otherHotel = otherHotelResponse.json<{ id: string }>();
+    const foreignAssetId = randomUUID();
+    await client.db.insert(assets).values({
+      byteSize: 1_000_000,
+      checksumSha256: 'f'.repeat(64),
+      contentType: 'video/mp4',
+      hotelId: otherHotel.id,
+      id: foreignAssetId,
+      kind: 'video',
+      metadata: { durationMs: 30_000, frameRate: 30 },
+      originalFilename: 'other-hotel-room.mp4',
+      status: 'ready',
+      storageBucket: 'hotelcut-local',
+      storageKey: `integration/m5-editor/${otherHotel.id}/${foreignAssetId}`,
+    });
+    const firstVideoClipId = projectDocument.tracks
+      .flatMap((track) => track.clips)
+      .find((clip) => clip.kind === 'video')?.id;
+    const crossHotelDocument = parseHotelVideoProject({
+      ...editedDocument,
+      tracks: editedDocument.tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) =>
+          clip.kind === 'video' && clip.id === firstVideoClipId
+            ? { ...clip, assetId: foreignAssetId }
+            : clip,
+        ),
+      })),
+    });
+    const crossHotelSaveResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/video-projects/${projectId}/revisions`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        baseRevision: 2,
+        projectDocument: crossHotelDocument,
+      },
+    });
+    expect(crossHotelSaveResponse.statusCode).toBe(400);
+    expect(crossHotelSaveResponse.json<{ message: string }>().message).toContain('当前酒店不可用');
 
     const reloadResponse = await app.inject({
       method: 'GET',

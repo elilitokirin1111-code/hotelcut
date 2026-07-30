@@ -10,7 +10,7 @@ import {
   PostgresHotelCutRepository,
   type DatabaseClient,
 } from '../../packages/database/src/index.js';
-import { memberships, organizations, users } from '../../packages/database/src/schema.js';
+import { assets, memberships, organizations, users } from '../../packages/database/src/schema.js';
 import type { RenderQueue, RenderJobData } from '../../packages/job-queue/src/index.js';
 import type {
   MultipartObjectStorage,
@@ -187,12 +187,52 @@ describeWithDatabase('M6 render API and persistence integration', () => {
     const brief = briefResponse.json<{ id: string }>();
     const fixture = await readFixtureProject();
     projectId = randomUUID();
+    const assetIdRemap = new Map<string, string>();
+    const remapAssetId = (assetId: string): string => {
+      const existing = assetIdRemap.get(assetId);
+      if (existing) {
+        return existing;
+      }
+      const remapped = randomUUID();
+      assetIdRemap.set(assetId, remapped);
+      return remapped;
+    };
     const project = parseHotelVideoProject({
       ...fixture,
       id: projectId,
       hotelId: hotel.id,
       name: 'M6 Immutable Render',
+      tracks: fixture.tracks.map((track) => ({
+        ...track,
+        clips: track.clips.map((clip) =>
+          clip.kind === 'caption' || clip.kind === 'text'
+            ? clip
+            : { ...clip, assetId: remapAssetId(clip.assetId) },
+        ),
+      })),
     });
+    const referencedAssets = new Map<string, 'audio' | 'image' | 'video'>();
+    for (const clip of project.tracks.flatMap((track) => track.clips)) {
+      if (clip.kind === 'audio' || clip.kind === 'image' || clip.kind === 'video') {
+        referencedAssets.set(clip.assetId, clip.kind);
+      }
+    }
+    await client.db.insert(assets).values(
+      [...referencedAssets].map(([id, kind], index) => ({
+        byteSize: 1_000_000,
+        checksumSha256: index.toString(16).padStart(64, '0'),
+        contentType:
+          kind === 'audio' ? 'audio/mpeg' : kind === 'image' ? 'image/jpeg' : 'video/mp4',
+        hotelId: hotel.id,
+        id,
+        kind,
+        metadata: { durationMs: 30_000, frameRate: 30 },
+        originalFilename: `fixture-${kind}-${index}`,
+        status: 'ready' as const,
+        storageBucket: 'hotelcut-local',
+        storageKey: `integration/m6-render/${hotel.id}/${id}`,
+      })),
+    );
     const projectResponse = await app.inject({
       method: 'POST',
       url: `/v1/hotels/${hotel.id}/video-projects`,
