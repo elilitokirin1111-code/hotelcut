@@ -295,93 +295,99 @@ describe('workspace API client', () => {
     });
   });
 
-  it('hashes and uploads a video through presigned multipart storage URLs', async () => {
-    const assetId = '70000000-0000-4000-8000-000000000001';
-    const uploadId = 'provider-upload-1';
-    const now = '2026-07-29T08:00:00.000Z';
-    const registration = {
-      asset: {
-        id: assetId,
-        hotelId: '30000000-0000-4000-8000-000000000001',
-        kind: 'video',
-        status: 'registered',
-        originalFilename: 'room-tour.mp4',
-        contentType: 'video/mp4',
-        byteSize: 3,
-        storageBucket: 'hotelcut-local',
-        storageKey: 'hotels/demo/assets/room-tour/original',
-        checksumSha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
-        metadata: {},
-        createdAt: now,
-        updatedAt: now,
-      },
-      upload: {
-        id: '74000000-0000-4000-8000-000000000001',
-        assetId,
-        providerUploadId: uploadId,
-        partSize: 8 * 1024 * 1024,
-        partCount: 1,
-        status: 'initiated',
-        expiresAt: '2026-07-29T08:15:00.000Z',
-        completedAt: null,
-        createdAt: now,
-        updatedAt: now,
-      },
-      parts: [
-        {
-          partNumber: 1,
-          url: 'https://uploads.test/part-1',
-          expiresAt: '2026-07-29T08:15:00.000Z',
+  it.each([
+    { contentType: 'video/mp4', filename: 'room-tour.mp4', kind: 'video' },
+    { contentType: 'audio/mpeg', filename: 'hotel-bgm.mp3', kind: 'audio' },
+  ] as const)(
+    'hashes and uploads a $kind asset through presigned multipart storage URLs',
+    async ({ contentType, filename, kind }) => {
+      const assetId = '70000000-0000-4000-8000-000000000001';
+      const uploadId = 'provider-upload-1';
+      const now = '2026-07-29T08:00:00.000Z';
+      const registration = {
+        asset: {
+          id: assetId,
+          hotelId: '30000000-0000-4000-8000-000000000001',
+          kind,
+          status: 'registered',
+          originalFilename: filename,
+          contentType,
+          byteSize: 3,
+          storageBucket: 'hotelcut-local',
+          storageKey: 'hotels/demo/assets/room-tour/original',
+          checksumSha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
         },
-      ],
-    };
-    const completion = {
-      assetId,
-      analysisJobId: '72000000-0000-4000-8000-000000000001',
-      status: 'queued',
-    };
-    const fetchMock = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(new Response(JSON.stringify(registration), { status: 201 }))
-      .mockResolvedValueOnce(new Response(null, { status: 200, headers: { ETag: '"etag-1"' } }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(completion), { status: 202 }));
-    vi.stubGlobal('fetch', fetchMock);
-    const progress = vi.fn();
-    const file = new File([new Uint8Array([1, 2, 3])], 'room-tour.mp4', {
-      type: 'video/mp4',
-    });
+        upload: {
+          id: '74000000-0000-4000-8000-000000000001',
+          assetId,
+          providerUploadId: uploadId,
+          partSize: 8 * 1024 * 1024,
+          partCount: 1,
+          status: 'initiated',
+          expiresAt: '2026-07-29T08:15:00.000Z',
+          completedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        },
+        parts: [
+          {
+            partNumber: 1,
+            url: 'https://uploads.test/part-1',
+            expiresAt: '2026-07-29T08:15:00.000Z',
+          },
+        ],
+      };
+      const completion = {
+        assetId,
+        analysisJobId: '72000000-0000-4000-8000-000000000001',
+        status: 'queued',
+      };
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(new Response(JSON.stringify(registration), { status: 201 }))
+        .mockResolvedValueOnce(new Response(null, { status: 200, headers: { ETag: '"etag-1"' } }))
+        .mockResolvedValueOnce(new Response(JSON.stringify(completion), { status: 202 }));
+      vi.stubGlobal('fetch', fetchMock);
+      const progress = vi.fn();
+      const file = new File([new Uint8Array([1, 2, 3])], filename, {
+        type: contentType,
+      });
 
-    await expect(
-      createWorkspaceApi('/api').uploadVideo(registration.asset.hotelId, file, progress),
-    ).resolves.toEqual(completion);
+      await expect(
+        createWorkspaceApi('/api').uploadVideo(registration.asset.hotelId, file, progress),
+      ).resolves.toEqual(completion);
 
-    const registrationBodyText = fetchMock.mock.calls[0]?.[1]?.body;
-    if (typeof registrationBodyText !== 'string') {
-      throw new Error('Expected the upload registration body to be JSON text');
-    }
-    const registrationBody = JSON.parse(registrationBodyText) as Record<string, unknown>;
-    expect(registrationBody).toMatchObject({
-      byteSize: 3,
-      checksumSha256: registration.asset.checksumSha256,
-      contentType: 'video/mp4',
-      kind: 'video',
-      originalFilename: 'room-tour.mp4',
-      partSize: 8 * 1024 * 1024,
-    });
-    expect(fetchMock.mock.calls[1]?.[0]).toBe('https://uploads.test/part-1');
-    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'PUT' });
-    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
-      body: JSON.stringify({
-        parts: [{ etag: '"etag-1"', partNumber: 1 }],
-        uploadId,
-      }),
-      credentials: 'include',
-      method: 'POST',
-    });
-    expect(progress).toHaveBeenLastCalledWith(
-      expect.objectContaining({ percent: 100, phase: 'finalizing' }),
-    );
-  });
+      const registrationBodyText = fetchMock.mock.calls[0]?.[1]?.body;
+      if (typeof registrationBodyText !== 'string') {
+        throw new Error('Expected the upload registration body to be JSON text');
+      }
+      const registrationBody = JSON.parse(registrationBodyText) as Record<string, unknown>;
+      expect(registrationBody).toMatchObject({
+        byteSize: 3,
+        checksumSha256: registration.asset.checksumSha256,
+        contentType,
+        kind,
+        originalFilename: filename,
+        partSize: 8 * 1024 * 1024,
+      });
+      expect(fetchMock.mock.calls[1]?.[0]).toBe('https://uploads.test/part-1');
+      expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'PUT' });
+      expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
+        body: JSON.stringify({
+          parts: [{ etag: '"etag-1"', partNumber: 1 }],
+          uploadId,
+        }),
+        credentials: 'include',
+        method: 'POST',
+      });
+      expect(progress).toHaveBeenLastCalledWith(
+        expect.objectContaining({ percent: 100, phase: 'finalizing' }),
+      );
+    },
+  );
 
   it('creates a production brief and requests a persisted automatic edit', async () => {
     const hotelId = '30000000-0000-4000-8000-000000000001';

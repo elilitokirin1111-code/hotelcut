@@ -23,7 +23,13 @@ type AssetDetailState =
 
 type UploadState =
   | { status: 'idle' }
-  | { progress: AssetUploadProgress; status: 'uploading' }
+  | {
+      completedFiles: number;
+      fileName: string;
+      progress: AssetUploadProgress;
+      status: 'uploading';
+      totalFiles: number;
+    }
   | { message: string; status: 'error' }
   | { message: string; status: 'queued' };
 
@@ -52,7 +58,7 @@ const statusClasses: Record<Asset['status'], string> = {
 const uploadPhaseLabels: Record<AssetUploadProgress['phase'], string> = {
   hashing: '正在计算文件校验值',
   registering: '正在登记安全上传',
-  uploading: '正在上传视频分片',
+  uploading: '正在上传素材分片',
   finalizing: '正在校验并提交分析',
 };
 
@@ -81,7 +87,12 @@ function formatDuration(durationMs: number): string {
 }
 
 function metadataNumber(detail: AssetDetail, key: string): number | null {
-  const value = detail.metadata[key];
+  const probe = detail.metadata['probe'];
+  const value =
+    detail.metadata[key] ??
+    (typeof probe === 'object' && probe !== null && !Array.isArray(probe)
+      ? (probe as Record<string, unknown>)[key]
+      : undefined);
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
@@ -101,7 +112,8 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
   const [detailVersion, setDetailVersion] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<Asset['status'] | 'all'>('all');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [fileInputVersion, setFileInputVersion] = useState(0);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [tagLabel, setTagLabel] = useState('');
   const [tagStartSeconds, setTagStartSeconds] = useState('0');
@@ -223,23 +235,49 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
     );
   }, [listState, search, statusFilter]);
 
-  const uploadVideo = async (event: FormEvent<HTMLFormElement>) => {
+  const uploadAssets = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selectedFile) {
-      setUploadState({ message: '请先选择视频文件', status: 'error' });
+    if (selectedFiles.length === 0) {
+      setUploadState({ message: '请先选择视频或音频文件', status: 'error' });
       return;
     }
-    try {
-      const result = await api.uploadVideo(hotelId, selectedFile, (progress) =>
-        setUploadState({ progress, status: 'uploading' }),
-      );
-      setUploadState({ message: '上传完成，已进入自动分析队列', status: 'queued' });
-      setSelectedFile(null);
-      setSelectedAssetId(result.assetId);
-      setListVersion((version) => version + 1);
-    } catch (error) {
-      setUploadState({ message: formatError(error), status: 'error' });
+    let uploadedFiles = 0;
+    let lastAssetId: string | null = null;
+    const failures: string[] = [];
+    for (const [index, file] of selectedFiles.entries()) {
+      try {
+        const result = await api.uploadVideo(hotelId, file, (progress) =>
+          setUploadState({
+            completedFiles: index,
+            fileName: file.name,
+            progress,
+            status: 'uploading',
+            totalFiles: selectedFiles.length,
+          }),
+        );
+        uploadedFiles += 1;
+        lastAssetId = result.assetId;
+      } catch (error) {
+        failures.push(`${file.name}：${formatError(error)}`);
+      }
     }
+    if (uploadedFiles > 0) {
+      setSelectedAssetId(lastAssetId);
+      setListVersion((version) => version + 1);
+    }
+    setSelectedFiles([]);
+    setFileInputVersion((version) => version + 1);
+    setUploadState(
+      failures.length > 0
+        ? {
+            message: `已提交 ${uploadedFiles}/${selectedFiles.length} 个素材；${failures.join('；')}`,
+            status: 'error',
+          }
+        : {
+            message: `${uploadedFiles} 个素材上传完成，已进入自动分析队列`,
+            status: 'queued',
+          },
+    );
   };
 
   const retryAnalysis = async () => {
@@ -295,7 +333,7 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
           </p>
           <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">生产素材库</h2>
           <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
-            视频经安全分片上传后自动进入分析队列；分析完成的素材才会进入后续自动剪辑候选池。
+            视频和背景音乐经安全分片上传后自动进入分析队列；分析完成的素材才会进入后续自动剪辑候选池。
           </p>
         </div>
         <button
@@ -310,38 +348,52 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
       <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(340px,.9fr)_minmax(0,1.4fr)]">
         <div className="space-y-5">
           <form
-            aria-label="上传视频素材"
+            aria-label="批量上传视频和音频素材"
             className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5"
-            onSubmit={(event) => void uploadVideo(event)}
+            onSubmit={(event) => void uploadAssets(event)}
           >
-            <h3 className="text-base font-black">上传视频素材</h3>
+            <h3 className="text-base font-black">批量上传生产素材</h3>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              支持浏览器识别的视频格式，单文件最大 20 GB。
+              支持视频与背景音乐，可一次选择多个文件；单文件最大 20 GB。
             </p>
             <label className="mt-4 block">
-              <span className="sr-only">选择视频文件</span>
+              <span className="sr-only">选择视频或音频文件</span>
               <input
-                accept="video/*"
+                accept="video/*,audio/*"
                 className="block w-full text-xs text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[#263138] file:px-4 file:py-3 file:text-xs file:font-black file:text-white"
+                key={fileInputVersion}
+                multiple
                 onChange={(event) => {
-                  setSelectedFile(event.target.files?.[0] ?? null);
+                  setSelectedFiles(Array.from(event.target.files ?? []));
                   setUploadState({ status: 'idle' });
                 }}
                 type="file"
               />
             </label>
-            {selectedFile ? (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-xs">
-                <span className="min-w-0 truncate font-bold text-slate-700">
-                  {selectedFile.name}
-                </span>
-                <span className="shrink-0 text-slate-400">{formatBytes(selectedFile.size)}</span>
+            {selectedFiles.length > 0 ? (
+              <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-xs">
+                <div className="flex items-center justify-between gap-3 font-bold text-slate-700">
+                  <span>{selectedFiles.length} 个待上传素材</span>
+                  <span className="shrink-0 text-slate-400">
+                    {formatBytes(selectedFiles.reduce((total, file) => total + file.size, 0))}
+                  </span>
+                </div>
+                <div className="mt-2 max-h-24 space-y-1 overflow-y-auto text-[10px] text-slate-400">
+                  {selectedFiles.map((file) => (
+                    <p className="truncate" key={`${file.name}-${file.lastModified}-${file.size}`}>
+                      {file.name}
+                    </p>
+                  ))}
+                </div>
               </div>
             ) : null}
             {uploadState.status === 'uploading' ? (
               <div className="mt-4" aria-live="polite">
                 <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                  <span>{uploadPhaseLabels[uploadState.progress.phase]}</span>
+                  <span>
+                    {uploadState.completedFiles + 1}/{uploadState.totalFiles} ·{' '}
+                    {uploadPhaseLabels[uploadState.progress.phase]} · {uploadState.fileName}
+                  </span>
                   <span>{uploadState.progress.percent}%</span>
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
@@ -363,10 +415,10 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
             ) : null}
             <button
               className="mt-4 rounded-xl bg-[#263138] px-5 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-50"
-              disabled={!selectedFile || uploadState.status === 'uploading'}
+              disabled={selectedFiles.length === 0 || uploadState.status === 'uploading'}
               type="submit"
             >
-              {uploadState.status === 'uploading' ? '正在处理…' : '上传并自动分析'}
+              {uploadState.status === 'uploading' ? '正在批量处理…' : '批量上传并自动分析'}
             </button>
           </form>
 
@@ -444,7 +496,7 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
                     <AssetStatus status={asset.status} />
                   </div>
                   <p className="mt-2 text-[10px] text-slate-400">
-                    {formatBytes(asset.byteSize)} ·{' '}
+                    {asset.kind === 'audio' ? '音频' : '视频'} · {formatBytes(asset.byteSize)} ·{' '}
                     {new Date(asset.createdAt).toLocaleString('zh-CN')}
                   </p>
                 </button>
@@ -569,7 +621,13 @@ function AssetDetailPanel({
         {!previewUrl ? (
           <div className="grid aspect-video place-items-center px-6 text-center text-xs text-white/55">
             {previewMessage ??
-              (detail.status === 'ready' ? '暂无可用代理预览' : '分析完成后将生成代理视频与缩略图')}
+              (detail.status === 'ready'
+                ? detail.kind === 'audio'
+                  ? '音频已完成分析，可添加“背景音乐 / BGM”标签供自动剪辑选择'
+                  : '暂无可用代理预览'
+                : detail.kind === 'audio'
+                  ? '分析完成后将读取音频时长和编码信息'
+                  : '分析完成后将生成代理视频与缩略图')}
           </div>
         ) : null}
       </div>
@@ -638,7 +696,7 @@ function AssetDetailPanel({
               className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-[#d6a76d]"
               maxLength={160}
               onChange={(event) => setTagLabel(event.target.value)}
-              placeholder="如：湖景房、人物口播"
+              placeholder="如：湖景房、人物口播、背景音乐"
               required
               value={tagLabel}
             />

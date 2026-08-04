@@ -605,12 +605,18 @@ describe('M7 email-authenticated hotel workspace', () => {
     );
 
     const file = new File(['hotelcut-video'], '新客房素材.mp4', { type: 'video/mp4' });
-    fireEvent.change(screen.getByLabelText('选择视频文件'), { target: { files: [file] } });
-    fireEvent.click(screen.getByRole('button', { name: '上传并自动分析' }));
+    const music = new File(['hotelcut-audio'], '度假背景音乐.mp3', { type: 'audio/mpeg' });
+    fireEvent.change(screen.getByLabelText('选择视频或音频文件'), {
+      target: { files: [file, music] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '批量上传并自动分析' }));
     await waitFor(() =>
       expect(uploadVideo).toHaveBeenCalledWith(hotels[0]!.id, file, expect.any(Function)),
     );
-    expect(await screen.findByText('上传完成，已进入自动分析队列')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(uploadVideo).toHaveBeenCalledWith(hotels[0]!.id, music, expect.any(Function)),
+    );
+    expect(await screen.findByText('2 个素材上传完成，已进入自动分析队列')).toBeInTheDocument();
   });
 
   it('refreshes selected asset detail when analysis changes the list status', async () => {

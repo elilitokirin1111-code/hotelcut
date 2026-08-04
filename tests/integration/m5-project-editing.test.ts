@@ -540,7 +540,8 @@ describeWithDatabase('M5 project editing integration', () => {
     expect(untaggedGenerationResponse.statusCode).toBe(400);
     expect(untaggedGenerationResponse.json()).toMatchObject({
       code: 'VALIDATION_ERROR',
-      message: '没有素材满足所选模板。请先为可用镜头添加模板建议标签后重试。',
+      message:
+        '自动剪辑预检未通过，缺少必需画面：酒店外观、客房、服务、活动优惠。请在素材库补充对应素材并添加标签后重新生成。',
     });
     const untaggedProjectsResponse = await app.inject({
       method: 'GET',

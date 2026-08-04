@@ -23,10 +23,12 @@ const checksum = 'a'.repeat(64);
 
 class FakeObjectStorage implements MultipartObjectStorage {
   completedParts: MultipartPart[] = [];
+  startedUploads = 0;
 
   startMultipartUpload(input: MultipartUploadInput): Promise<string> {
     void input;
-    return Promise.resolve('provider-upload-id');
+    this.startedUploads += 1;
+    return Promise.resolve(`provider-upload-id-${this.startedUploads}`);
   }
 
   presignUploadPart(
@@ -211,8 +213,9 @@ describeWithDatabase('M2 media API integration', () => {
     expect(queue.jobs).toHaveLength(1);
     expect(queue.jobs[0]).toMatchObject({
       assetId: registration.asset.id,
+      assetKind: 'video',
       expectedChecksumSha256: checksum,
-      pipelineVersion: 'm2-v1',
+      pipelineVersion: 'm2-v2',
     });
 
     const manualResponse = await app.inject({
@@ -280,5 +283,45 @@ describeWithDatabase('M2 media API integration', () => {
     expect(retryResponse.statusCode, retryResponse.body).toBe(202);
     expect(queue.jobs).toHaveLength(2);
     expect(queue.jobs[1]?.analysisJobId).not.toBe(queue.jobs[0]?.analysisJobId);
+  });
+
+  it('registers audio and queues the audio-only analysis pipeline', async () => {
+    const queuedBefore = queue.jobs.length;
+    const registrationResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/uploads`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        kind: 'audio',
+        originalFilename: 'hotel-bgm.mp3',
+        contentType: 'audio/mpeg',
+        byteSize: 35_687,
+        checksumSha256: checksum,
+        partSize: 5 * 1024 * 1024,
+      },
+    });
+    expect(registrationResponse.statusCode, registrationResponse.body).toBe(201);
+    const registration = registrationResponse.json<{
+      asset: { id: string; kind: string };
+      upload: { providerUploadId: string };
+    }>();
+    expect(registration.asset.kind).toBe('audio');
+
+    const completionResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${registration.asset.id}/uploads/complete`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        uploadId: registration.upload.providerUploadId,
+        parts: [{ partNumber: 1, etag: '"audio-etag"' }],
+      },
+    });
+    expect(completionResponse.statusCode, completionResponse.body).toBe(202);
+    expect(queue.jobs).toHaveLength(queuedBefore + 1);
+    expect(queue.jobs.at(-1)).toMatchObject({
+      assetId: registration.asset.id,
+      assetKind: 'audio',
+      pipelineVersion: 'm2-v2',
+    });
   });
 });

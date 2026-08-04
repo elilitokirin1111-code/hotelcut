@@ -12,7 +12,7 @@ RUN apt-get update \
 COPY apps/analysis-worker/pyproject.toml ./
 COPY apps/analysis-worker/src ./src
 
-RUN python -m pip install --no-cache-dir .
+RUN python -m pip install --no-cache-dir --retries 8 --timeout 120 .
 
 EXPOSE 8001
 

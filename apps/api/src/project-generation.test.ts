@@ -1,9 +1,15 @@
-import type { AssetDetail, BrandKit, VideoBrief } from '@hotelcut/schemas';
+import type {
+  AssetDetail,
+  BrandKit,
+  ProjectGenerationSummary,
+  VideoBrief,
+} from '@hotelcut/schemas';
 import { describe, expect, it } from 'vitest';
 
 import {
   assetDetailToCompilerMedia,
   buildCompilerInput,
+  missingRequiredSlotLabels,
   projectTemplates,
   resolveProjectTemplate,
 } from './project-generation.js';
@@ -156,6 +162,60 @@ describe('production project generation', () => {
         'brand.bodyFont',
       ]),
     );
+  });
+
+  it('maps analyzed audio and multilingual music labels into a background-music candidate', () => {
+    const audio = assetDetailToCompilerMedia({
+      ...assetDetail,
+      contentType: 'audio/mpeg',
+      id: '70000000-0000-4000-8000-000000000002',
+      kind: 'audio',
+      metadata: {
+        probe: {
+          audioChannels: 2,
+          audioCodec: 'mp3',
+          bitRate: 192_000,
+          durationMs: 31_250,
+          sampleRate: 48_000,
+        },
+      },
+      originalFilename: '度假背景音乐-bright.mp3',
+      segments: [],
+    });
+
+    expect(audio).toMatchObject({
+      analysis: { hasAudio: true, qualityBasisPoints: 5_000 },
+      durationFrames: 938,
+      kind: 'audio',
+    });
+    expect(audio.tags).toEqual(expect.arrayContaining(['bright', 'music', 'travel']));
+  });
+
+  it('reports only required missing slots with operator-facing Chinese labels', () => {
+    const summary: ProjectGenerationSummary = {
+      seed: 1,
+      selectedSlots: 2,
+      templateKey: 'hotel.room-montage',
+      templateVersion: '1.1.0',
+      totalSlots: 5,
+      usedAssetIds: [],
+      warnings: [
+        {
+          code: 'SLOT_REQUIREMENT_UNMET',
+          message: 'missing required',
+          path: 'slots.room.bathroom',
+          severity: 'warning',
+        },
+        {
+          code: 'SLOT_REQUIREMENT_UNMET',
+          message: 'missing optional',
+          path: 'slots.room.facility',
+          severity: 'info',
+        },
+      ],
+    };
+
+    expect(missingRequiredSlotLabels(summary)).toEqual(['卫浴']);
   });
 
   it('publishes the three supported templates with duration and tag guidance', () => {

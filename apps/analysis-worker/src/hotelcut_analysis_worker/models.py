@@ -1,5 +1,7 @@
 """Typed contracts for queued media analysis."""
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -10,6 +12,7 @@ class AnalysisJobData(BaseModel):
 
     analysisJobId: str
     assetId: str
+    assetKind: Literal["video", "audio"]
     hotelId: str
     storageBucket: str
     storageKey: str
@@ -28,6 +31,16 @@ class VideoProbe(BaseModel):
     audioCodec: str | None
     audioChannels: int | None
     rotation: int = 0
+
+
+class AudioProbe(BaseModel):
+    """Normalized audio-only ffprobe output persisted in Asset.metadata."""
+
+    durationMs: int = Field(gt=0)
+    audioCodec: str
+    audioChannels: int | None
+    sampleRate: int | None
+    bitRate: int | None
 
 
 class TranscriptWord(BaseModel):

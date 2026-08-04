@@ -145,7 +145,7 @@ test('runs the authenticated hotel configuration and asset-production workspace'
         asset: {
           id: '70000000-0000-4000-8000-000000000003',
           hotelId: hotel.id,
-          kind: 'video',
+          kind: input.kind,
           status: 'registered',
           originalFilename: input.originalFilename,
           contentType: input.contentType,
@@ -539,13 +539,13 @@ test('runs the authenticated hotel configuration and asset-production workspace'
   await expect(page.getByText('人工标签已保存')).toBeVisible();
   expect(createdTag).toMatchObject({ endMs: 30_000, label: '湖景房', startMs: 0 });
 
-  await page.getByLabel('选择视频文件').setInputFiles({
+  await page.getByLabel('选择视频或音频文件').setInputFiles({
     name: '新客房素材.mp4',
     mimeType: 'video/mp4',
     buffer: Buffer.from([1, 2, 3]),
   });
-  await page.getByRole('button', { name: '上传并自动分析' }).click();
-  await expect(page.getByText('上传完成，已进入自动分析队列')).toBeVisible();
+  await page.getByRole('button', { name: '批量上传并自动分析' }).click();
+  await expect(page.getByText('1 个素材上传完成，已进入自动分析队列')).toBeVisible();
   expect(uploadCompleted).toBe(true);
 
   await page.getByRole('button', { name: '打开酒店配置' }).click();

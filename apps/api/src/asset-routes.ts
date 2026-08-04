@@ -42,9 +42,13 @@ function analysisJobData(queued: QueuedAssetAnalysis): AnalysisJobData {
   if (!queued.asset.checksumSha256) {
     throw new DomainConflictError('Asset checksum is required before analysis');
   }
+  if (queued.asset.kind !== 'video' && queued.asset.kind !== 'audio') {
+    throw new DomainConflictError(`Asset kind ${queued.asset.kind} is not supported for analysis`);
+  }
   return {
     analysisJobId: queued.analysisJob.id,
     assetId: queued.asset.id,
+    assetKind: queued.asset.kind,
     hotelId: queued.asset.hotelId,
     storageBucket: queued.asset.storageBucket,
     storageKey: queued.asset.storageKey,

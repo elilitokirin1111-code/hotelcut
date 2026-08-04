@@ -31,6 +31,19 @@ const templateNames: Record<string, string> = {
   'hotel.promotion': '酒店活动推广',
 };
 
+const slotLabels: Record<string, string> = {
+  'host.primary': '人物口播',
+  'promo.exterior': '酒店外观',
+  'promo.offer': '活动优惠',
+  'promo.room': '客房',
+  'promo.service': '服务',
+  'room.bathroom': '卫浴',
+  'room.detail': '客房细节',
+  'room.exterior': '酒店外观',
+  'room.facility': '酒店设施',
+  'room.hero': '客房主画面',
+};
+
 const tagAliases = [
   ['welcome', ['welcome', '欢迎', '开场']],
   ['booking', ['booking', '预订', '预约', '下单', '结尾']],
@@ -45,6 +58,8 @@ const tagAliases = [
   ['detail', ['detail', '细节', '备品', '用品', '设计']],
   ['service', ['service', '服务', '员工', '接待']],
   ['promotion', ['promotion', '优惠', '促销', '活动', '套餐', '礼遇']],
+  ['music', ['music', 'bgm', '音乐', '背景音乐', '配乐']],
+  ['travel', ['travel', '旅行', '旅拍', '度假']],
   ['wide', ['wide', '全景', '广角']],
   ['bright', ['bright', '明亮', '采光']],
   ['window', ['window', '窗景', '落地窗', '景观']],
@@ -363,4 +378,14 @@ export function summarizeGeneration(result: CompilationResult): ProjectGeneratio
     usedAssetIds: result.manifest.usedAssetIds,
     warnings: result.warnings,
   };
+}
+
+export function missingRequiredSlotLabels(summary: ProjectGenerationSummary): string[] {
+  return summary.warnings
+    .filter(
+      (warning) => warning.code === 'SLOT_REQUIREMENT_UNMET' && warning.severity === 'warning',
+    )
+    .map((warning) => warning.path?.replace(/^slots\./, '') ?? '')
+    .map((slotId) => slotLabels[slotId] ?? slotId)
+    .filter(Boolean);
 }

@@ -9,7 +9,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Protocol, cast
 
-from hotelcut_analysis_worker.models import SceneRange, VideoProbe
+from hotelcut_analysis_worker.models import AudioProbe, SceneRange, VideoProbe
 
 
 class CommandRunner(Protocol):
@@ -89,6 +89,43 @@ def probe_video(
         audioCodec=str(audio.get("codec_name")) if audio else None,
         audioChannels=int(audio["channels"]) if audio and audio.get("channels") else None,
         rotation=rotation,
+    )
+
+
+def probe_audio(
+    input_path: Path,
+    runner: CommandRunner,
+    ffprobe_path: str,
+) -> AudioProbe:
+    """Normalize audio-only ffprobe JSON without requiring a video stream."""
+
+    completed = runner.run(
+        [
+            ffprobe_path,
+            "-v",
+            "error",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            str(input_path),
+        ]
+    )
+    payload = cast(dict[str, Any], json.loads(completed.stdout))
+    audio = _stream(payload, "audio")
+    if audio is None:
+        raise ValueError("Uploaded object has no audio stream")
+    format_data = cast(dict[str, Any], payload.get("format", {}))
+    duration_seconds = float(audio.get("duration") or format_data.get("duration") or 0)
+    channels = audio.get("channels")
+    sample_rate = audio.get("sample_rate")
+    bit_rate = audio.get("bit_rate") or format_data.get("bit_rate")
+    return AudioProbe(
+        durationMs=max(1, round(duration_seconds * 1_000)),
+        audioCodec=str(audio.get("codec_name") or "unknown"),
+        audioChannels=int(channels) if channels else None,
+        sampleRate=int(sample_rate) if sample_rate else None,
+        bitRate=int(bit_rate) if bit_rate else None,
     )
 
 

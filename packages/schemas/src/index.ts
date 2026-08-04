@@ -267,28 +267,41 @@ export const assetDetailSchema = assetSchema.extend({
   analysisJobs: z.array(analysisJobSchema),
 });
 
-export const createAssetUploadSchema = z.object({
-  kind: z.literal('video'),
-  originalFilename: z.string().trim().min(1).max(260),
-  contentType: z
-    .string()
-    .trim()
-    .min(1)
-    .max(120)
-    .refine((value) => value.startsWith('video/'), 'M2 accepts video media uploads'),
-  byteSize: z
-    .number()
-    .int()
-    .positive()
-    .max(20 * 1024 * 1024 * 1024),
-  checksumSha256: z.string().regex(/^[0-9A-Fa-f]{64}$/),
-  partSize: z
-    .number()
-    .int()
-    .min(5 * 1024 * 1024)
-    .max(128 * 1024 * 1024)
-    .default(8 * 1024 * 1024),
-});
+export const createAssetUploadSchema = z
+  .object({
+    kind: z.enum(['video', 'audio']),
+    originalFilename: z.string().trim().min(1).max(260),
+    contentType: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .refine(
+        (value) => value.startsWith('video/') || value.startsWith('audio/'),
+        'HotelCut accepts video or audio media uploads',
+      ),
+    byteSize: z
+      .number()
+      .int()
+      .positive()
+      .max(20 * 1024 * 1024 * 1024),
+    checksumSha256: z.string().regex(/^[0-9A-Fa-f]{64}$/),
+    partSize: z
+      .number()
+      .int()
+      .min(5 * 1024 * 1024)
+      .max(128 * 1024 * 1024)
+      .default(8 * 1024 * 1024),
+  })
+  .superRefine((input, context) => {
+    if (!input.contentType.startsWith(`${input.kind}/`)) {
+      context.addIssue({
+        code: 'custom',
+        message: `Content type must match asset kind ${input.kind}`,
+        path: ['contentType'],
+      });
+    }
+  });
 
 export const uploadPartSchema = z.object({
   partNumber: z.number().int().min(1).max(10_000),

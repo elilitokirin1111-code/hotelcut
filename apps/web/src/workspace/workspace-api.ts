@@ -303,11 +303,20 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
     },
 
     async uploadVideo(hotelId, file, onProgress, signal) {
-      if (!file.type.startsWith('video/')) {
-        throw new WorkspaceApiError(400, 'INVALID_VIDEO_FILE', '请选择浏览器可识别的视频文件');
+      const kind = file.type.startsWith('video/')
+        ? 'video'
+        : file.type.startsWith('audio/')
+          ? 'audio'
+          : null;
+      if (!kind) {
+        throw new WorkspaceApiError(
+          400,
+          'INVALID_MEDIA_FILE',
+          '请选择浏览器可识别的视频或音频文件',
+        );
       }
       if (file.size <= 0) {
-        throw new WorkspaceApiError(400, 'EMPTY_VIDEO_FILE', '视频文件不能为空');
+        throw new WorkspaceApiError(400, 'EMPTY_MEDIA_FILE', '素材文件不能为空');
       }
 
       const checksumSha256 = await hashFile(file, onProgress, signal);
@@ -326,7 +335,7 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
             byteSize: file.size,
             checksumSha256,
             contentType: file.type,
-            kind: 'video',
+            kind,
             originalFilename: file.name,
             partSize: uploadPartSize,
           }),
@@ -361,7 +370,7 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
             throw new WorkspaceApiError(
               response.status,
               'ASSET_PART_UPLOAD_FAILED',
-              `视频第 ${part.partNumber} 个分片上传失败`,
+              `素材第 ${part.partNumber} 个分片上传失败`,
             );
           }
           const etag = response.headers.get('etag');

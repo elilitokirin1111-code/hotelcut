@@ -5,7 +5,7 @@ import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 
-from hotelcut_analysis_worker.media_tools import create_derivatives, probe_video
+from hotelcut_analysis_worker.media_tools import create_derivatives, probe_audio, probe_video
 from hotelcut_analysis_worker.models import VideoProbe
 
 
@@ -54,6 +54,30 @@ def test_probe_video_normalizes_ffprobe_json() -> None:
     assert probe.audioChannels == 2
     assert probe.rotation == -90
     assert runner.arguments[0][0] == "ffprobe"
+
+
+def test_probe_audio_normalizes_audio_only_ffprobe_json() -> None:
+    runner = RecordingRunner(
+        {
+            "format": {"duration": "31.25", "bit_rate": "192000"},
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "codec_name": "mp3",
+                    "channels": 2,
+                    "sample_rate": "48000",
+                }
+            ],
+        }
+    )
+
+    probe = probe_audio(Path("background-music.mp3"), runner, "ffprobe")
+
+    assert probe.durationMs == 31_250
+    assert probe.audioCodec == "mp3"
+    assert probe.audioChannels == 2
+    assert probe.sampleRate == 48_000
+    assert probe.bitRate == 192_000
 
 
 def test_silent_video_generates_analysis_audio_without_an_input_stream() -> None:

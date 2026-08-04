@@ -22,6 +22,7 @@ import { z } from 'zod';
 
 import {
   buildCompilerInput,
+  missingRequiredSlotLabels,
   projectTemplates,
   resolveProjectTemplate,
   summarizeGeneration,
@@ -126,11 +127,11 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
       }
       const brandKit = await store.getBrandKit(request.actorUserId, request.params.hotelId);
       const assets = await store.listAssets(request.actorUserId, request.params.hotelId);
-      const readyAssets = assets.filter((asset) => asset.status === 'ready');
-      if (readyAssets.length === 0) {
-        throw new ProjectRequestError(
-          'Automatic editing requires at least one analyzed, ready video asset',
-        );
+      const readyAssets = assets.filter(
+        (asset) => asset.status === 'ready' && asset.kind !== 'font',
+      );
+      if (!readyAssets.some((asset) => asset.kind === 'video' || asset.kind === 'image')) {
+        throw new ProjectRequestError('自动剪辑至少需要一条已经分析完成的可用视频素材。');
       }
 
       let template;
@@ -165,6 +166,12 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
         throw error;
       }
       const generation = summarizeGeneration(compilation);
+      const missingRequiredSlots = missingRequiredSlotLabels(generation);
+      if (missingRequiredSlots.length > 0) {
+        throw new ProjectRequestError(
+          `自动剪辑预检未通过，缺少必需画面：${missingRequiredSlots.join('、')}。请在素材库补充对应素材并添加标签后重新生成。`,
+        );
+      }
       if (generation.selectedSlots === 0) {
         throw new ProjectRequestError(
           '没有素材满足所选模板。请先为可用镜头添加模板建议标签后重试。',

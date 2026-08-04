@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assetSegmentSchema,
+  createAssetUploadSchema,
   createHotelSchema,
   createVideoProjectSchema,
   createVideoBriefSchema,
@@ -55,6 +56,24 @@ describe('shared input schemas', () => {
     });
 
     expect(brief).toMatchObject({ aspectRatio: '9:16', language: 'zh-CN' });
+  });
+
+  it('accepts video and audio production uploads while rejecting mismatched media types', () => {
+    const base = {
+      byteSize: 1_024,
+      checksumSha256: 'a'.repeat(64),
+      originalFilename: 'hotel-media',
+      partSize: 8 * 1024 * 1024,
+    };
+    expect(
+      createAssetUploadSchema.parse({ ...base, contentType: 'video/mp4', kind: 'video' }),
+    ).toMatchObject({ kind: 'video' });
+    expect(
+      createAssetUploadSchema.parse({ ...base, contentType: 'audio/mpeg', kind: 'audio' }),
+    ).toMatchObject({ kind: 'audio' });
+    expect(() =>
+      createAssetUploadSchema.parse({ ...base, contentType: 'video/mp4', kind: 'audio' }),
+    ).toThrow('Content type must match asset kind audio');
   });
 
   it('validates the automatic-edit template contract and optional deterministic seed', () => {

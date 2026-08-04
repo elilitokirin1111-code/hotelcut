@@ -20,6 +20,7 @@ from hotelcut_analysis_worker.media_tools import (
     SubprocessCommandRunner,
     create_derivatives,
     detect_scenes,
+    probe_audio,
     probe_video,
 )
 from hotelcut_analysis_worker.models import AnalysisJobData, SceneRange, TranscriptResult
@@ -81,8 +82,15 @@ class AnalysisProcessor:
                 if actual_checksum.lower() != data.expectedChecksumSha256.lower():
                     raise ValueError("checksum_mismatch")
 
+                if data.assetKind == "audio":
+                    self._log(data.analysisJobId, "info", "Probing audio stream")
+                    audio_probe = probe_audio(original, self._runner, self._settings.FFPROBE_PATH)
+                    transcript = TranscriptResult(text="", language=None, segments=[], vad=[])
+                    self._persist_success(data, audio_probe.model_dump(), transcript, [], [])
+                    return {"assetId": data.assetId, "status": "ready"}
+
                 self._log(data.analysisJobId, "info", "Probing video streams")
-                probe = probe_video(original, self._runner, self._settings.FFPROBE_PATH)
+                video_probe = probe_video(original, self._runner, self._settings.FFPROBE_PATH)
                 self._log(
                     data.analysisJobId,
                     "info",
@@ -93,18 +101,18 @@ class AnalysisProcessor:
                     proxy,
                     thumbnail,
                     audio,
-                    probe,
+                    video_probe,
                     self._runner,
                     self._settings.FFMPEG_PATH,
                 )
-                scenes = detect_scenes(original, probe.durationMs)
+                scenes = detect_scenes(original, video_probe.durationMs)
                 self._log(
                     data.analysisJobId,
                     "info",
                     "Transcribing speech with word timestamps and VAD",
                     {"provider": self._settings.ANALYSIS_TRANSCRIPTION_PROVIDER},
                 )
-                transcript = self._transcriber.transcribe(audio, probe.durationMs)
+                transcript = self._transcriber.transcribe(audio, video_probe.durationMs)
 
                 derivative_rows = self._upload_derivatives(
                     data,
@@ -114,7 +122,7 @@ class AnalysisProcessor:
                 )
                 self._persist_success(
                     data,
-                    probe.model_dump(),
+                    video_probe.model_dump(),
                     transcript,
                     scenes,
                     derivative_rows,
