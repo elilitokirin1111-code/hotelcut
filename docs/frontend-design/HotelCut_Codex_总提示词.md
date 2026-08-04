@@ -235,9 +235,7 @@ apps/web/src/
 Query Key 必须包含租户边界：
 
 ```ts
-['assets', hotelId, filters]
-['video-projects', hotelId]
-['brand-kit', hotelId]
+['assets', hotelId, filters][('video-projects', hotelId)][('brand-kit', hotelId)];
 ```
 
 切换酒店时，不能显示前一个酒店的缓存数据。

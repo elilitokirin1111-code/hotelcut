@@ -125,12 +125,8 @@
           "name": "analysis_jobs_asset_id_assets_id_fk",
           "tableFrom": "analysis_jobs",
           "tableTo": "assets",
-          "columnsFrom": [
-            "asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -267,12 +263,8 @@
           "name": "asset_derivatives_asset_id_assets_id_fk",
           "tableFrom": "asset_derivatives",
           "tableTo": "assets",
-          "columnsFrom": [
-            "asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -394,12 +386,8 @@
           "name": "asset_segments_asset_id_assets_id_fk",
           "tableFrom": "asset_segments",
           "tableTo": "assets",
-          "columnsFrom": [
-            "asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -407,12 +395,8 @@
           "name": "asset_segments_created_by_user_id_users_id_fk",
           "tableFrom": "asset_segments",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -542,12 +526,8 @@
           "name": "asset_uploads_asset_id_assets_id_fk",
           "tableFrom": "asset_uploads",
           "tableTo": "assets",
-          "columnsFrom": [
-            "asset_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["asset_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -699,12 +679,8 @@
           "name": "assets_hotel_id_hotels_id_fk",
           "tableFrom": "assets",
           "tableTo": "hotels",
-          "columnsFrom": [
-            "hotel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hotel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -821,12 +797,8 @@
           "name": "brand_kits_hotel_id_hotels_id_fk",
           "tableFrom": "brand_kits",
           "tableTo": "hotels",
-          "columnsFrom": [
-            "hotel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hotel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -936,12 +908,8 @@
           "name": "hotels_organization_id_organizations_id_fk",
           "tableFrom": "hotels",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1039,12 +1007,8 @@
           "name": "memberships_organization_id_organizations_id_fk",
           "tableFrom": "memberships",
           "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1052,12 +1016,8 @@
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1170,12 +1130,8 @@
           "name": "model_provider_settings_hotel_id_hotels_id_fk",
           "tableFrom": "model_provider_settings",
           "tableTo": "hotels",
-          "columnsFrom": [
-            "hotel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hotel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1323,12 +1279,8 @@
           "name": "project_revisions_video_project_id_video_projects_id_fk",
           "tableFrom": "project_revisions",
           "tableTo": "video_projects",
-          "columnsFrom": [
-            "video_project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["video_project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1336,12 +1288,8 @@
           "name": "project_revisions_created_by_user_id_users_id_fk",
           "tableFrom": "project_revisions",
           "tableTo": "users",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1423,12 +1371,8 @@
           "name": "quality_reports_render_job_id_render_jobs_id_fk",
           "tableFrom": "quality_reports",
           "tableTo": "render_jobs",
-          "columnsFrom": [
-            "render_job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["render_job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1569,12 +1513,8 @@
           "name": "render_artifacts_render_job_id_render_jobs_id_fk",
           "tableFrom": "render_artifacts",
           "tableTo": "render_jobs",
-          "columnsFrom": [
-            "render_job_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["render_job_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1742,12 +1682,8 @@
           "name": "render_jobs_video_project_id_video_projects_id_fk",
           "tableFrom": "render_jobs",
           "tableTo": "video_projects",
-          "columnsFrom": [
-            "video_project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["video_project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1755,12 +1691,8 @@
           "name": "render_jobs_project_revision_id_project_revisions_id_fk",
           "tableFrom": "render_jobs",
           "tableTo": "project_revisions",
-          "columnsFrom": [
-            "project_revision_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_revision_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1768,12 +1700,8 @@
           "name": "render_jobs_requested_by_user_id_users_id_fk",
           "tableFrom": "render_jobs",
           "tableTo": "users",
-          "columnsFrom": [
-            "requested_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requested_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1889,12 +1817,8 @@
           "name": "user_sessions_user_id_users_id_fk",
           "tableFrom": "user_sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2111,12 +2035,8 @@
           "name": "video_briefs_hotel_id_hotels_id_fk",
           "tableFrom": "video_briefs",
           "tableTo": "hotels",
-          "columnsFrom": [
-            "hotel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hotel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -2222,12 +2142,8 @@
           "name": "video_projects_hotel_id_hotels_id_fk",
           "tableFrom": "video_projects",
           "tableTo": "hotels",
-          "columnsFrom": [
-            "hotel_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["hotel_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -2235,12 +2151,8 @@
           "name": "video_projects_video_brief_id_video_briefs_id_fk",
           "tableFrom": "video_projects",
           "tableTo": "video_briefs",
-          "columnsFrom": [
-            "video_brief_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["video_brief_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -2261,102 +2173,52 @@
     "public.analysis_job_status": {
       "name": "analysis_job_status",
       "schema": "public",
-      "values": [
-        "queued",
-        "running",
-        "succeeded",
-        "failed",
-        "cancelled"
-      ]
+      "values": ["queued", "running", "succeeded", "failed", "cancelled"]
     },
     "public.asset_derivative_kind": {
       "name": "asset_derivative_kind",
       "schema": "public",
-      "values": [
-        "proxy",
-        "thumbnail",
-        "audio"
-      ]
+      "values": ["proxy", "thumbnail", "audio"]
     },
     "public.asset_kind": {
       "name": "asset_kind",
       "schema": "public",
-      "values": [
-        "video",
-        "image",
-        "audio",
-        "logo",
-        "font"
-      ]
+      "values": ["video", "image", "audio", "logo", "font"]
     },
     "public.asset_segment_kind": {
       "name": "asset_segment_kind",
       "schema": "public",
-      "values": [
-        "scene",
-        "speech",
-        "vad",
-        "manual"
-      ]
+      "values": ["scene", "speech", "vad", "manual"]
     },
     "public.asset_segment_source": {
       "name": "asset_segment_source",
       "schema": "public",
-      "values": [
-        "automatic",
-        "manual"
-      ]
+      "values": ["automatic", "manual"]
     },
     "public.asset_status": {
       "name": "asset_status",
       "schema": "public",
-      "values": [
-        "registered",
-        "uploaded",
-        "analyzing",
-        "ready",
-        "failed"
-      ]
+      "values": ["registered", "uploaded", "analyzing", "ready", "failed"]
     },
     "public.asset_upload_status": {
       "name": "asset_upload_status",
       "schema": "public",
-      "values": [
-        "initiated",
-        "completed",
-        "aborted",
-        "expired"
-      ]
+      "values": ["initiated", "completed", "aborted", "expired"]
     },
     "public.membership_role": {
       "name": "membership_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "admin",
-        "member"
-      ]
+      "values": ["owner", "admin", "member"]
     },
     "public.quality_report_status": {
       "name": "quality_report_status",
       "schema": "public",
-      "values": [
-        "passed",
-        "warning",
-        "failed"
-      ]
+      "values": ["passed", "warning", "failed"]
     },
     "public.render_artifact_kind": {
       "name": "render_artifact_kind",
       "schema": "public",
-      "values": [
-        "video",
-        "thumbnail",
-        "captions",
-        "report",
-        "project",
-        "manifest"
-      ]
+      "values": ["video", "thumbnail", "captions", "report", "project", "manifest"]
     },
     "public.render_job_status": {
       "name": "render_job_status",
@@ -2374,30 +2236,17 @@
     "public.user_status": {
       "name": "user_status",
       "schema": "public",
-      "values": [
-        "active",
-        "disabled"
-      ]
+      "values": ["active", "disabled"]
     },
     "public.video_platform": {
       "name": "video_platform",
       "schema": "public",
-      "values": [
-        "douyin",
-        "xiaohongshu",
-        "wechat_channels",
-        "other"
-      ]
+      "values": ["douyin", "xiaohongshu", "wechat_channels", "other"]
     },
     "public.video_project_status": {
       "name": "video_project_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "rendering",
-        "completed",
-        "archived"
-      ]
+      "values": ["draft", "rendering", "completed", "archived"]
     }
   },
   "schemas": {},
