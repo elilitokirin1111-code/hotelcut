@@ -1,4 +1,5 @@
 import type {
+  AiEditPlan,
   Asset,
   CreateVideoBriefInput,
   GeneratedVideoProject,
@@ -37,6 +38,12 @@ type CreateState =
   | { status: 'saving-brief' }
   | { status: 'compiling' }
   | { status: 'success'; message: string }
+  | { status: 'error'; message: string };
+
+type AiPlanState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; plan: AiEditPlan }
   | { status: 'error'; message: string };
 
 interface BriefDraft {
@@ -234,6 +241,7 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
   const [isPlaying, setIsPlaying] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [studioSessionVersion, setStudioSessionVersion] = useState(0);
+  const [aiPlanState, setAiPlanState] = useState<AiPlanState>({ status: 'idle' });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -382,6 +390,45 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
       await compileBrief(brief);
     } catch (error) {
       setCreateState({ message: formatError(error), status: 'error' });
+    }
+  };
+
+  const generateAiPlan = async () => {
+    if (loadState.status !== 'ready') {
+      setAiPlanState({ message: '工作流数据尚未加载完成，请稍后重试。', status: 'error' });
+      return;
+    }
+    if (!briefDraft.title.trim()) {
+      setAiPlanState({ message: '请先填写项目标题，再生成 AI 剪辑策划。', status: 'error' });
+      return;
+    }
+    setAiPlanState({ status: 'loading' });
+    try {
+      const plan = await api.generateAiEditPlan(hotelId, {
+        callToAction: briefDraft.callToAction.trim() || null,
+        durationSeconds: briefDraft.durationSeconds,
+        objective: briefDraft.objective.trim() || null,
+        platform: briefDraft.platform,
+        targetAudience: briefDraft.targetAudience.trim() || null,
+        title: briefDraft.title.trim(),
+        tone: briefDraft.tone.trim(),
+      });
+      const recommendedTemplate = loadState.data.templates.find(
+        (template) => template.key === plan.recommendedTemplateKey,
+      );
+      if (recommendedTemplate) {
+        setTemplateKey(recommendedTemplate.key);
+        setBriefDraft((draft) => ({
+          ...draft,
+          durationSeconds: Math.min(
+            recommendedTemplate.maxDurationSeconds,
+            Math.max(recommendedTemplate.minDurationSeconds, draft.durationSeconds),
+          ),
+        }));
+      }
+      setAiPlanState({ plan, status: 'ready' });
+    } catch (error) {
+      setAiPlanState({ message: formatError(error), status: 'error' });
     }
   };
 
@@ -716,6 +763,53 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
         </form>
 
         <aside className="wizard-plan-column">
+          <div className="ai-edit-plan-card">
+            <div className="ai-edit-plan-heading">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#9a6b3c]">
+                  MODEL-ASSISTED PLAN
+                </p>
+                <h3>AI 剪辑策划</h3>
+              </div>
+              <button
+                disabled={aiPlanState.status === 'loading'}
+                onClick={() => void generateAiPlan()}
+                type="button"
+              >
+                {aiPlanState.status === 'loading' ? '生成中…' : '生成真实方案'}
+              </button>
+            </div>
+            {aiPlanState.status === 'idle' ? (
+              <p className="ai-edit-plan-empty">
+                填写需求单后调用已配置的大模型，生成钩子、叙事节奏、镜头策略与模板推荐。
+              </p>
+            ) : null}
+            {aiPlanState.status === 'error' ? (
+              <p className="ai-edit-plan-error">{aiPlanState.message}</p>
+            ) : null}
+            {aiPlanState.status === 'ready' ? (
+              <div className="ai-edit-plan-result">
+                <span>推荐模板 · {aiPlanState.plan.recommendedTemplateKey}</span>
+                <strong>{aiPlanState.plan.hook}</strong>
+                <p>{aiPlanState.plan.narrative}</p>
+                <ol>
+                  {aiPlanState.plan.shotStrategy.map((shot) => (
+                    <li key={`${shot.sequence}-${shot.purpose}`}>
+                      <i>{String(shot.sequence).padStart(2, '0')}</i>
+                      <span>
+                        <b>{shot.purpose}</b>
+                        {shot.visual} · {shot.seconds}s
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {aiPlanState.plan.risks.length > 0 ? (
+                  <small>需核对：{aiPlanState.plan.risks.join('；')}</small>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
           <div className="wizard-preview-card">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#e2b174]">
               Generated Preview

@@ -15,6 +15,9 @@ import type {
   CreateVideoProjectInput,
   CreateVideoBriefInput,
   Hotel,
+  ModelApiMode,
+  ModelProviderKind,
+  ModelReasoningEffort,
   Organization,
   ProjectRevision,
   QualityReport,
@@ -131,6 +134,32 @@ export interface UserSessionIdentity {
   expiresAt: Date;
 }
 
+export interface StoredModelProviderSettings {
+  id: string;
+  hotelId: string;
+  provider: ModelProviderKind;
+  baseUrl: string;
+  apiMode: ModelApiMode;
+  model: string;
+  reasoningEffort: ModelReasoningEffort;
+  encryptedApiKey: string | null;
+  apiKeyHint: string | null;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersistModelProviderSettingsInput {
+  provider: ModelProviderKind;
+  baseUrl: string;
+  apiMode: ModelApiMode;
+  model: string;
+  reasoningEffort: ModelReasoningEffort;
+  encryptedApiKey: string | null;
+  apiKeyHint: string | null;
+  enabled: boolean;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -151,6 +180,15 @@ export interface HotelCutRepository {
     hotelId: string,
     input: UpsertBrandKitInput,
   ): Promise<BrandKit>;
+  getModelProviderSettings(
+    actorUserId: string,
+    hotelId: string,
+  ): Promise<StoredModelProviderSettings | null>;
+  upsertModelProviderSettings(
+    actorUserId: string,
+    hotelId: string,
+    input: PersistModelProviderSettingsInput,
+  ): Promise<StoredModelProviderSettings>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

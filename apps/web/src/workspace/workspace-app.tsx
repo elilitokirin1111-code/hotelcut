@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { AssetLibrary } from './asset-library';
 import { AppShell, type WorkspaceSection } from './app-shell';
 import { AutomaticEditWorkflow } from './automatic-edit-workflow';
+import { ModelApiSettings } from './model-api-settings';
 import { RenderCenter } from './render-center';
 import { WorkspaceDashboard } from './workspace-dashboard';
 import {
@@ -22,12 +23,14 @@ import {
 const developmentSeedEmail =
   import.meta.env.VITE_DEVELOPMENT_SEED_EMAIL ?? 'owner@hotelcut.example';
 const developmentSeedPassword = import.meta.env.VITE_DEVELOPMENT_SEED_PASSWORD ?? 'hotelcut-local';
+const guestModeByDefault = import.meta.env.VITE_GUEST_MODE !== 'false';
 const defaultWorkspaceApi = createWorkspaceApi();
 
 interface WorkspaceAppProps {
   api?: WorkspaceApi;
   developmentEmail?: string;
   developmentPassword?: string;
+  guestMode?: boolean;
 }
 
 type SessionState =
@@ -107,17 +110,12 @@ function formatLoadError(error: unknown): string {
   return error instanceof Error ? error.message : '酒店工作空间加载失败';
 }
 
-function PlannedWorkspaceSection({ section }: { section: 'audit' | 'settings' | 'templates' }) {
+function PlannedWorkspaceSection({ section }: { section: 'audit' | 'templates' }) {
   const copy = {
     audit: [
       'AUDIT TRAIL',
       '操作记录',
       '审计日志接口尚未在当前后端切片开放。现有素材分析与渲染日志可分别在对应模块查看。',
-    ],
-    settings: [
-      'WORKSPACE SETTINGS',
-      '工作区设置',
-      '通用设置将在权限与通知接口开放后接入；当前酒店和品牌信息请在“酒店与品牌”中维护。',
     ],
     templates: [
       'TEMPLATE CENTER',
@@ -148,7 +146,7 @@ function HotelWorkspace({
   hotel: Hotel;
   organizationName: string;
   onBack: () => void;
-  onLogout: () => void;
+  onLogout?: () => void;
   onHotelUpdated: (hotel: Hotel) => void;
   userEmail: string;
 }) {
@@ -245,11 +243,11 @@ function HotelWorkspace({
       assetCount={workspaceCounts.assets}
       hotel={hotel}
       onBack={onBack}
-      onLogout={onLogout}
       onNavigate={setActiveModule}
       organizationName={organizationName}
       projectCount={workspaceCounts.projects}
       userEmail={userEmail}
+      {...(onLogout ? { onLogout } : {})}
     >
       <h1 className="sr-only">{hotel.name}</h1>
       {activeModule === 'dashboard' ? (
@@ -517,7 +515,8 @@ function HotelWorkspace({
       {activeModule === 'assets' ? <AssetLibrary api={api} hotelId={hotel.id} /> : null}
       {activeModule === 'projects' ? <AutomaticEditWorkflow api={api} hotelId={hotel.id} /> : null}
       {activeModule === 'renders' ? <RenderCenter api={api} hotelId={hotel.id} /> : null}
-      {activeModule === 'templates' || activeModule === 'audit' || activeModule === 'settings' ? (
+      {activeModule === 'settings' ? <ModelApiSettings api={api} hotelId={hotel.id} /> : null}
+      {activeModule === 'templates' || activeModule === 'audit' ? (
         <PlannedWorkspaceSection section={activeModule} />
       ) : null}
     </AppShell>
@@ -528,8 +527,24 @@ export function WorkspaceApp({
   api = defaultWorkspaceApi,
   developmentEmail = developmentSeedEmail,
   developmentPassword = developmentSeedPassword,
+  guestMode = guestModeByDefault,
 }: WorkspaceAppProps) {
-  const [sessionState, setSessionState] = useState<SessionState>({ status: 'checking' });
+  const [sessionState, setSessionState] = useState<SessionState>(() =>
+    guestMode
+      ? {
+          status: 'authenticated',
+          session: {
+            user: {
+              id: '20000000-0000-4000-8000-000000000001',
+              email: 'workspace@hotelcut.local',
+              displayName: '本机运营工作台',
+              status: 'active',
+            },
+            expiresAt: '2999-12-31T23:59:59.000Z',
+          },
+        }
+      : { status: 'checking' },
+  );
   const [email, setEmail] = useState(developmentEmail);
   const [password, setPassword] = useState(developmentPassword);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -539,6 +554,9 @@ export function WorkspaceApp({
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (guestMode) {
+      return;
+    }
     const controller = new AbortController();
     void api
       .getSession(controller.signal)
@@ -552,7 +570,7 @@ export function WorkspaceApp({
         }
       });
     return () => controller.abort();
-  }, [api]);
+  }, [api, guestMode]);
 
   useEffect(() => {
     if (sessionState.status !== 'authenticated') {
@@ -565,10 +583,20 @@ export function WorkspaceApp({
       .loadWorkspace(controller.signal)
       .then((snapshot) => {
         setLoadState({ snapshot, status: 'ready' });
+        if (guestMode) {
+          setSelectedHotelId((current) => current ?? snapshot.hotels[0]?.id ?? null);
+        }
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
           if (error instanceof WorkspaceApiError && error.status === 401) {
+            if (guestMode) {
+              setLoadState({
+                message: '免登录模式尚未在 API 服务启用，请检查 GUEST_MODE 配置。',
+                status: 'error',
+              });
+              return;
+            }
             setLoginError('登录已过期，请重新登录');
             setSessionState({ status: 'anonymous' });
             return;
@@ -577,7 +605,7 @@ export function WorkspaceApp({
         }
       });
     return () => controller.abort();
-  }, [api, sessionState]);
+  }, [api, guestMode, sessionState]);
 
   const submitLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -731,10 +759,10 @@ export function WorkspaceApp({
         api={api}
         hotel={selectedHotel}
         onBack={() => setSelectedHotelId(null)}
-        onLogout={() => void logout()}
         onHotelUpdated={updateWorkspaceHotel}
         organizationName={organizationNameById.get(selectedHotel.organizationId) ?? '未命名组织'}
-        userEmail={sessionState.session.user.email}
+        userEmail={guestMode ? '免登录本机模式' : sessionState.session.user.email}
+        {...(guestMode ? {} : { onLogout: () => void logout() })}
       />
     );
   }
@@ -752,9 +780,11 @@ export function WorkspaceApp({
               {sessionState.session.user.displayName} · 仅显示当前账号拥有成员权限的组织与酒店。
             </p>
           </div>
-          <button className="editor-secondary-button" onClick={() => void logout()} type="button">
-            退出登录
-          </button>
+          {!guestMode ? (
+            <button className="editor-secondary-button" onClick={() => void logout()} type="button">
+              退出登录
+            </button>
+          ) : null}
         </header>
 
         <label className="mt-8 block max-w-xl">

@@ -9,6 +9,12 @@ const environmentSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(3000),
   AUTH_SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(2_592_000).default(604_800),
   DATABASE_URL: z.url().default('postgresql://hotelcut:hotelcut_local@localhost:5432/hotelcut'),
+  GUEST_MODE: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+  GUEST_USER_ID: z.uuid().default('20000000-0000-4000-8000-000000000001'),
+  MODEL_API_CONFIG_SECRET: z.string().min(16).default('hotelcut-local-model-secret'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   REDIS_URL: z.url().default('redis://localhost:6379'),
   S3_ACCESS_KEY_ID: z.string().min(1).default('hotelcut'),

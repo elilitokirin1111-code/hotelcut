@@ -235,7 +235,9 @@ function createApi(initialSession: AuthSession | null): {
   createRenderJob: ReturnType<typeof vi.fn<WorkspaceApi['createRenderJob']>>;
   createVideoBrief: ReturnType<typeof vi.fn<WorkspaceApi['createVideoBrief']>>;
   createManualSegment: ReturnType<typeof vi.fn<WorkspaceApi['createManualSegment']>>;
+  generateAiEditPlan: ReturnType<typeof vi.fn<WorkspaceApi['generateAiEditPlan']>>;
   generateVideoProject: ReturnType<typeof vi.fn<WorkspaceApi['generateVideoProject']>>;
+  getModelProviderSettings: ReturnType<typeof vi.fn<WorkspaceApi['getModelProviderSettings']>>;
   getSession: ReturnType<typeof vi.fn<WorkspaceApi['getSession']>>;
   getAssetDerivativeDownload: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDerivativeDownload']>>;
   getAssetDetail: ReturnType<typeof vi.fn<WorkspaceApi['getAssetDetail']>>;
@@ -253,7 +255,9 @@ function createApi(initialSession: AuthSession | null): {
   retryAssetAnalysis: ReturnType<typeof vi.fn<WorkspaceApi['retryAssetAnalysis']>>;
   retryRenderJob: ReturnType<typeof vi.fn<WorkspaceApi['retryRenderJob']>>;
   saveBrandKit: ReturnType<typeof vi.fn<WorkspaceApi['saveBrandKit']>>;
+  saveModelProviderSettings: ReturnType<typeof vi.fn<WorkspaceApi['saveModelProviderSettings']>>;
   saveProjectRevision: ReturnType<typeof vi.fn<WorkspaceApi['saveProjectRevision']>>;
+  testModelProvider: ReturnType<typeof vi.fn<WorkspaceApi['testModelProvider']>>;
   updateHotel: ReturnType<typeof vi.fn<WorkspaceApi['updateHotel']>>;
   uploadVideo: ReturnType<typeof vi.fn<WorkspaceApi['uploadVideo']>>;
 } {
@@ -406,18 +410,67 @@ function createApi(initialSession: AuthSession | null): {
       updatedAt: '2026-07-29T08:00:00.000Z',
     });
   });
+  const modelProviderSettings = {
+    apiKeyConfigured: false,
+    apiKeyHint: null,
+    apiMode: 'responses' as const,
+    baseUrl: 'https://api.openai.com/v1',
+    createdAt: null,
+    enabled: true,
+    hotelId: hotels[0]!.id,
+    model: 'gpt-5.6',
+    provider: 'openai' as const,
+    reasoningEffort: 'medium' as const,
+    updatedAt: null,
+  };
+  const getModelProviderSettings = vi
+    .fn<WorkspaceApi['getModelProviderSettings']>()
+    .mockImplementation((hotelId) => Promise.resolve({ ...modelProviderSettings, hotelId }));
+  const saveModelProviderSettings = vi
+    .fn<WorkspaceApi['saveModelProviderSettings']>()
+    .mockImplementation((hotelId, input) =>
+      Promise.resolve({
+        ...modelProviderSettings,
+        ...input,
+        apiKeyConfigured: Boolean(input.apiKey),
+        apiKeyHint: input.apiKey ? `…${input.apiKey.slice(-4)}` : null,
+        createdAt: '2026-08-04T08:00:00.000Z',
+        hotelId,
+        updatedAt: '2026-08-04T08:00:00.000Z',
+      }),
+    );
+  const testModelProvider = vi.fn<WorkspaceApi['testModelProvider']>().mockResolvedValue({
+    latencyMs: 120,
+    message: '模型连接成功',
+    model: 'gpt-5.6',
+    ok: true,
+  });
+  const generateAiEditPlan = vi.fn<WorkspaceApi['generateAiEditPlan']>().mockResolvedValue({
+    cta: '立即预订',
+    hook: '住进西湖边，把风景留在窗前。',
+    narrative: '用真实客房、窗景和服务镜头建立可信的入住体验。',
+    recommendedTemplateKey: projectTemplates[0]!.key,
+    risks: [],
+    shotStrategy: [
+      { purpose: '抓住注意力', seconds: 3, sequence: 1, visual: '窗景开场' },
+      { purpose: '建立信任', seconds: 8, sequence: 2, visual: '客房与服务细节' },
+    ],
+    subtitleStyle: '高对比白字，关键词使用品牌强调色',
+  });
   return {
     api: {
       cancelRenderJob,
       createRenderJob,
       createManualSegment,
       createVideoBrief,
+      generateAiEditPlan,
       generateVideoProject,
       getAssetDerivativeDownload,
       getAssetDetail,
       getRenderArtifactDownload,
       getRenderJob,
       getSession,
+      getModelProviderSettings,
       getVideoProject,
       listAssets,
       listProjectTemplates,
@@ -430,7 +483,9 @@ function createApi(initialSession: AuthSession | null): {
       retryAssetAnalysis,
       retryRenderJob,
       saveBrandKit,
+      saveModelProviderSettings,
       saveProjectRevision,
+      testModelProvider,
       updateHotel,
       uploadVideo,
     },
@@ -438,6 +493,7 @@ function createApi(initialSession: AuthSession | null): {
     createRenderJob,
     createManualSegment,
     createVideoBrief,
+    generateAiEditPlan,
     generateVideoProject,
     getAssetDerivativeDownload,
     getAssetDetail,
@@ -445,6 +501,7 @@ function createApi(initialSession: AuthSession | null): {
     getRenderJob,
     getVideoProject,
     getSession,
+    getModelProviderSettings,
     listAssets,
     listProjectTemplates,
     listRenderJobs,
@@ -456,16 +513,58 @@ function createApi(initialSession: AuthSession | null): {
     retryAssetAnalysis,
     retryRenderJob,
     saveBrandKit,
+    saveModelProviderSettings,
     saveProjectRevision,
+    testModelProvider,
     updateHotel,
     uploadVideo,
   };
 }
 
 describe('M7 email-authenticated hotel workspace', () => {
+  it('opens the first hotel workbench without login and configures a real model connection', async () => {
+    const {
+      api,
+      getModelProviderSettings,
+      getSession,
+      loadWorkspace,
+      saveModelProviderSettings,
+      testModelProvider,
+    } = createApi(null);
+    render(<WorkspaceApp api={api} />);
+
+    expect(
+      await screen.findByRole('heading', { name: '下午好，今天继续产出好内容。' }),
+    ).toBeInTheDocument();
+    expect(getSession).not.toHaveBeenCalled();
+    expect(loadWorkspace).toHaveBeenCalledWith(expect.any(AbortSignal));
+
+    fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
+    expect(await screen.findByRole('heading', { name: '大模型 API 配置' })).toBeInTheDocument();
+    expect(getModelProviderSettings).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal));
+
+    fireEvent.change(screen.getByLabelText('API Key'), {
+      target: { value: 'sk-hotelcut-ui-test-key-123456789' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '保存并测试真实连接' }));
+
+    await waitFor(() =>
+      expect(saveModelProviderSettings).toHaveBeenCalledWith(
+        hotels[0]!.id,
+        expect.objectContaining({
+          apiKey: 'sk-hotelcut-ui-test-key-123456789',
+          apiMode: 'responses',
+          model: 'gpt-5.6',
+        }),
+      ),
+    );
+    await waitFor(() => expect(testModelProvider).toHaveBeenCalledWith(hotels[0]!.id));
+    expect(await screen.findByText('连接成功')).toBeInTheDocument();
+  });
+
   it('creates a server session before loading tenant-visible hotels', async () => {
     const { api, loadWorkspace, login } = createApi(null);
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
 
     expect(await screen.findByRole('heading', { name: '酒店短视频工作空间' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '登录工作空间' }));
@@ -479,7 +578,7 @@ describe('M7 email-authenticated hotel workspace', () => {
   });
 
   it('restores a valid session, searches hotels and enters the selected workspace', async () => {
-    render(<WorkspaceApp api={createApi(session).api} />);
+    render(<WorkspaceApp api={createApi(session).api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.change(screen.getByRole('searchbox', { name: '搜索酒店' }), {
@@ -498,7 +597,7 @@ describe('M7 email-authenticated hotel workspace', () => {
 
   it('opens the tenant-scoped render center module', async () => {
     const { api, listVideoProjects } = createApi(session);
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -513,7 +612,7 @@ describe('M7 email-authenticated hotel workspace', () => {
 
   it('loads, edits and saves hotel and BrandKit configuration', async () => {
     const { api, loadHotelConfiguration, saveBrandKit, updateHotel } = createApi(session);
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -573,7 +672,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       retryAssetAnalysis,
       uploadVideo,
     } = createApi(session);
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -651,7 +750,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     getAssetDetail
       .mockResolvedValueOnce(detailFor(uploadedAsset))
       .mockResolvedValue(detailFor(readyAsset));
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -665,9 +764,14 @@ describe('M7 email-authenticated hotel workspace', () => {
   });
 
   it('creates a brief, selects a template and saves an automatic edit project', async () => {
-    const { api, createVideoBrief, generateVideoProject, listProjectTemplates } =
-      createApi(session);
-    render(<WorkspaceApp api={api} />);
+    const {
+      api,
+      createVideoBrief,
+      generateAiEditPlan,
+      generateVideoProject,
+      listProjectTemplates,
+    } = createApi(session);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -685,6 +789,15 @@ describe('M7 email-authenticated hotel workspace', () => {
     fireEvent.change(screen.getByLabelText('行动引导（仅使用已确认文案）'), {
       target: { value: '联系酒店' },
     });
+    fireEvent.click(screen.getByRole('button', { name: '生成真实方案' }));
+    await waitFor(() =>
+      expect(generateAiEditPlan).toHaveBeenCalledWith(
+        hotels[0]!.id,
+        expect.objectContaining({ callToAction: '联系酒店', title: '湖畔周末礼遇' }),
+      ),
+    );
+    expect(await screen.findByText('住进西湖边，把风景留在窗前。')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/酒店活动推广/));
     fireEvent.click(screen.getByRole('button', { name: '生成并保存剪辑项目' }));
 
     await waitFor(() =>
@@ -740,7 +853,7 @@ describe('M7 email-authenticated hotel workspace', () => {
         ],
       },
     });
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -764,7 +877,7 @@ describe('M7 email-authenticated hotel workspace', () => {
 
   it('opens a generated project in Studio and autosaves an immutable revision', async () => {
     const { api, saveProjectRevision } = createApi(session);
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -799,7 +912,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     saveProjectRevision.mockRejectedValue(
       new WorkspaceApiError(409, 'CONFLICT', '项目修订已变化，请重新加载'),
     );
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
@@ -830,7 +943,7 @@ describe('M7 email-authenticated hotel workspace', () => {
   it('shows a stable login error without entering the workspace', async () => {
     const { api, login } = createApi(null);
     login.mockRejectedValue(new Error('邮箱或密码错误'));
-    render(<WorkspaceApp api={api} />);
+    render(<WorkspaceApp api={api} guestMode={false} />);
     await screen.findByRole('heading', { name: '酒店短视频工作空间' });
 
     fireEvent.click(screen.getByRole('button', { name: '登录工作空间' }));

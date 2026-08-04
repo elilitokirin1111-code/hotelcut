@@ -28,6 +28,7 @@ export const sessionCookieName = 'hotelcut_session';
 
 interface AuthenticationOptions {
   allowDevelopmentIdentity: boolean;
+  guestUserId?: string | undefined;
   repository: AuthRepository | undefined;
   secureSessionCookie: boolean;
   sessionTtlSeconds: number;
@@ -114,6 +115,11 @@ export function configureAuthentication(
     const session = await resolveSession(request, options.repository);
     if (session) {
       request.actorUserId = session.user.id;
+      return;
+    }
+
+    if (options.guestUserId) {
+      request.actorUserId = options.guestUserId;
       return;
     }
 

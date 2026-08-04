@@ -12,9 +12,7 @@ const session = {
   expiresAt: '2026-08-04T08:00:00.000Z',
 };
 
-test('runs the authenticated hotel configuration and asset-production workspace', async ({
-  page,
-}) => {
+test('runs the guest workbench, model setup and asset-production workflow', async ({ page }) => {
   const browserErrors: string[] = [];
   let hotel = {
     id: '30000000-0000-4000-8000-000000000001',
@@ -81,6 +79,21 @@ test('runs the authenticated hotel configuration and asset-production workspace'
   let artifactDownloadRequested = false;
   let analysisRetried = false;
   let uploadCompleted = false;
+  let modelConnectionTested = false;
+  let aiPlanRequested = false;
+  let modelSettings = {
+    apiKeyConfigured: false,
+    apiKeyHint: null as string | null,
+    apiMode: 'responses',
+    baseUrl: 'https://api.openai.com/v1',
+    createdAt: null as string | null,
+    enabled: true,
+    hotelId: hotel.id,
+    model: 'gpt-5.6',
+    provider: 'openai',
+    reasoningEffort: 'medium',
+    updatedAt: null as string | null,
+  };
   page.on('console', (message) => {
     if (message.type() === 'error') {
       browserErrors.push(message.text());
@@ -513,17 +526,68 @@ test('runs the authenticated hotel configuration and asset-production workspace'
       json: [hotel],
     });
   });
+  await page.route('**/api/v1/hotels/*/model-provider', async (route) => {
+    if (route.request().method() === 'PUT') {
+      const input = route.request().postDataJSON() as Record<string, unknown>;
+      modelSettings = {
+        ...modelSettings,
+        apiKeyConfigured: Boolean(input['apiKey']) || modelSettings.apiKeyConfigured,
+        apiKeyHint: input['apiKey'] ? 'sk-••••6789' : modelSettings.apiKeyHint,
+        apiMode: String(input['apiMode']),
+        baseUrl: String(input['baseUrl']),
+        enabled: Boolean(input['enabled']),
+        model: String(input['model']),
+        provider: String(input['provider']),
+        reasoningEffort: String(input['reasoningEffort']),
+        createdAt: '2026-08-04T08:00:00.000Z',
+        updatedAt: '2026-08-04T08:00:00.000Z',
+      };
+    }
+    await route.fulfill({ status: 200, json: modelSettings });
+  });
+  await page.route('**/api/v1/hotels/*/model-provider/test', async (route) => {
+    modelConnectionTested = true;
+    await route.fulfill({
+      status: 200,
+      json: {
+        latencyMs: 118,
+        message: '模型连接成功，已完成一次最小真实请求。',
+        model: 'gpt-5.6-sol',
+        ok: true,
+      },
+    });
+  });
+  await page.route('**/api/v1/hotels/*/ai/edit-plan', async (route) => {
+    aiPlanRequested = true;
+    await route.fulfill({
+      status: 200,
+      json: {
+        cta: '联系酒店',
+        hook: '住进湖畔，把周末慢下来。',
+        narrative: '先以湖景吸引注意，再展示真实客房与服务细节。',
+        recommendedTemplateKey: 'hotel.promotion',
+        risks: ['避免出现未经确认的房价'],
+        shotStrategy: [
+          { purpose: '抓住注意力', seconds: 3, sequence: 1, visual: '湖景开场' },
+          { purpose: '建立信任', seconds: 9, sequence: 2, visual: '客房与服务细节' },
+        ],
+        subtitleStyle: '白色高对比字幕，关键词使用品牌强调色',
+      },
+    });
+  });
 
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: '酒店短视频工作空间' })).toBeVisible();
-  await page.getByRole('button', { name: '登录工作空间' }).click();
-
-  await expect(page.getByRole('heading', { name: '选择酒店' })).toBeVisible();
-  await page.getByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }).click();
-
   await expect(page.getByRole('heading', { name: '云栖湖畔酒店（虚构）' })).toBeVisible();
   await expect(page.getByLabel('酒店工作空间模块')).toBeVisible();
   await expect(page.getByRole('heading', { name: '下午好，今天继续产出好内容。' })).toBeVisible();
+
+  await page.getByRole('button', { name: '打开设置' }).click();
+  await expect(page.getByRole('heading', { name: '大模型 API 配置' })).toBeVisible();
+  await page.getByLabel('API Key').fill('sk-hotelcut-e2e-test-key-123456789');
+  await page.getByRole('button', { name: '保存并测试真实连接' }).click();
+  await expect(page.getByText('连接成功', { exact: true })).toBeVisible();
+  await expect.poll(() => modelConnectionTested).toBe(true);
+
   await page.getByRole('button', { name: '打开素材库' }).click();
   await expect(page.getByRole('heading', { name: '生产素材库' })).toBeVisible();
   await expect(page.getByRole('button', { name: /湖景房介绍\.mp4/ })).toBeVisible();
@@ -575,6 +639,9 @@ test('runs the authenticated hotel configuration and asset-production workspace'
   await page.getByLabel('项目标题').fill('湖畔周末礼遇');
   await page.getByLabel('传播目标').fill('提升周末咨询');
   await page.getByLabel('行动引导（仅使用已确认文案）').fill('联系酒店');
+  await page.getByRole('button', { name: '生成真实方案' }).click();
+  await expect(page.getByText('住进湖畔，把周末慢下来。')).toBeVisible();
+  await expect.poll(() => aiPlanRequested).toBe(true);
   await page.getByRole('button', { name: '生成并保存剪辑项目' }).click();
   await expect(page.getByText('自动剪辑已保存为项目修订 1')).toBeVisible();
   await expect(page.getByText('已匹配 4/4 个画面槽位')).toBeVisible();

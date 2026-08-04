@@ -33,6 +33,7 @@ import type { MultipartObjectStorage } from '@hotelcut/storage';
 
 import { assetRoutes } from './asset-routes.js';
 import { configureAuthentication } from './authentication.js';
+import { modelProviderRoutes } from './model-provider-routes.js';
 import { projectRoutes } from './project-routes.js';
 import { renderRoutes } from './render-routes.js';
 
@@ -41,7 +42,10 @@ interface BuildAppOptions {
   analysisQueue?: AnalysisQueue;
   authRepository?: AuthRepository;
   downloadUrlTtlSeconds?: number;
+  guestUserId?: string;
   logger?: boolean;
+  modelApiConfigSecret?: string;
+  modelProviderFetch?: typeof fetch;
   objectStorage?: MultipartObjectStorage;
   renderQueue?: RenderQueue;
   repository?: HotelCutRepository;
@@ -173,6 +177,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   configureAuthentication(app, {
     allowDevelopmentIdentity: options.allowDevelopmentIdentity ?? true,
+    guestUserId: options.guestUserId,
     repository: options.authRepository,
     secureSessionCookie: options.secureSessionCookie ?? false,
     sessionTtlSeconds: options.sessionTtlSeconds ?? 604_800,
@@ -354,6 +359,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     objectStorage: options.objectStorage,
     repository: options.repository,
     uploadUrlTtlSeconds: options.uploadUrlTtlSeconds ?? 900,
+  });
+  await app.register(modelProviderRoutes, {
+    configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
+    fetchProvider: options.modelProviderFetch,
+    repository: options.repository,
   });
   await app.register(projectRoutes, {
     repository: options.repository,

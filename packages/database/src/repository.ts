@@ -14,10 +14,12 @@ import {
   type PersistQualityReportInput,
   type PersistRenderArtifactInput,
   type PersistProjectRevisionInput,
+  type PersistModelProviderSettingsInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
   type RegisteredAssetUpload,
+  type StoredModelProviderSettings,
 } from '@hotelcut/domain';
 import type {
   AnalysisJob,
@@ -55,6 +57,9 @@ import {
   assetSchema,
   assetSegmentSchema,
   assetUploadSchema,
+  modelApiModeSchema,
+  modelProviderKindSchema,
+  modelReasoningEffortSchema,
   projectRevisionSchema,
   qualityReportSchema,
   renderArtifactSchema,
@@ -93,6 +98,19 @@ function mapHotel(row: typeof schema.hotels.$inferSelect): Hotel {
 
 function mapBrandKit(row: typeof schema.brandKits.$inferSelect): BrandKit {
   return { ...row, createdAt: toIso(row.createdAt), updatedAt: toIso(row.updatedAt) };
+}
+
+function mapModelProviderSettings(
+  row: typeof schema.modelProviderSettings.$inferSelect,
+): StoredModelProviderSettings {
+  return {
+    ...row,
+    provider: modelProviderKindSchema.parse(row.provider),
+    apiMode: modelApiModeSchema.parse(row.apiMode),
+    reasoningEffort: modelReasoningEffortSchema.parse(row.reasoningEffort),
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  };
 }
 
 function mapVideoBrief(row: typeof schema.videoBriefs.$inferSelect): VideoBrief {
@@ -396,6 +414,40 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       throw new Error('Brand kit upsert did not return a row');
     }
     return mapBrandKit(row);
+  }
+
+  async getModelProviderSettings(
+    actorUserId: string,
+    hotelId: string,
+  ): Promise<StoredModelProviderSettings | null> {
+    await this.requireHotelAdmin(actorUserId, hotelId);
+    const [row] = await this.db
+      .select()
+      .from(schema.modelProviderSettings)
+      .where(eq(schema.modelProviderSettings.hotelId, hotelId))
+      .limit(1);
+    return row ? mapModelProviderSettings(row) : null;
+  }
+
+  async upsertModelProviderSettings(
+    actorUserId: string,
+    hotelId: string,
+    input: PersistModelProviderSettingsInput,
+  ): Promise<StoredModelProviderSettings> {
+    await this.requireHotelAdmin(actorUserId, hotelId);
+    const values = { ...input, updatedAt: new Date() };
+    const [row] = await this.db
+      .insert(schema.modelProviderSettings)
+      .values({ id: randomUUID(), hotelId, ...values })
+      .onConflictDoUpdate({
+        target: schema.modelProviderSettings.hotelId,
+        set: values,
+      })
+      .returning();
+    if (!row) {
+      throw new Error('Model provider settings upsert did not return a row');
+    }
+    return mapModelProviderSettings(row);
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {

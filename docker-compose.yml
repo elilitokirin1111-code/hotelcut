@@ -73,6 +73,9 @@ services:
       API_PORT: 3000
       AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-604800}
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
+      GUEST_MODE: ${GUEST_MODE:-true}
+      GUEST_USER_ID: ${GUEST_USER_ID:-20000000-0000-4000-8000-000000000001}
+      MODEL_API_CONFIG_SECRET: ${MODEL_API_CONFIG_SECRET:-hotelcut-local-model-secret}
       NODE_ENV: development
       REDIS_URL: redis://redis:6379
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-hotelcut}
