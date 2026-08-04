@@ -689,6 +689,56 @@ describe('M7 email-authenticated hotel workspace', () => {
     expect(screen.getByText('编排无警告')).toBeInTheDocument();
   });
 
+  it('turns automatic edit warnings into actionable production guidance', async () => {
+    const { api, generateVideoProject } = createApi(session);
+    generateVideoProject.mockResolvedValueOnce({
+      detail: videoProjectDetail,
+      generation: {
+        seed: 20260730,
+        selectedSlots: 3,
+        templateKey: 'hotel.promotion',
+        templateVersion: '1.1.0',
+        totalSlots: 4,
+        usedAssetIds: [assets[0]!.id],
+        warnings: [
+          {
+            code: 'BACKGROUND_MUSIC_MISSING',
+            message:
+              'No eligible background music was available; source ambience fallback is active',
+            severity: 'info',
+            path: 'media',
+          },
+          {
+            code: 'SLOT_REQUIREMENT_UNMET',
+            message: 'No eligible media for promo.offer',
+            severity: 'warning',
+            path: 'slots.promo.offer',
+          },
+        ],
+      },
+    });
+    render(<WorkspaceApp api={api} />);
+    await screen.findByRole('heading', { name: '选择酒店' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
+    await screen.findByRole('heading', { name: '创建自动剪辑项目' });
+    fireEvent.click(screen.getByLabelText(/酒店活动推广/));
+    fireEvent.change(screen.getByLabelText('项目标题'), {
+      target: { value: '湖畔周末礼遇' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '生成并保存剪辑项目' }));
+
+    expect(await screen.findByText('已启用原视频环境声')).toBeInTheDocument();
+    expect(
+      screen.getByText('系统会用低音量环境声铺满成片；请在渲染中心核对音频质检结果。'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('缺少活动优惠素材')).toBeInTheDocument();
+    expect(
+      screen.getByText('请在素材库为一段可用视频添加“活动优惠”标签后重新生成。'),
+    ).toBeInTheDocument();
+  });
+
   it('opens a generated project in Studio and autosaves an immutable revision', async () => {
     const { api, saveProjectRevision } = createApi(session);
     render(<WorkspaceApp api={api} />);

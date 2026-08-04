@@ -9,6 +9,7 @@ import {
 } from '@hotelcut/compiler';
 import {
   stableStringify,
+  type AudioClip,
   type HotelVideoProjectV1,
   type ImageClip,
   type VideoClip,
@@ -193,6 +194,69 @@ describe('M4 hotel templates', () => {
     expect(failedRecord).toMatchObject({ eligible: false, selected: false });
     expect(failedRecord?.reasons).toContain('Media availability is failed');
     expect(musicRecords.find((record) => record.selected)?.assetId).toBe(music.assetId);
+  });
+
+  it('fills montage audio with selected source ambience when music is unavailable', async () => {
+    const roomCase = createFixtureCases(await readBaseInput()).find(
+      (fixtureCase) => fixtureCase.name === 'room-montage',
+    );
+    if (!roomCase) {
+      throw new Error('Room montage fixture case is missing');
+    }
+    const exterior = roomCase.input.media.find(
+      (media) => media.kind === 'video' && media.tags.includes('exterior'),
+    );
+    if (!exterior) {
+      throw new Error('Fixture must include an exterior video');
+    }
+    const audibleBathroomId = '10000000-0000-4000-8000-000000000016';
+    const input = compilerInputSchema.parse({
+      ...roomCase.input,
+      media: [
+        ...roomCase.input.media.filter((media) => media.kind !== 'audio'),
+        {
+          ...exterior,
+          assetId: audibleBathroomId,
+          contentFingerprint: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+          scoreBasisPoints: 1,
+          segments: [],
+          tags: ['bathroom'],
+        },
+      ],
+    });
+    const result = compileVideo(input, roomMontageTemplate);
+    const audioTrack = result.project.tracks.find(
+      (track) => track.metadata['compilerTrack'] === 'music',
+    );
+    const audioClips = (audioTrack?.clips ?? []).filter(
+      (clip): clip is AudioClip => clip.kind === 'audio',
+    );
+    const selectedVisualAssetIds = visualClips(result.project).map((clip) => clip.assetId);
+
+    expect(result.manifest.slots.find((slot) => slot.slotId === 'room.bathroom')?.assetId).toBe(
+      audibleBathroomId,
+    );
+    expect(audioTrack?.name).toBe('原视频环境声');
+    expect(audioClips.length).toBeGreaterThan(0);
+    expect(audioClips.reduce((total, clip) => total + clip.durationFrames, 0)).toBe(
+      input.output.durationFrames,
+    );
+    expect(audioClips.every((clip) => clip.volume === 0.18)).toBe(true);
+    expect(selectedVisualAssetIds).toContain(audioClips[0]?.assetId);
+    expect(
+      visualClips(result.project)
+        .filter((clip): clip is VideoClip => clip.kind === 'video')
+        .every((clip) => clip.muted && clip.volume === 0),
+    ).toBe(true);
+    expect(result.warnings).toContainEqual({
+      code: 'BACKGROUND_MUSIC_MISSING',
+      message: 'No eligible background music was available; source ambience fallback is active',
+      severity: 'info',
+      path: 'media',
+    });
+    expect(result.manifest.explanationLog).toContainEqual(
+      expect.objectContaining({ code: 'SOURCE_AMBIENCE_FALLBACK' }),
+    );
   });
 
   it('regenerates unlocked slots while preserving locked shots', async () => {

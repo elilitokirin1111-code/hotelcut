@@ -18,7 +18,7 @@ export const templateSlotSchema = z
     preferredTags: z.array(z.string().min(1).max(80)).default([]),
     required: z.boolean().default(true),
     allowAssetReuse: z.boolean().default(false),
-    audioPolicy: z.enum(['keep', 'mute']),
+    audioPolicy: z.enum(['keep', 'duck', 'mute']),
     transition: z.enum(['cut', 'dissolve', 'fade']).default('cut'),
   })
   .strict()

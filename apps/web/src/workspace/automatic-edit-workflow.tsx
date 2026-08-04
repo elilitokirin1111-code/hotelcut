@@ -70,12 +70,76 @@ const tagLabels: Record<string, string> = {
   booking: '预订结尾',
   detail: '细节',
   exterior: '酒店外观',
+  facility: '酒店设施',
   lobby: '大堂',
   promotion: '活动优惠',
   room: '客房',
   service: '服务',
   welcome: '欢迎开场',
 };
+
+const slotLabels: Record<string, string> = {
+  'promo.exterior': '酒店外观',
+  'promo.offer': '活动优惠',
+  'promo.room': '客房',
+  'promo.service': '服务',
+  'room.bathroom': '卫浴',
+  'room.detail': '客房细节',
+  'room.exterior': '酒店外观',
+  'room.facility': '酒店设施',
+  'room.hero': '客房主画面',
+};
+
+interface GenerationGuidance {
+  action: string;
+  title: string;
+}
+
+function generationGuidance(
+  warning: ProjectGenerationSummary['warnings'][number],
+): GenerationGuidance {
+  if (warning.code === 'BACKGROUND_MUSIC_MISSING') {
+    return warning.severity === 'info'
+      ? {
+          title: '已启用原视频环境声',
+          action: '系统会用低音量环境声铺满成片；请在渲染中心核对音频质检结果。',
+        }
+      : {
+          title: '缺少可用音频',
+          action: '请至少上传一段带连续声音的视频素材，再重新生成项目。',
+        };
+  }
+  if (warning.code === 'SLOT_REQUIREMENT_UNMET') {
+    const slotId = warning.path?.replace(/^slots\./, '') ?? '';
+    const label = (slotLabels[slotId] ?? slotId) || '对应画面';
+    return {
+      title: `缺少${label}素材`,
+      action: `请在素材库为一段可用视频添加“${label}”标签后重新生成。`,
+    };
+  }
+  if (warning.code === 'CAPTION_SOURCE_MISSING') {
+    return {
+      title: '口播字幕来源缺失',
+      action: '请确认口播视频分析成功并生成转写文本，然后重新生成。',
+    };
+  }
+  if (warning.code === 'CTA_NOT_CONFIGURED') {
+    return {
+      title: '缺少行动引导',
+      action: '补充经过确认的行动引导文案，避免系统自动编造联系方式或价格。',
+    };
+  }
+  if (warning.code.startsWith('LOCKED_')) {
+    return {
+      title: '锁定片段需要处理',
+      action: '在 Studio 中解除失效片段的锁定，或替换为当前可用素材。',
+    };
+  }
+  return {
+    title: '生成项目需要检查',
+    action: warning.message,
+  };
+}
 
 const productionArtwork: readonly DemoArtwork[] = [
   'room',
@@ -679,13 +743,28 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
                     </p>
                     <p>使用 {generation.usedAssetIds.length} 个素材文件</p>
                     {generation.warnings.length > 0 ? (
-                      <ul className="mt-2 space-y-1 text-amber-200">
-                        {generation.warnings.map((warning, index) => (
-                          <li key={`${warning.code}-${index}`}>· {warning.message}</li>
-                        ))}
+                      <ul className="mt-3 space-y-2">
+                        {generation.warnings.map((warning, index) => {
+                          const guidance = generationGuidance(warning);
+                          return (
+                            <li
+                              className={`rounded-xl border p-3 ${
+                                warning.severity === 'info'
+                                  ? 'border-emerald-300/20 bg-emerald-300/8 text-emerald-100'
+                                  : 'border-amber-300/20 bg-amber-300/8 text-amber-100'
+                              }`}
+                              key={`${warning.code}-${index}`}
+                            >
+                              <p className="font-black">{guidance.title}</p>
+                              <p className="mt-1 opacity-75">{guidance.action}</p>
+                            </li>
+                          );
+                        })}
                       </ul>
                     ) : (
-                      <p className="mt-1 text-emerald-200">编排无警告</p>
+                      <p className="mt-1 text-emerald-200">
+                        <span>编排无警告</span>，可进入渲染验收
+                      </p>
                     )}
                   </div>
                 ) : null}

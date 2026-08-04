@@ -2,7 +2,7 @@ import { defineCompilationTemplate } from '@hotelcut/compiler';
 
 export const roomMontageTemplate = defineCompilationTemplate({
   id: 'hotel.room-montage',
-  version: '1.0.0',
+  version: '1.1.0',
   name: 'Room selling-point montage',
   minDurationSeconds: 15,
   maxDurationSeconds: 35,
@@ -18,7 +18,7 @@ export const roomMontageTemplate = defineCompilationTemplate({
       preferredTags: ['day', 'wide'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
     {
@@ -32,7 +32,7 @@ export const roomMontageTemplate = defineCompilationTemplate({
       preferredTags: ['window', 'bed'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
     {
@@ -46,7 +46,7 @@ export const roomMontageTemplate = defineCompilationTemplate({
       preferredTags: ['clean', 'detail'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
     {
@@ -60,7 +60,7 @@ export const roomMontageTemplate = defineCompilationTemplate({
       preferredTags: ['gym', 'pool'],
       required: false,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
     {
@@ -74,7 +74,7 @@ export const roomMontageTemplate = defineCompilationTemplate({
       preferredTags: ['amenity', 'design'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
   ],
