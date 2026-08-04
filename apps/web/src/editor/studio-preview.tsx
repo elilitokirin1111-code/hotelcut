@@ -48,7 +48,7 @@ export function StudioPreview({
   return (
     <section
       aria-label="视频预览"
-      className="flex min-w-0 flex-col items-center rounded-[28px] border border-white/70 bg-white/75 p-4 shadow-[0_24px_80px_rgba(38,48,52,0.12)] backdrop-blur-xl"
+      className="studio-preview-stage flex min-w-0 flex-col items-center rounded-[16px] p-4"
     >
       <div className="mb-3 flex w-full items-center justify-between">
         <div>

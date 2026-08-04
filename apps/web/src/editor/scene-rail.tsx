@@ -35,7 +35,7 @@ export function SceneRail({
   return (
     <aside
       aria-label="场景列表"
-      className="flex min-h-0 flex-col rounded-[28px] border border-white/70 bg-white/75 p-4 shadow-[0_24px_70px_rgba(38,48,52,0.09)] backdrop-blur-xl"
+      className="studio-scene-rail flex min-h-0 flex-col rounded-[16px] p-4"
     >
       <div className="flex items-center justify-between">
         <div>

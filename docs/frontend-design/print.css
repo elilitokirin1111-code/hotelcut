@@ -1,0 +1,2 @@
+@page{size:1600px 1000px;margin:0}html,body{width:1600px;height:1000px;overflow:hidden}.app,.editor-app{width:1600px;height:1000px}
+.editor-work{display:flex!important}.editor-side{width:264px;flex:none}.preview-stage{flex:1}.inspector{width:316px;flex:none}.scene-card{display:flex!important}.scene-card>div{flex:1}.track{display:flex!important}.track-label{width:96px;flex:none}.track-area{flex:1}.deliverable-grid{display:flex!important}.output-preview{width:190px;flex:none}.deliverable-grid>div:last-child{flex:1}.quality-score{display:flex!important}

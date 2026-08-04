@@ -577,6 +577,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开素材库' }));
     expect(await screen.findByRole('heading', { name: '生产素材库' })).toBeInTheDocument();
     await waitFor(() =>
       expect(listAssets).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal)),
@@ -643,7 +644,10 @@ describe('M7 email-authenticated hotel workspace', () => {
       status: 'ready',
       updatedAt: '2026-07-29T08:01:00.000Z',
     };
-    listAssets.mockResolvedValueOnce([uploadedAsset]).mockResolvedValue([readyAsset]);
+    listAssets
+      .mockResolvedValueOnce([uploadedAsset])
+      .mockResolvedValueOnce([uploadedAsset])
+      .mockResolvedValue([readyAsset]);
     getAssetDetail
       .mockResolvedValueOnce(detailFor(uploadedAsset))
       .mockResolvedValue(detailFor(readyAsset));
@@ -651,6 +655,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开素材库' }));
     expect(await screen.findByRole('button', { name: /等待分析/ })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '刷新状态' }));
 

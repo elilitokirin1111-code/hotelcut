@@ -93,7 +93,7 @@ export function ProjectStudio({
   return (
     <main
       aria-label="HotelCut Studio"
-      className={`${embedded ? 'min-h-[720px] rounded-[28px]' : 'min-h-screen'} overflow-hidden bg-[#eef1ef] text-[#263138]`}
+      className={`hotelcut-studio ${embedded ? 'min-h-[720px] rounded-[22px]' : 'min-h-screen'} overflow-hidden`}
     >
       <div className={`flex ${embedded ? 'min-h-[720px]' : 'min-h-screen'}`}>
         <nav
@@ -129,7 +129,7 @@ export function ProjectStudio({
         </nav>
 
         <div className="min-w-0 flex-1">
-          <header className="flex min-h-[76px] items-center justify-between border-b border-white/80 bg-white/60 px-5 backdrop-blur-xl xl:px-7">
+          <header className="studio-topbar flex min-h-[66px] items-center justify-between px-5 xl:px-7">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
                 <span>视频项目</span>
@@ -215,8 +215,8 @@ export function ProjectStudio({
             </div>
           </header>
 
-          <div className="p-4 xl:p-6">
-            <div className="grid min-h-[620px] gap-4 xl:grid-cols-[260px_minmax(360px,1fr)_340px]">
+          <div className="studio-workspace p-3 xl:p-4">
+            <div className="studio-editor-grid grid min-h-[590px] gap-3 xl:grid-cols-[264px_minmax(360px,1fr)_316px]">
               <SceneRail
                 assets={assets}
                 onSelect={(clipId, startFrame) => {
@@ -245,7 +245,7 @@ export function ProjectStudio({
               />
             </div>
 
-            <div className="mt-4">
+            <div className="studio-timeline-wrap mt-3">
               <SimpleTimeline
                 currentFrame={currentFrame}
                 onScrub={setCurrentFrame}
@@ -255,7 +255,7 @@ export function ProjectStudio({
               />
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 px-2 text-[10px] text-slate-400">
+            <div className="studio-footer mt-3 flex flex-wrap items-center justify-between gap-3 px-2 text-[10px]">
               <div className="flex flex-wrap items-center gap-2">
                 <p>
                   {editor.saveError ??

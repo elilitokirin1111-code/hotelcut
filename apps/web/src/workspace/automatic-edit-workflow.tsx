@@ -480,32 +480,45 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
   }
 
   return (
-    <section
-      aria-label="自动剪辑工作流"
-      className="mt-5 rounded-[28px] border border-white/80 bg-white/75 p-6 shadow-[0_18px_60px_rgba(35,52,60,.09)] lg:p-8"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section aria-label="自动剪辑工作流" className="automatic-workflow-page">
+      <div className="page-heading-row">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9a6b3c]">
-            Automatic Editing
-          </p>
-          <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">创建自动剪辑项目</h2>
-          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+          <p className="page-eyebrow">AI COMPILATION WORKFLOW</p>
+          <h2>创建自动剪辑项目</h2>
+          <p>
             填写用途和时长，选择模板后，系统会从已分析素材中按标签、画质和镜头时长自动编排，
             并将结果保存为可继续编辑的修订。
           </p>
         </div>
-        <div className="rounded-2xl bg-[#eef5f2] px-4 py-3 text-right">
+        <div className="workflow-ready-count">
           <p className="text-[10px] font-black text-[#3f7c73]">可用生产素材</p>
           <p className="mt-1 text-xl font-black text-[#263138]">{readyAssets.length}</p>
         </div>
       </div>
 
-      <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]">
-        <form className="space-y-6" onSubmit={(event) => void createProject(event)}>
-          <fieldset>
-            <legend className="text-sm font-black text-[#263138]">1. 选择剪辑模板</legend>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
+      <div className="workflow-stepper surface-card" aria-label="自动成片进度">
+        {['视频简报', '选择模板', '素材复核', '生成项目'].map((label, index) => {
+          const currentStep = generation ? 4 : createState.status === 'compiling' ? 3 : 2;
+          return (
+            <span
+              className={
+                index + 1 < currentStep ? 'is-done' : index + 1 === currentStep ? 'is-active' : ''
+              }
+              key={label}
+            >
+              <i>{index + 1 < currentStep ? '✓' : String(index + 1).padStart(2, '0')}</i>
+              {label}
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="automatic-wizard-grid">
+        <form className="wizard-form-grid" onSubmit={(event) => void createProject(event)}>
+          <fieldset className="wizard-pane wizard-template-pane surface-card">
+            <legend className="text-sm font-black text-[#263138]">2. 选择剪辑模板</legend>
+            <p className="wizard-pane-description">模板决定角色节奏、素材槽位与最终时长范围。</p>
+            <div className="workflow-template-grid">
               {loadState.data.templates.map((template) => {
                 const selected = template.key === templateKey;
                 return (
@@ -557,9 +570,10 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
             ) : null}
           </fieldset>
 
-          <fieldset>
-            <legend className="text-sm font-black text-[#263138]">2. 填写视频需求单</legend>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
+          <fieldset className="wizard-pane wizard-brief-pane surface-card">
+            <legend className="text-sm font-black text-[#263138]">1. 填写视频需求单</legend>
+            <p className="wizard-pane-description">AI 只使用已验证的酒店资料与明确输入生成文案。</p>
+            <div className="wizard-brief-fields">
               <label className="editor-field md:col-span-2">
                 <span>项目标题</span>
                 <input
@@ -656,7 +670,7 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
             </div>
           </fieldset>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="wizard-actions surface-card">
             <button
               className="editor-primary-button"
               disabled={
@@ -701,8 +715,8 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
           ) : null}
         </form>
 
-        <aside className="space-y-5">
-          <div className="rounded-3xl bg-[#263138] p-5 text-white">
+        <aside className="wizard-plan-column">
+          <div className="wizard-preview-card">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#e2b174]">
               Generated Preview
             </p>

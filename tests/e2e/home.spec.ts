@@ -523,6 +523,8 @@ test('runs the authenticated hotel configuration and asset-production workspace'
 
   await expect(page.getByRole('heading', { name: '云栖湖畔酒店（虚构）' })).toBeVisible();
   await expect(page.getByLabel('酒店工作空间模块')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '下午好，今天继续产出好内容。' })).toBeVisible();
+  await page.getByRole('button', { name: '打开素材库' }).click();
   await expect(page.getByRole('heading', { name: '生产素材库' })).toBeVisible();
   await expect(page.getByRole('button', { name: /湖景房介绍\.mp4/ })).toBeVisible();
 

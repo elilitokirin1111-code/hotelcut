@@ -43,10 +43,7 @@ export function SimpleTimeline({
   const visibleTracks = project.tracks.filter((track) => track.enabled);
 
   return (
-    <section
-      aria-label="简化时间线"
-      className="rounded-[24px] border border-white/70 bg-white/80 px-4 pb-4 pt-3 shadow-[0_18px_60px_rgba(38,48,52,0.09)] backdrop-blur-xl"
-    >
+    <section aria-label="简化时间线" className="studio-timeline rounded-[16px] px-4 pb-4 pt-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
