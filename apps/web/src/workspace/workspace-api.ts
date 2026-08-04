@@ -11,6 +11,9 @@ import {
   derivativeDownloadSchema,
   generatedVideoProjectSchema,
   hotelSchema,
+  aiEditPlanSchema,
+  modelProviderConnectionResultSchema,
+  modelProviderSettingsSchema,
   organizationSchema,
   projectTemplateSchema,
   renderArtifactDownloadSchema,
@@ -20,6 +23,8 @@ import {
   videoProjectDetailSchema,
   videoProjectSchema,
   type Asset,
+  type AiEditPlan,
+  type AiEditPlanInput,
   type AssetDetail,
   type AssetDerivativeKind,
   type AssetSegment,
@@ -31,6 +36,8 @@ import {
   type GenerateVideoProjectInput,
   type GeneratedVideoProject,
   type Hotel,
+  type ModelProviderConnectionResult,
+  type ModelProviderSettings,
   type Organization,
   type ProjectTemplate,
   type RenderJob,
@@ -38,6 +45,7 @@ import {
   type SaveProjectRevisionInput,
   type UpdateHotelInput,
   type UpsertBrandKitInput,
+  type UpsertModelProviderSettingsInput,
   type VideoBrief,
   type VideoProject,
   type VideoProjectDetail,
@@ -120,6 +128,13 @@ export interface WorkspaceApi {
   ): Promise<GeneratedVideoProject>;
   updateHotel(hotelId: string, input: UpdateHotelInput): Promise<Hotel>;
   saveBrandKit(hotelId: string, input: UpsertBrandKitInput): Promise<BrandKit>;
+  getModelProviderSettings(hotelId: string, signal?: AbortSignal): Promise<ModelProviderSettings>;
+  saveModelProviderSettings(
+    hotelId: string,
+    input: UpsertModelProviderSettingsInput,
+  ): Promise<ModelProviderSettings>;
+  testModelProvider(hotelId: string): Promise<ModelProviderConnectionResult>;
+  generateAiEditPlan(hotelId: string, input: AiEditPlanInput): Promise<AiEditPlan>;
 }
 
 export class WorkspaceApiError extends Error {
@@ -560,6 +575,42 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
         body: JSON.stringify(input),
         headers: { 'Content-Type': 'application/json' },
         method: 'PUT',
+      });
+    },
+
+    async getModelProviderSettings(hotelId, signal) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/model-provider`,
+        modelProviderSettingsSchema,
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async saveModelProviderSettings(hotelId, input) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/model-provider`,
+        modelProviderSettingsSchema,
+        {
+          body: JSON.stringify(input),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'PUT',
+        },
+      );
+    },
+
+    async testModelProvider(hotelId) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/model-provider/test`,
+        modelProviderConnectionResultSchema,
+        { method: 'POST' },
+      );
+    },
+
+    async generateAiEditPlan(hotelId, input) {
+      return request(`/v1/hotels/${encodeURIComponent(hotelId)}/ai/edit-plan`, aiEditPlanSchema, {
+        body: JSON.stringify(input),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
       });
     },
   };

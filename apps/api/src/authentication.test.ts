@@ -49,6 +49,24 @@ async function createRepositories() {
 }
 
 describe('M7 email authentication', () => {
+  it('opens protected workspace data directly when guest mode is enabled', async () => {
+    const { listOrganizations, repository } = await createRepositories();
+    const app = await buildApp({
+      allowDevelopmentIdentity: false,
+      guestUserId: user.id,
+      repository,
+    });
+    apps.push(app);
+
+    const organizations = await app.inject({
+      method: 'GET',
+      url: '/v1/organizations',
+    });
+
+    expect(organizations.statusCode).toBe(200);
+    expect(listOrganizations).toHaveBeenCalledWith(user.id);
+  });
+
   it('creates an opaque cookie session and uses it as the protected-route identity', async () => {
     const { authRepository, listOrganizations, repository } = await createRepositories();
     const app = await buildApp({

@@ -1,12 +1,12 @@
 import { getActiveClips } from '@hotelcut/editor';
 import type { CaptionClip, HotelVideoProjectV1, TextClip } from '@hotelcut/timeline';
 
-import { editorAssets, findEditorAsset, type EditorAsset } from './demo-data';
+import { findEditorAsset, type EditorAsset } from './editor-asset';
 import { Icon } from './icon';
 import { PreviewArtwork } from './preview-artwork';
 
 interface StudioPreviewProps {
-  assets?: readonly EditorAsset[];
+  assets: readonly EditorAsset[];
   project: HotelVideoProjectV1;
   currentFrame: number;
   isPlaying: boolean;
@@ -23,7 +23,7 @@ function formatTime(frame: number, frameRate: number): string {
 }
 
 export function StudioPreview({
-  assets = editorAssets,
+  assets,
   project,
   currentFrame,
   isPlaying,
@@ -48,7 +48,7 @@ export function StudioPreview({
   return (
     <section
       aria-label="视频预览"
-      className="flex min-w-0 flex-col items-center rounded-[28px] border border-white/70 bg-white/75 p-4 shadow-[0_24px_80px_rgba(38,48,52,0.12)] backdrop-blur-xl"
+      className="studio-preview-stage flex min-w-0 flex-col items-center rounded-[16px] p-4"
     >
       <div className="mb-3 flex w-full items-center justify-between">
         <div>
@@ -71,7 +71,7 @@ export function StudioPreview({
         )}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,15,18,.16),transparent_30%,transparent_62%,rgba(6,15,18,.68))]" />
         <div className="absolute left-5 right-5 top-5 flex items-center justify-between text-[10px] font-semibold tracking-[0.14em] text-white/80">
-          <span>云栖湖畔酒店</span>
+          <span>HotelCut</span>
           <span className="rounded-full bg-black/20 px-2 py-1 backdrop-blur-md">M5 PREVIEW</span>
         </div>
 

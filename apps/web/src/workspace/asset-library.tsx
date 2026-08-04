@@ -363,22 +363,17 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
   };
 
   return (
-    <section
-      aria-label="生产素材库"
-      className="mt-5 rounded-[28px] border border-white/80 bg-white/75 p-6 shadow-[0_18px_60px_rgba(35,52,60,.09)] lg:p-8"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section aria-label="生产素材库" className="asset-page">
+      <div className="page-heading-row">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9a6b3c]">
-            Production Assets
-          </p>
-          <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">生产素材库</h2>
-          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+          <p className="page-eyebrow">MEDIA INTELLIGENCE</p>
+          <h2>生产素材库</h2>
+          <p>
             视频和背景音乐经安全分片上传后自动进入分析队列；分析完成的素材才会进入后续自动剪辑候选池。
           </p>
         </div>
         <button
-          className="editor-secondary-button"
+          className="button-secondary"
           onClick={() => setListVersion((version) => version + 1)}
           type="button"
         >
@@ -386,22 +381,21 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
         </button>
       </div>
 
-      <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(340px,.9fr)_minmax(0,1.4fr)]">
-        <div className="space-y-5">
+      <div className="asset-workspace-grid">
+        <div className="asset-main-panel surface-card">
           <form
             aria-label="批量上传视频和音频素材"
-            className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5"
+            className="asset-upload-drop"
             onSubmit={(event) => void uploadAssets(event)}
           >
-            <h3 className="text-base font-black">批量上传生产素材</h3>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              支持视频与背景音乐，可一次选择多个文件；单文件最大 20 GB。
-            </p>
             <label className="mt-4 block">
               <span className="sr-only">选择视频或音频文件</span>
+              <strong>将视频或图片拖到此处，或点击选择素材</strong>
+              <small>支持视频与背景音乐，可一次选择多个文件；单文件最大 20 GB</small>
               <input
                 accept="video/*,audio/*"
-                className="block w-full text-xs text-slate-500 file:mr-4 file:rounded-xl file:border-0 file:bg-[#263138] file:px-4 file:py-3 file:text-xs file:font-black file:text-white"
+                aria-label="选择视频或音频文件"
+                className="asset-file-input"
                 key={fileInputVersion}
                 multiple
                 onChange={(event) => {
@@ -455,7 +449,7 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
               </p>
             ) : null}
             <button
-              className="mt-4 rounded-xl bg-[#263138] px-5 py-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-50"
+              className="asset-upload-button"
               disabled={selectedFiles.length === 0 || uploadState.status === 'uploading'}
               type="submit"
             >
@@ -463,16 +457,16 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
             </button>
           </form>
 
-          <div className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-base font-black">酒店素材</h3>
+          <div className="asset-collection">
+            <div className="asset-toolbar-heading">
+              <h3>酒店素材</h3>
               {listState.status === 'ready' ? (
                 <span className="text-[10px] font-black text-slate-400">
                   {listState.assets.length} 个文件
                 </span>
               ) : null}
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_150px] xl:grid-cols-1 2xl:grid-cols-[1fr_150px]">
+            <div className="asset-filter-row">
               <label>
                 <span className="sr-only">搜索素材文件名</span>
                 <input
@@ -517,36 +511,38 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
                 {listState.assets.length === 0 ? '还没有上传素材' : '没有符合筛选条件的素材'}
               </p>
             ) : null}
-            <div aria-label="素材列表" className="mt-4 space-y-2">
+            <div aria-label="素材列表" className="asset-card-grid">
               {filteredAssets.map((asset) => (
                 <button
                   aria-pressed={asset.id === selectedAssetId}
-                  className={`w-full rounded-2xl border p-4 text-left transition ${
-                    asset.id === selectedAssetId
-                      ? 'border-[#d6a76d] bg-[#fffaf4]'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
+                  className={`asset-library-card ${asset.id === selectedAssetId ? 'is-selected' : ''}`}
                   key={asset.id}
                   onClick={() => setSelectedAssetId(asset.id)}
                   type="button"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="min-w-0 truncate text-xs font-black text-slate-700">
-                      {asset.originalFilename}
-                    </span>
-                    <AssetStatus status={asset.status} />
+                  <span className={`asset-card-visual asset-card-${asset.kind}`} aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                    <em>{asset.kind === 'audio' ? 'AUDIO' : '9:16'}</em>
+                  </span>
+                  <div className="asset-card-copy">
+                    <div>
+                      <strong>{asset.originalFilename}</strong>
+                      <AssetStatus status={asset.status} />
+                    </div>
+                    <p>
+                      {asset.kind === 'audio' ? '音频' : '视频'} · {formatBytes(asset.byteSize)}
+                    </p>
+                    <time>{new Date(asset.createdAt).toLocaleString('zh-CN')}</time>
                   </div>
-                  <p className="mt-2 text-[10px] text-slate-400">
-                    {asset.kind === 'audio' ? '音频' : '视频'} · {formatBytes(asset.byteSize)} ·{' '}
-                    {new Date(asset.createdAt).toLocaleString('zh-CN')}
-                  </p>
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="min-w-0 rounded-3xl border border-slate-200 bg-slate-50/70 p-5 lg:p-6">
+        <div className="asset-detail-panel surface-card">
           {detailState.status === 'idle' ? (
             <div className="grid min-h-72 place-items-center text-center">
               <div>

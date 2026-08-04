@@ -1,4 +1,5 @@
 import type {
+  AiEditPlan,
   Asset,
   CreateVideoBriefInput,
   GeneratedVideoProject,
@@ -12,7 +13,7 @@ import { hotelVideoProjectV1Schema, type HotelVideoProjectV1 } from '@hotelcut/t
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { ProjectStudio } from '../App';
-import type { DemoArtwork, EditorAsset } from '../editor/demo-data';
+import type { EditorAsset, PreviewArtworkKind } from '../editor/editor-asset';
 import { StudioPreview } from '../editor/studio-preview';
 import type { WorkspaceApi } from './workspace-api';
 
@@ -37,6 +38,12 @@ type CreateState =
   | { status: 'saving-brief' }
   | { status: 'compiling' }
   | { status: 'success'; message: string }
+  | { status: 'error'; message: string };
+
+type AiPlanState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; plan: AiEditPlan }
   | { status: 'error'; message: string };
 
 interface BriefDraft {
@@ -141,7 +148,7 @@ function generationGuidance(
   };
 }
 
-const productionArtwork: readonly DemoArtwork[] = [
+const productionArtwork: readonly PreviewArtworkKind[] = [
   'room',
   'lake',
   'lobby',
@@ -234,6 +241,7 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
   const [isPlaying, setIsPlaying] = useState(false);
   const [studioOpen, setStudioOpen] = useState(false);
   const [studioSessionVersion, setStudioSessionVersion] = useState(0);
+  const [aiPlanState, setAiPlanState] = useState<AiPlanState>({ status: 'idle' });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -385,6 +393,45 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
     }
   };
 
+  const generateAiPlan = async () => {
+    if (loadState.status !== 'ready') {
+      setAiPlanState({ message: '工作流数据尚未加载完成，请稍后重试。', status: 'error' });
+      return;
+    }
+    if (!briefDraft.title.trim()) {
+      setAiPlanState({ message: '请先填写项目标题，再生成 AI 剪辑策划。', status: 'error' });
+      return;
+    }
+    setAiPlanState({ status: 'loading' });
+    try {
+      const plan = await api.generateAiEditPlan(hotelId, {
+        callToAction: briefDraft.callToAction.trim() || null,
+        durationSeconds: briefDraft.durationSeconds,
+        objective: briefDraft.objective.trim() || null,
+        platform: briefDraft.platform,
+        targetAudience: briefDraft.targetAudience.trim() || null,
+        title: briefDraft.title.trim(),
+        tone: briefDraft.tone.trim(),
+      });
+      const recommendedTemplate = loadState.data.templates.find(
+        (template) => template.key === plan.recommendedTemplateKey,
+      );
+      if (recommendedTemplate) {
+        setTemplateKey(recommendedTemplate.key);
+        setBriefDraft((draft) => ({
+          ...draft,
+          durationSeconds: Math.min(
+            recommendedTemplate.maxDurationSeconds,
+            Math.max(recommendedTemplate.minDurationSeconds, draft.durationSeconds),
+          ),
+        }));
+      }
+      setAiPlanState({ plan, status: 'ready' });
+    } catch (error) {
+      setAiPlanState({ message: formatError(error), status: 'error' });
+    }
+  };
+
   const openProject = async (projectId: string, openStudio = false) => {
     setCreateState({ status: 'idle' });
     setGeneration(null);
@@ -480,32 +527,45 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
   }
 
   return (
-    <section
-      aria-label="自动剪辑工作流"
-      className="mt-5 rounded-[28px] border border-white/80 bg-white/75 p-6 shadow-[0_18px_60px_rgba(35,52,60,.09)] lg:p-8"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section aria-label="自动剪辑工作流" className="automatic-workflow-page">
+      <div className="page-heading-row">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9a6b3c]">
-            Automatic Editing
-          </p>
-          <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">创建自动剪辑项目</h2>
-          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
+          <p className="page-eyebrow">AI COMPILATION WORKFLOW</p>
+          <h2>创建自动剪辑项目</h2>
+          <p>
             填写用途和时长，选择模板后，系统会从已分析素材中按标签、画质和镜头时长自动编排，
             并将结果保存为可继续编辑的修订。
           </p>
         </div>
-        <div className="rounded-2xl bg-[#eef5f2] px-4 py-3 text-right">
+        <div className="workflow-ready-count">
           <p className="text-[10px] font-black text-[#3f7c73]">可用生产素材</p>
           <p className="mt-1 text-xl font-black text-[#263138]">{readyAssets.length}</p>
         </div>
       </div>
 
-      <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]">
-        <form className="space-y-6" onSubmit={(event) => void createProject(event)}>
-          <fieldset>
-            <legend className="text-sm font-black text-[#263138]">1. 选择剪辑模板</legend>
-            <div className="mt-3 grid gap-3 md:grid-cols-3">
+      <div className="workflow-stepper surface-card" aria-label="自动成片进度">
+        {['视频简报', '选择模板', '素材复核', '生成项目'].map((label, index) => {
+          const currentStep = generation ? 4 : createState.status === 'compiling' ? 3 : 2;
+          return (
+            <span
+              className={
+                index + 1 < currentStep ? 'is-done' : index + 1 === currentStep ? 'is-active' : ''
+              }
+              key={label}
+            >
+              <i>{index + 1 < currentStep ? '✓' : String(index + 1).padStart(2, '0')}</i>
+              {label}
+            </span>
+          );
+        })}
+      </div>
+
+      <div className="automatic-wizard-grid">
+        <form className="wizard-form-grid" onSubmit={(event) => void createProject(event)}>
+          <fieldset className="wizard-pane wizard-template-pane surface-card">
+            <legend className="text-sm font-black text-[#263138]">2. 选择剪辑模板</legend>
+            <p className="wizard-pane-description">模板决定角色节奏、素材槽位与最终时长范围。</p>
+            <div className="workflow-template-grid">
               {loadState.data.templates.map((template) => {
                 const selected = template.key === templateKey;
                 return (
@@ -557,9 +617,10 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
             ) : null}
           </fieldset>
 
-          <fieldset>
-            <legend className="text-sm font-black text-[#263138]">2. 填写视频需求单</legend>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
+          <fieldset className="wizard-pane wizard-brief-pane surface-card">
+            <legend className="text-sm font-black text-[#263138]">1. 填写视频需求单</legend>
+            <p className="wizard-pane-description">AI 只使用已验证的酒店资料与明确输入生成文案。</p>
+            <div className="wizard-brief-fields">
               <label className="editor-field md:col-span-2">
                 <span>项目标题</span>
                 <input
@@ -656,7 +717,7 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
             </div>
           </fieldset>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="wizard-actions surface-card">
             <button
               className="editor-primary-button"
               disabled={
@@ -701,8 +762,55 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
           ) : null}
         </form>
 
-        <aside className="space-y-5">
-          <div className="rounded-3xl bg-[#263138] p-5 text-white">
+        <aside className="wizard-plan-column">
+          <div className="ai-edit-plan-card">
+            <div className="ai-edit-plan-heading">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#9a6b3c]">
+                  MODEL-ASSISTED PLAN
+                </p>
+                <h3>AI 剪辑策划</h3>
+              </div>
+              <button
+                disabled={aiPlanState.status === 'loading'}
+                onClick={() => void generateAiPlan()}
+                type="button"
+              >
+                {aiPlanState.status === 'loading' ? '生成中…' : '生成真实方案'}
+              </button>
+            </div>
+            {aiPlanState.status === 'idle' ? (
+              <p className="ai-edit-plan-empty">
+                填写需求单后调用已配置的大模型，生成钩子、叙事节奏、镜头策略与模板推荐。
+              </p>
+            ) : null}
+            {aiPlanState.status === 'error' ? (
+              <p className="ai-edit-plan-error">{aiPlanState.message}</p>
+            ) : null}
+            {aiPlanState.status === 'ready' ? (
+              <div className="ai-edit-plan-result">
+                <span>推荐模板 · {aiPlanState.plan.recommendedTemplateKey}</span>
+                <strong>{aiPlanState.plan.hook}</strong>
+                <p>{aiPlanState.plan.narrative}</p>
+                <ol>
+                  {aiPlanState.plan.shotStrategy.map((shot) => (
+                    <li key={`${shot.sequence}-${shot.purpose}`}>
+                      <i>{String(shot.sequence).padStart(2, '0')}</i>
+                      <span>
+                        <b>{shot.purpose}</b>
+                        {shot.visual} · {shot.seconds}s
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                {aiPlanState.plan.risks.length > 0 ? (
+                  <small>需核对：{aiPlanState.plan.risks.join('；')}</small>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="wizard-preview-card">
             <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#e2b174]">
               Generated Preview
             </p>

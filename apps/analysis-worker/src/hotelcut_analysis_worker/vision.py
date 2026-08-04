@@ -1,17 +1,23 @@
-"""OpenAI multimodal footage understanding with a no-key fallback."""
+"""Multimodal hotel-footage understanding with a no-key fallback."""
 
 from __future__ import annotations
 
 import base64
 import hashlib
+import json
 from pathlib import Path
 from typing import Any, Protocol, cast
 
 from hotelcut_analysis_worker.config import Settings
+from hotelcut_analysis_worker.model_provider import (
+    ModelProviderConfiguration,
+    environment_provider_configuration,
+)
 from hotelcut_analysis_worker.models import (
     VisionAnalysis,
     VisionFrame,
     VisionModelOutput,
+    VisionProvider,
     VisionSceneAnalysis,
     VisionTag,
     VisionUsage,
@@ -41,6 +47,8 @@ class VisualAnalyzer(Protocol):
     """Provider boundary for semantic footage analysis."""
 
     enabled: bool
+    model: str | None
+    provider: VisionProvider
 
     def analyze(self, frames: list[VisionFrame], tenant_id: str) -> VisionAnalysis:
         """Analyze representative scene frames without persisting image payloads."""
@@ -50,6 +58,8 @@ class DisabledVisualAnalyzer:
     """No-network fallback used when the provider or API key is unavailable."""
 
     enabled = False
+    model: str | None = None
+    provider: VisionProvider = "disabled"
 
     def analyze(self, frames: list[VisionFrame], tenant_id: str) -> VisionAnalysis:
         del frames, tenant_id
@@ -95,24 +105,44 @@ def _normalized_scene(scene: VisionSceneAnalysis) -> VisionSceneAnalysis:
 
 
 class OpenAIVisualAnalyzer:
-    """Responses API adapter using image input and strict structured output."""
+    """OpenAI-compatible multimodal adapter for Responses and Chat Completions."""
 
     enabled = True
+    model: str | None
+    provider: VisionProvider
 
-    def __init__(self, settings: Settings, *, client: Any | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        configuration: ModelProviderConfiguration | None = None,
+        *,
+        client: Any | None = None,
+    ) -> None:
         self._settings = settings
+        resolved = configuration or environment_provider_configuration(settings)
+        if resolved is None and client is not None:
+            resolved = ModelProviderConfiguration(
+                provider="openai",
+                base_url=settings.OPENAI_BASE_URL or "https://api.openai.com/v1",
+                api_mode="responses",
+                model=settings.OPENAI_VISION_MODEL,
+                reasoning_effort=settings.OPENAI_VISION_REASONING_EFFORT,
+                api_key="test-api-key",
+            )
+        if resolved is None:
+            raise ValueError("model_provider_api_key_missing")
+        self._configuration: ModelProviderConfiguration = resolved
+        self.model = self._configuration.model
+        self.provider = self._configuration.provider
         if client is not None:
             self._client = client
             return
 
         from openai import OpenAI
 
-        key = settings.OPENAI_API_KEY
-        if key is None or not key.get_secret_value():
-            raise ValueError("openai_api_key_missing")
         self._client = OpenAI(
-            api_key=key.get_secret_value(),
-            base_url=settings.OPENAI_BASE_URL or None,
+            api_key=self._configuration.api_key,
+            base_url=self._configuration.base_url,
             max_retries=settings.OPENAI_VISION_MAX_RETRIES,
             timeout=settings.OPENAI_VISION_TIMEOUT_SECONDS,
         )
@@ -120,7 +150,15 @@ class OpenAIVisualAnalyzer:
     def analyze(self, frames: list[VisionFrame], tenant_id: str) -> VisionAnalysis:
         if not frames:
             return VisionAnalysis.disabled(PROMPT_VERSION)
+        if self._configuration.api_mode == "chat_completions":
+            return self._analyze_chat(frames)
+        return self._analyze_responses(frames, tenant_id)
 
+    def _analyze_responses(
+        self,
+        frames: list[VisionFrame],
+        tenant_id: str,
+    ) -> VisionAnalysis:
         content: list[dict[str, object]] = [
             {
                 "type": "input_text",
@@ -148,10 +186,10 @@ class OpenAIVisualAnalyzer:
             )
 
         response = self._client.responses.create(
-            model=self._settings.OPENAI_VISION_MODEL,
+            model=self._configuration.model,
             instructions=SYSTEM_PROMPT,
             input=[{"role": "user", "content": content}],
-            reasoning={"effort": self._settings.OPENAI_VISION_REASONING_EFFORT},
+            reasoning={"effort": self._configuration.reasoning_effort},
             max_output_tokens=self._settings.OPENAI_VISION_MAX_OUTPUT_TOKENS,
             safety_identifier=_safety_identifier(tenant_id),
             store=False,
@@ -169,7 +207,67 @@ class OpenAIVisualAnalyzer:
         output_text = getattr(response, "output_text", "")
         if not isinstance(output_text, str) or not output_text.strip():
             raise RuntimeError("openai_vision_empty_output")
+        return self._build_result(frames, output_text, response)
 
+    def _analyze_chat(self, frames: list[VisionFrame]) -> VisionAnalysis:
+        content: list[dict[str, object]] = [
+            {
+                "type": "text",
+                "text": (
+                    f"Analyze {len(frames)} ordered hotel-video scenes. "
+                    "The text before each image identifies the required sceneIndex. "
+                    "Return only valid JSON matching the requested JSON Schema."
+                ),
+            }
+        ]
+        for frame in frames:
+            content.extend(
+                [
+                    {
+                        "type": "text",
+                        "text": (
+                            f"sceneIndex={frame.sceneIndex}; rangeMs={frame.startMs}-{frame.endMs}"
+                        ),
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": _data_url(frame.imagePath)},
+                    },
+                ]
+            )
+
+        arguments: dict[str, object] = {
+            "model": self._configuration.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        f"{SYSTEM_PROMPT}\nReturn only valid JSON matching this JSON Schema: "
+                        f"{json.dumps(VisionModelOutput.model_json_schema())}"
+                    ),
+                },
+                {"role": "user", "content": content},
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.1,
+        }
+        if self._configuration.provider == "aliyun-bailian":
+            arguments["extra_body"] = {"enable_thinking": False}
+        response = self._client.chat.completions.create(**arguments)
+        choices = getattr(response, "choices", [])
+        output_text = (
+            getattr(getattr(choices[0], "message", None), "content", "") if choices else ""
+        )
+        if not isinstance(output_text, str) or not output_text.strip():
+            raise RuntimeError("model_vision_empty_output")
+        return self._build_result(frames, output_text, response)
+
+    def _build_result(
+        self,
+        frames: list[VisionFrame],
+        output_text: str,
+        response: Any,
+    ) -> VisionAnalysis:
         output = VisionModelOutput.model_validate_json(output_text)
         expected_indices = {frame.sceneIndex for frame in frames}
         actual_indices = [scene.sceneIndex for scene in output.scenes]
@@ -187,9 +285,9 @@ class OpenAIVisualAnalyzer:
         usage = getattr(response, "usage", None)
         return VisionAnalysis(
             status="succeeded",
-            provider="openai",
+            provider=self._configuration.provider,
             promptVersion=PROMPT_VERSION,
-            model=str(getattr(response, "model", self._settings.OPENAI_VISION_MODEL)),
+            model=str(getattr(response, "model", self._configuration.model)),
             responseId=cast(str | None, getattr(response, "id", None)),
             summary=output.summary,
             tags=overall_tags,
@@ -197,8 +295,10 @@ class OpenAIVisualAnalyzer:
             qualityScore=output.qualityScore,
             scenes=scenes,
             usage=VisionUsage(
-                inputTokens=_usage_value(usage, "input_tokens"),
-                outputTokens=_usage_value(usage, "output_tokens"),
+                inputTokens=_usage_value(usage, "input_tokens")
+                or _usage_value(usage, "prompt_tokens"),
+                outputTokens=_usage_value(usage, "output_tokens")
+                or _usage_value(usage, "completion_tokens"),
                 totalTokens=_usage_value(usage, "total_tokens"),
             ),
             errorCode=None,
@@ -206,17 +306,16 @@ class OpenAIVisualAnalyzer:
 
 
 def vision_is_configured(settings: Settings) -> bool:
-    key = settings.OPENAI_API_KEY
-    return (
-        settings.OPENAI_VISION_PROVIDER == "openai"
-        and key is not None
-        and bool(key.get_secret_value())
-    )
+    return environment_provider_configuration(settings) is not None
 
 
-def create_visual_analyzer(settings: Settings) -> VisualAnalyzer:
-    """Enable OpenAI automatically when configured, otherwise preserve local operation."""
+def create_visual_analyzer(
+    settings: Settings,
+    configuration: ModelProviderConfiguration | None = None,
+) -> VisualAnalyzer:
+    """Create a provider adapter when a browser or environment key is configured."""
 
-    if not vision_is_configured(settings):
+    resolved = configuration or environment_provider_configuration(settings)
+    if resolved is None:
         return DisabledVisualAnalyzer()
-    return OpenAIVisualAnalyzer(settings)
+    return OpenAIVisualAnalyzer(settings, resolved)

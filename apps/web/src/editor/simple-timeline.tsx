@@ -1,8 +1,9 @@
 import type { Clip, HotelVideoProjectV1 } from '@hotelcut/timeline';
 
-import { findEditorAsset } from './demo-data';
+import { findEditorAsset, type EditorAsset } from './editor-asset';
 
 interface SimpleTimelineProps {
+  assets: readonly EditorAsset[];
   project: HotelVideoProjectV1;
   currentFrame: number;
   selectedClipId: string | null;
@@ -10,9 +11,9 @@ interface SimpleTimelineProps {
   onScrub: (frame: number) => void;
 }
 
-function clipLabel(clip: Clip): string {
+function clipLabel(clip: Clip, assets: readonly EditorAsset[]): string {
   if (clip.kind === 'video' || clip.kind === 'image' || clip.kind === 'audio') {
-    return findEditorAsset(clip.assetId)?.name ?? clip.kind;
+    return findEditorAsset(clip.assetId, assets)?.name ?? clip.kind;
   }
   return clip.text;
 }
@@ -34,6 +35,7 @@ function clipColor(clip: Clip): string {
 }
 
 export function SimpleTimeline({
+  assets,
   project,
   currentFrame,
   selectedClipId,
@@ -43,10 +45,7 @@ export function SimpleTimeline({
   const visibleTracks = project.tracks.filter((track) => track.enabled);
 
   return (
-    <section
-      aria-label="简化时间线"
-      className="rounded-[24px] border border-white/70 bg-white/80 px-4 pb-4 pt-3 shadow-[0_18px_60px_rgba(38,48,52,0.09)] backdrop-blur-xl"
-    >
+    <section aria-label="简化时间线" className="studio-timeline rounded-[16px] px-4 pb-4 pt-3">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
@@ -85,7 +84,7 @@ export function SimpleTimeline({
             <div className="relative h-8 overflow-hidden rounded-lg bg-slate-100/80 ring-1 ring-inset ring-slate-200/70">
               {track.clips.map((clip) => (
                 <button
-                  aria-label={`编辑片段 ${clipLabel(clip)}`}
+                  aria-label={`编辑片段 ${clipLabel(clip, assets)}`}
                   className={`absolute top-1 h-6 overflow-hidden rounded-md bg-gradient-to-r px-2 text-left text-[9px] font-semibold text-white shadow-sm transition hover:brightness-110 ${clipColor(
                     clip,
                   )} ${selectedClipId === clip.id ? 'ring-2 ring-[#24343c] ring-offset-1' : ''}`}
@@ -95,10 +94,10 @@ export function SimpleTimeline({
                     left: `${(clip.startFrame / project.output.durationFrames) * 100}%`,
                     width: `${(clip.durationFrames / project.output.durationFrames) * 100}%`,
                   }}
-                  title={clipLabel(clip)}
+                  title={clipLabel(clip, assets)}
                   type="button"
                 >
-                  <span className="block truncate">{clipLabel(clip)}</span>
+                  <span className="block truncate">{clipLabel(clip, assets)}</span>
                 </button>
               ))}
               <div

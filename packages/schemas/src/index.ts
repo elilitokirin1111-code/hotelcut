@@ -41,6 +41,9 @@ export const renderArtifactKindSchema = z.enum([
 ]);
 export const qualityReportStatusSchema = z.enum(['passed', 'warning', 'failed']);
 export const videoPlatformSchema = z.enum(['douyin', 'xiaohongshu', 'wechat_channels', 'other']);
+export const modelProviderKindSchema = z.enum(['openai', 'openai-compatible', 'aliyun-bailian']);
+export const modelApiModeSchema = z.enum(['responses', 'chat_completions']);
+export const modelReasoningEffortSchema = z.enum(['none', 'low', 'medium', 'high', 'xhigh', 'max']);
 
 export const organizationSchema = z.object({
   id: idSchema,
@@ -503,6 +506,84 @@ export const renderArtifactDownloadSchema = z.object({
   expiresAt: dateTimeSchema,
 });
 
+export const modelProviderSettingsSchema = z.object({
+  hotelId: idSchema,
+  provider: modelProviderKindSchema,
+  baseUrl: z.url(),
+  apiMode: modelApiModeSchema,
+  model: z.string().min(1).max(120),
+  reasoningEffort: modelReasoningEffortSchema,
+  enabled: z.boolean(),
+  apiKeyConfigured: z.boolean(),
+  apiKeyHint: z.string().max(24).nullable(),
+  createdAt: dateTimeSchema.nullable(),
+  updatedAt: dateTimeSchema.nullable(),
+});
+
+export const upsertModelProviderSettingsSchema = z
+  .object({
+    provider: modelProviderKindSchema.default('openai'),
+    baseUrl: z.url(),
+    apiMode: modelApiModeSchema.default('responses'),
+    model: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .refine((value) => !['无', 'none', 'null', 'undefined'].includes(value.toLowerCase()), {
+        message: '请选择有效的模型，不能使用“无”作为模型名称',
+      }),
+    reasoningEffort: modelReasoningEffortSchema.default('medium'),
+    enabled: z.boolean().default(true),
+    apiKey: z.string().trim().min(20).max(500).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.provider === 'aliyun-bailian' && value.apiMode !== 'chat_completions') {
+      context.addIssue({
+        code: 'custom',
+        message: '阿里云百炼的视频理解必须使用 Chat Completions 协议',
+        path: ['apiMode'],
+      });
+    }
+  });
+
+export const modelProviderConnectionResultSchema = z.object({
+  ok: z.boolean(),
+  model: z.string().min(1).max(200),
+  latencyMs: z.number().int().nonnegative(),
+  message: z.string().min(1).max(500),
+});
+
+export const aiEditPlanInputSchema = z.object({
+  title: z.string().trim().min(1).max(160),
+  platform: videoPlatformSchema,
+  durationSeconds: z.number().int().min(5).max(180),
+  tone: z.string().trim().min(1).max(80),
+  objective: z.string().trim().max(300).nullable().optional(),
+  targetAudience: z.string().trim().max(200).nullable().optional(),
+  callToAction: z.string().trim().max(200).nullable().optional(),
+});
+
+export const aiEditPlanSchema = z.object({
+  recommendedTemplateKey: z.string().min(1).max(120),
+  hook: z.string().min(1).max(180),
+  narrative: z.string().min(1).max(800),
+  shotStrategy: z
+    .array(
+      z.object({
+        sequence: z.number().int().positive(),
+        purpose: z.string().min(1).max(120),
+        visual: z.string().min(1).max(180),
+        seconds: z.number().int().positive().max(60),
+      }),
+    )
+    .min(2)
+    .max(12),
+  subtitleStyle: z.string().min(1).max(160),
+  cta: z.string().max(200),
+  risks: z.array(z.string().min(1).max(200)).max(8),
+});
+
 export const actorHeadersSchema = z.object({
   'x-user-id': idSchema,
 });
@@ -556,3 +637,11 @@ export type RenderArtifact = z.infer<typeof renderArtifactSchema>;
 export type RenderArtifactKind = z.infer<typeof renderArtifactKindSchema>;
 export type QualityReport = z.infer<typeof qualityReportSchema>;
 export type RenderJobDetail = z.infer<typeof renderJobDetailSchema>;
+export type ModelProviderKind = z.infer<typeof modelProviderKindSchema>;
+export type ModelApiMode = z.infer<typeof modelApiModeSchema>;
+export type ModelReasoningEffort = z.infer<typeof modelReasoningEffortSchema>;
+export type ModelProviderSettings = z.infer<typeof modelProviderSettingsSchema>;
+export type UpsertModelProviderSettingsInput = z.infer<typeof upsertModelProviderSettingsSchema>;
+export type ModelProviderConnectionResult = z.infer<typeof modelProviderConnectionResultSchema>;
+export type AiEditPlanInput = z.infer<typeof aiEditPlanInputSchema>;
+export type AiEditPlan = z.infer<typeof aiEditPlanSchema>;

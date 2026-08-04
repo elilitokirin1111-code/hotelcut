@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  boolean,
   check,
   index,
   integer,
@@ -177,6 +178,26 @@ export const brandKits = pgTable(
     ...timestamps,
   },
   (table) => [uniqueIndex('brand_kits_hotel_unique').on(table.hotelId)],
+);
+
+export const modelProviderSettings = pgTable(
+  'model_provider_settings',
+  {
+    id: uuid('id').primaryKey(),
+    hotelId: uuid('hotel_id')
+      .notNull()
+      .references(() => hotels.id, { onDelete: 'cascade' }),
+    provider: varchar('provider', { length: 40 }).notNull(),
+    baseUrl: varchar('base_url', { length: 500 }).notNull(),
+    apiMode: varchar('api_mode', { length: 40 }).notNull(),
+    model: varchar('model', { length: 120 }).notNull(),
+    reasoningEffort: varchar('reasoning_effort', { length: 20 }).notNull(),
+    encryptedApiKey: text('encrypted_api_key'),
+    apiKeyHint: varchar('api_key_hint', { length: 24 }),
+    enabled: boolean('enabled').default(true).notNull(),
+    ...timestamps,
+  },
+  (table) => [uniqueIndex('model_provider_settings_hotel_unique').on(table.hotelId)],
 );
 
 export const assets = pgTable(

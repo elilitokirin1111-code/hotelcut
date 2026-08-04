@@ -61,6 +61,9 @@ describe('API health routes', () => {
     expect(document.paths).toHaveProperty('/v1/render-jobs/{id}/cancel');
     expect(document.paths).toHaveProperty('/v1/render-jobs/{id}/retry');
     expect(document.paths).toHaveProperty('/v1/render-artifacts/{id}/download');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/model-provider');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/model-provider/test');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/ai/edit-plan');
     expect(uiResponse.statusCode).toBe(200);
   });
 

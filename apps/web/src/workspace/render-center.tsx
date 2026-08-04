@@ -337,22 +337,15 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
     detail.job.attempt < detail.job.maxAttempts;
 
   return (
-    <section
-      aria-label="生产渲染中心"
-      className="mt-5 rounded-[28px] border border-white/80 bg-white/75 p-6 shadow-[0_18px_60px_rgba(35,52,60,.09)] lg:p-8"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section aria-label="生产渲染中心" className="render-page">
+      <div className="page-heading-row">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#9a6b3c]">
-            Render Delivery
-          </p>
-          <h2 className="mt-2 text-2xl font-black tracking-[-0.03em]">渲染中心</h2>
-          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">
-            每个任务锁定一个不可变项目修订，实时展示渲染阶段、质量检查和可下载交付产物。
-          </p>
+          <p className="page-eyebrow">RENDER &amp; DELIVERY</p>
+          <h2>渲染中心</h2>
+          <p>每个任务锁定一个不可变项目修订，实时展示渲染阶段、质量检查和可下载交付产物。</p>
         </div>
         <button
-          className="editor-secondary-button"
+          className="button-secondary"
           onClick={() => {
             setProjectVersion((version) => version + 1);
             setJobVersion((version) => version + 1);
@@ -381,8 +374,8 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
       ) : null}
 
       {projectState.status === 'ready' && projectState.projects.length > 0 ? (
-        <div className="mt-7 grid gap-5 xl:grid-cols-[260px_280px_minmax(0,1fr)]">
-          <aside className="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+        <div className="render-workspace-grid">
+          <aside className="render-project-panel surface-card">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black">视频项目</h3>
               <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500">
@@ -441,7 +434,7 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
             ) : null}
           </aside>
 
-          <aside className="rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+          <aside className="render-history-panel surface-card">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black">渲染记录</h3>
               {jobState.status === 'ready' ? (
@@ -501,7 +494,7 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
             ) : null}
           </aside>
 
-          <div className="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 lg:p-6">
+          <div className="render-detail-panel surface-card">
             {detailState.status === 'idle' ? (
               <div className="grid min-h-64 place-items-center text-center">
                 <div>

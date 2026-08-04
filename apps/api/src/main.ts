@@ -23,6 +23,7 @@ const app = await buildApp({
   authRepository: repository,
   downloadUrlTtlSeconds: environment.UPLOAD_URL_TTL_SECONDS,
   logger: true,
+  modelApiConfigSecret: environment.MODEL_API_CONFIG_SECRET,
   objectStorage,
   renderQueue,
   repository,
@@ -30,6 +31,7 @@ const app = await buildApp({
   sessionTtlSeconds: environment.AUTH_SESSION_TTL_SECONDS,
   storageBucket: environment.S3_BUCKET,
   uploadUrlTtlSeconds: environment.UPLOAD_URL_TTL_SECONDS,
+  ...(environment.GUEST_MODE ? { guestUserId: environment.GUEST_USER_ID } : {}),
 });
 app.addHook('onClose', async () => {
   await Promise.all([databaseClient.close(), analysisQueue.close(), renderQueue.close()]);

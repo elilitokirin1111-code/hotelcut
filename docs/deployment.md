@@ -18,12 +18,13 @@ The accepted Windows development machine keeps Docker Desktop and its WSL data u
 the real model, set `ANALYSIS_TRANSCRIPTION_PROVIDER=faster-whisper`; model files persist in the
 `whisper-cache` volume.
 
-To enable production footage understanding, copy `.env.example` to `.env`, set
-`OPENAI_API_KEY`, and restart the Analysis Worker. Keep the key only in environment/secret
-management; never place it in source code, browser configuration or committed files. The worker
-health payload reports `vision=configured` without exposing the key. Tune cost and latency with
-`OPENAI_VISION_MODEL`, `OPENAI_VISION_DETAIL`, `OPENAI_VISION_MAX_FRAMES`, timeout and retry
-settings. Leaving the key empty keeps the complete deterministic/manual fallback operational.
+To enable production footage understanding, open **Settings → 大模型 API 配置**, select Alibaba
+Cloud Model Studio, keep the region-matched workspace Base URL, choose `qwen3.7-plus`, paste the
+API key and run the minimal connection test. The server encrypts the key with
+`MODEL_API_CONFIG_SECRET`; API responses return only a redacted hint. New uploads and manual
+analysis retries resolve the latest hotel setting without restarting the worker. Environment
+level `OPENAI_API_KEY` remains available as a legacy fallback. With no usable key, the complete
+deterministic/manual fallback stays operational.
 
 The render worker uses a dedicated Debian image with Chromium, FFmpeg and Noto CJK fonts.
 Compose passes the internal MinIO endpoint so Remotion and FFmpeg can consume presigned assets
@@ -36,7 +37,7 @@ Production deployment is not implemented through M6. The intended separation is:
 
 - stateless Web and API services
 - independently scalable analysis and render workers
-- outbound OpenAI access and encrypted secret injection for multimodal analysis workers
+- outbound model-provider access and encrypted per-hotel secrets for multimodal analysis workers
 - managed PostgreSQL and Redis
 - S3-compatible object storage
 - per-service health, resource and queue-depth monitoring

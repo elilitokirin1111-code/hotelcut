@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>HotelCut 渲染与交付</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="print.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">H</div>
+          <div>
+            <div class="brand-name">HotelCut</div>
+            <div class="brand-sub">AI VIDEO WORKSPACE</div>
+          </div>
+        </div>
+        <div class="hotel-switch">
+          <div class="hotel-dot">云</div>
+          <div><strong>云栖酒店 · 西湖店</strong><span>云栖酒店集团（演示）</span></div>
+          <div class="chev">⌄</div>
+        </div>
+        <div class="nav-group-label">创作工作区</div>
+        <nav class="nav">
+          <div class="nav-item"><span class="nav-icon">⌂</span>工作台</div>
+          <div class="nav-item">
+            <span class="nav-icon">▣</span>视频项目<span class="nav-badge">12</span>
+          </div>
+          <div class="nav-item">
+            <span class="nav-icon">▦</span>素材库<span class="nav-badge">86</span>
+          </div>
+          <div class="nav-item"><span class="nav-icon">◈</span>模板中心</div>
+        </nav>
+        <div class="nav-group-label" style="margin-top: 22px">酒店运营</div>
+        <nav class="nav">
+          <div class="nav-item"><span class="nav-icon">◇</span>酒店与品牌</div>
+          <div class="nav-item active">
+            <span class="nav-icon">↻</span>渲染中心<span class="nav-badge">3</span>
+          </div>
+          <div class="nav-item"><span class="nav-icon">≣</span>操作记录</div>
+          <div class="nav-item"><span class="nav-icon">⚙</span>设置</div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="quota-card">
+            <div class="quota-row"><span>本月渲染额度</span><strong>68 / 100</strong></div>
+            <div class="progress"><i></i></div>
+            <div class="quota-row"><span>剩余约 214 分钟</span><span>查看用量</span></div>
+          </div>
+          <div class="user">
+            <div class="avatar">AO</div>
+            <div><strong>运营管理员</strong><span>owner@hotelcut.example</span></div>
+            <div class="chev">⌄</div>
+          </div>
+        </div>
+      </aside>
+      <main class="main">
+        <header class="topbar">
+          <div class="crumb">云栖酒店集团 / 西湖店 / <strong>渲染中心</strong></div>
+          <div class="topbar-spacer"></div>
+          <div class="search">⌕ 搜索项目或任务编号…</div>
+          <button class="icon-btn">?</button><button class="secondary">筛选任务⌄</button>
+        </header>
+        <section class="content no-scrollbar">
+          <div class="page-head">
+            <div>
+              <div class="eyebrow">RENDER & DELIVERY</div>
+              <h1 class="page-title">渲染与交付</h1>
+              <div class="page-desc">查看渲染进度、质量检查、交付文件与每一次尝试的完整日志。</div>
+            </div>
+            <div class="actions">
+              <button class="secondary">全部任务</button
+              ><button class="primary">＋ 新建渲染</button>
+            </div>
+          </div>
+          <div class="render-grid">
+            <div>
+              <section class="card active-job">
+                <div class="section-head">
+                  <div>
+                    <div class="section-title">当前任务</div>
+                    <div class="section-sub">任务 ID　R-260804-0182　·　开始于 14:08:24</div>
+                  </div>
+                  <span class="status-pill warn">渲染中 · 72%</span>
+                </div>
+                <div class="job-top">
+                  <div class="job-icon">↻</div>
+                  <div>
+                    <h3>暑期亲子房套餐推广 · V3</h3>
+                    <p>项目修订 18　·　1080 × 1920　·　30 fps　·　预计 27 秒</p>
+                  </div>
+                  <div style="margin-left: auto; text-align: right">
+                    <strong style="font-size: 17px">约 01:42</strong>
+                    <div class="muted">预计剩余时间</div>
+                  </div>
+                </div>
+                <div class="big-progress"><i></i></div>
+                <div class="job-stages">
+                  <div class="job-stage done">
+                    <b>✓ 媒体标准化</b><span>视频、音频和字体已准备</span>
+                  </div>
+                  <div class="job-stage done">
+                    <b>✓ 时间线合成</b><span>11 个镜头与字幕已编译</span>
+                  </div>
+                  <div class="job-stage active">
+                    <b>● Remotion 渲染</b><span>当前帧 586 / 812</span>
+                  </div>
+                  <div class="job-stage">
+                    <b>04 质量检查</b><span>黑帧、静音、安全区等 11 项</span>
+                  </div>
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-top: 14px;
+                  "
+                >
+                  <div class="muted">渲染过程中可离开此页面，任务将在后台继续。</div>
+                  <button class="secondary" style="color: #98505a">取消任务</button>
+                </div>
+              </section>
+              <section class="card deliverable">
+                <div class="section-head">
+                  <div>
+                    <div class="section-title">最近完成的交付</div>
+                    <div class="section-sub">早餐权益推广 · 竖版　·　2026-08-04 12:46</div>
+                  </div>
+                  <span class="status-pill">质检通过 · 94 分</span>
+                </div>
+                <div class="deliverable-grid">
+                  <div class="output-preview">
+                    <img src="assets/cover_base.jpg" /><strong>住西湖边，早餐与风景都不将就</strong
+                    ><span>00:24 · 1080 × 1920</span>
+                  </div>
+                  <div>
+                    <div style="font-size: 11px; font-weight: 820">交付文件</div>
+                    <div class="pane-desc">所有下载地址均为短效链接，过期后可重新生成。</div>
+                    <div class="artifact-list">
+                      <div class="artifact">
+                        <div class="artifact-icon">▶</div>
+                        <div><strong>最终视频 MP4</strong><span>H.264 · 42.8 MB</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                      <div class="artifact">
+                        <div class="artifact-icon">T</div>
+                        <div><strong>字幕文件 SRT</strong><span>简体中文 · 4.2 KB</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                      <div class="artifact">
+                        <div class="artifact-icon">▧</div>
+                        <div><strong>封面图片</strong><span>JPG · 1080×1920</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                      <div class="artifact">
+                        <div class="artifact-icon">{ }</div>
+                        <div><strong>项目 JSON</strong><span>schema v1.0.0</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                      <div class="artifact">
+                        <div class="artifact-icon">≣</div>
+                        <div><strong>媒体使用清单</strong><span>镜头、区间与来源</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                      <div class="artifact">
+                        <div class="artifact-icon">✦</div>
+                        <div><strong>生成解释日志</strong><span>候选评分与选择原因</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                      <div class="artifact">
+                        <div class="artifact-icon">✓</div>
+                        <div><strong>质量检查报告</strong><span>11 项检查 · 94 分</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                      <div class="artifact">
+                        <div class="artifact-icon">▤</div>
+                        <div><strong>媒体 Manifest</strong><span>SHA-256 与版本信息</span></div>
+                        <div class="artifact-download">↓</div>
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 14px">
+                      <button class="primary gold">下载全部交付包</button
+                      ><button class="secondary">打开项目</button
+                      ><button class="secondary">基于此版本重做</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="card history">
+                <div class="section-head">
+                  <div>
+                    <div class="section-title">尝试记录</div>
+                    <div class="section-sub">每次重试保留独立状态，不会改动源项目</div>
+                  </div>
+                  <span class="text-link">查看完整日志</span>
+                </div>
+                <table class="history-table">
+                  <thead>
+                    <tr>
+                      <th>尝试</th>
+                      <th>开始时间</th>
+                      <th>耗时</th>
+                      <th>管线版本</th>
+                      <th>结果</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>#03</td>
+                      <td>08-04 12:44:07</td>
+                      <td>01:58</td>
+                      <td>m6-v1</td>
+                      <td><span class="status-pill">成功</span></td>
+                      <td>查看产物</td>
+                    </tr>
+                    <tr>
+                      <td>#02</td>
+                      <td>08-04 12:38:12</td>
+                      <td>00:42</td>
+                      <td>m6-v1</td>
+                      <td><span class="status-pill fail">失败</span></td>
+                      <td>查看错误</td>
+                    </tr>
+                    <tr>
+                      <td>#01</td>
+                      <td>08-04 12:31:40</td>
+                      <td>01:47</td>
+                      <td>m6-v1</td>
+                      <td><span class="status-pill gray">已取消</span></td>
+                      <td>查看日志</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="log-card">
+                  12:44:07　render accepted revision=17 pipeline=m6-v1<br />12:44:19　media
+                  normalized assets=9 warnings=0<br />12:45:42　composition rendered frames=724
+                  fps=30<br />12:45:57　quality gate passed checks=11 score=94<br />12:46:05　artifacts
+                  published count=8 status=success
+                </div>
+              </section>
+            </div>
+            <aside>
+              <section class="card quality">
+                <div class="section-head">
+                  <div>
+                    <div class="section-title">质量报告</div>
+                    <div class="section-sub">早餐权益推广 · 最近成功任务</div>
+                  </div>
+                  <span class="text-link">下载 PDF</span>
+                </div>
+                <div class="quality-score">
+                  <div class="quality-ring"><b>94</b></div>
+                  <div>
+                    <h3>达到交付标准</h3>
+                    <p>11 项强制检查全部完成<br />10 项通过，1 项提醒</p>
+                  </div>
+                </div>
+                <div class="check-list">
+                  <div class="check">
+                    <div class="check-icon">✓</div>
+                    <div><strong>视频可播放性</strong><span>编码、时长与帧率正确</span></div>
+                    <span class="check-status">通过</span>
+                  </div>
+                  <div class="check">
+                    <div class="check-icon">✓</div>
+                    <div><strong>黑帧检测</strong><span>未发现连续黑帧</span></div>
+                    <span class="check-status">通过</span>
+                  </div>
+                  <div class="check">
+                    <div class="check-icon">✓</div>
+                    <div><strong>静音检测</strong><span>无意外静音区间</span></div>
+                    <span class="check-status">通过</span>
+                  </div>
+                  <div class="check">
+                    <div class="check-icon">✓</div>
+                    <div><strong>音频响度</strong><span>-15.8 LUFS，符合目标</span></div>
+                    <span class="check-status">通过</span>
+                  </div>
+                  <div class="check">
+                    <div class="check-icon warn">!</div>
+                    <div><strong>字幕安全区</strong><span>1 处距离底部仅 42 px</span></div>
+                    <span class="check-status" style="color: #a86e36">提醒</span>
+                  </div>
+                  <div class="check">
+                    <div class="check-icon">✓</div>
+                    <div><strong>CTA 事实来源</strong><span>来自已批准酒店配置</span></div>
+                    <span class="check-status">通过</span>
+                  </div>
+                  <div class="check">
+                    <div class="check-icon">✓</div>
+                    <div><strong>封面生成</strong><span>关键帧清晰，无字幕遮挡</span></div>
+                    <span class="check-status">通过</span>
+                  </div>
+                  <div class="check">
+                    <div class="check-icon">✓</div>
+                    <div><strong>媒体完整性</strong><span>Manifest 与校验和一致</span></div>
+                    <span class="check-status">通过</span>
+                  </div>
+                </div>
+              </section>
+              <section
+                class="card"
+                style="
+                  padding: 19px;
+                  margin-top: 15px;
+                  background: linear-gradient(135deg, #173039, #264650);
+                  color: white;
+                  border: none;
+                "
+              >
+                <div class="ai-chip">交付建议</div>
+                <h3 style="font-size: 15px; line-height: 1.4; margin: 10px 0 8px">
+                  当前版本可直接用于抖音竖屏发布
+                </h3>
+                <p style="font-size: 8.5px; line-height: 1.65; color: rgba(255, 255, 255, 0.55)">
+                  字幕提醒不影响强制质量门禁。发布前建议在编辑器中将第 7 场字幕上移 8
+                  px，以适配更多机型的交互遮挡区。
+                </p>
+                <button
+                  style="
+                    margin-top: 10px;
+                    border: none;
+                    border-radius: 10px;
+                    background: #d9a05d;
+                    color: #172a31;
+                    padding: 9px 11px;
+                    font-size: 8px;
+                    font-weight: 820;
+                  "
+                >
+                  定位到问题场景 →
+                </button>
+              </section>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

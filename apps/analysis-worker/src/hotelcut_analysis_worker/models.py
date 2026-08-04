@@ -159,13 +159,21 @@ class VisionUsage(BaseModel):
     totalTokens: int = Field(ge=0)
 
 
+type VisionProvider = Literal[
+    "openai",
+    "openai-compatible",
+    "aliyun-bailian",
+    "disabled",
+]
+
+
 class VisionAnalysis(BaseModel):
     """Persisted provider result, including safe operational metadata."""
 
     model_config = ConfigDict(extra="forbid")
 
     status: Literal["succeeded", "disabled", "failed"]
-    provider: Literal["openai", "disabled"]
+    provider: VisionProvider
     promptVersion: str
     model: str | None
     responseId: str | None
@@ -195,10 +203,16 @@ class VisionAnalysis(BaseModel):
         )
 
     @classmethod
-    def failed(cls, prompt_version: str, model: str, error_code: str) -> "VisionAnalysis":
+    def failed(
+        cls,
+        prompt_version: str,
+        model: str,
+        error_code: str,
+        provider: VisionProvider = "openai",
+    ) -> "VisionAnalysis":
         return cls(
             status="failed",
-            provider="openai",
+            provider=provider,
             promptVersion=prompt_version,
             model=model,
             responseId=None,
