@@ -552,7 +552,7 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
       json: {
         latencyMs: 118,
         message: '模型连接成功，已完成一次最小真实请求。',
-        model: 'gpt-5.6-sol',
+        model: 'qwen3.7-plus',
         ok: true,
       },
     });
@@ -583,10 +583,14 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
 
   await page.getByRole('button', { name: '打开设置' }).click();
   await expect(page.getByRole('heading', { name: '大模型 API 配置' })).toBeVisible();
+  await page.getByLabel('服务类型').selectOption('aliyun-bailian');
+  await expect(page.getByLabel('模型', { exact: true })).toHaveValue('qwen3.7-plus');
   await page.getByLabel('API Key').fill('sk-hotelcut-e2e-test-key-123456789');
   await page.getByRole('button', { name: '保存并测试真实连接' }).click();
   await expect(page.getByText('连接成功', { exact: true })).toBeVisible();
   await expect.poll(() => modelConnectionTested).toBe(true);
+  await expect.poll(() => modelSettings.provider).toBe('aliyun-bailian');
+  await expect.poll(() => modelSettings.apiMode).toBe('chat_completions');
 
   await page.getByRole('button', { name: '打开素材库' }).click();
   await expect(page.getByRole('heading', { name: '生产素材库' })).toBeVisible();

@@ -543,6 +543,13 @@ describe('M7 email-authenticated hotel workspace', () => {
     expect(await screen.findByRole('heading', { name: '大模型 API 配置' })).toBeInTheDocument();
     expect(getModelProviderSettings).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal));
 
+    fireEvent.change(screen.getByLabelText('服务类型'), {
+      target: { value: 'aliyun-bailian' },
+    });
+    expect(screen.getByLabelText('API Base URL')).toHaveValue(
+      'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    );
+    expect(screen.getByLabelText('模型')).toHaveValue('qwen3.7-plus');
     fireEvent.change(screen.getByLabelText('API Key'), {
       target: { value: 'sk-hotelcut-ui-test-key-123456789' },
     });
@@ -553,8 +560,11 @@ describe('M7 email-authenticated hotel workspace', () => {
         hotels[0]!.id,
         expect.objectContaining({
           apiKey: 'sk-hotelcut-ui-test-key-123456789',
-          apiMode: 'responses',
-          model: 'gpt-5.6',
+          apiMode: 'chat_completions',
+          baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+          model: 'qwen3.7-plus',
+          provider: 'aliyun-bailian',
+          reasoningEffort: 'none',
         }),
       ),
     );

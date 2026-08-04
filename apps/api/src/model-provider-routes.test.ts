@@ -107,14 +107,22 @@ describe('model provider routes', () => {
     const providerFetch = vi
       .fn<typeof fetch>()
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ model: 'gpt-5.6-sol', output_text: 'HOTELCUT_OK' }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({
+            model: 'qwen3.7-plus',
+            choices: [{ message: { content: 'HOTELCUT_OK' } }],
+          }),
+          { status: 200 },
+        ),
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ model: 'gpt-5.6-sol', output_text: JSON.stringify(plan) }), {
-          status: 200,
-        }),
+        new Response(
+          JSON.stringify({
+            model: 'qwen3.7-plus',
+            choices: [{ message: { content: JSON.stringify(plan) } }],
+          }),
+          { status: 200 },
+        ),
       );
     const app = await buildApp({
       allowDevelopmentIdentity: false,
@@ -124,19 +132,20 @@ describe('model provider routes', () => {
       repository,
     });
     apps.push(app);
-    await app.inject({
+    const configuration = await app.inject({
       method: 'PUT',
       url: `/v1/hotels/${hotelId}/model-provider`,
       payload: {
         apiKey,
-        apiMode: 'responses',
-        baseUrl: 'https://api.openai.com/v1',
+        apiMode: 'chat_completions',
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         enabled: true,
-        model: 'gpt-5.6',
-        provider: 'openai',
-        reasoningEffort: 'medium',
+        model: 'qwen3.7-plus',
+        provider: 'aliyun-bailian',
+        reasoningEffort: 'none',
       },
     });
+    expect(configuration.statusCode, configuration.body).toBe(200);
 
     const connection = await app.inject({
       method: 'POST',
@@ -157,27 +166,25 @@ describe('model provider routes', () => {
     });
 
     expect(connection.statusCode).toBe(200);
-    expect(connection.json()).toMatchObject({ ok: true, model: 'gpt-5.6-sol' });
+    expect(connection.json()).toMatchObject({ ok: true, model: 'qwen3.7-plus' });
     expect(editPlan.statusCode).toBe(200);
     expect(editPlan.json()).toEqual(plan);
     expect(providerFetch).toHaveBeenCalledTimes(2);
     const [connectionUrl, connectionInit] = providerFetch.mock.calls[0]!;
-    expect(connectionUrl).toBe('https://api.openai.com/v1/responses');
+    expect(connectionUrl).toBe(
+      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    );
     expect(new Headers(connectionInit?.headers).get('authorization')).toBe(`Bearer ${apiKey}`);
     expect(JSON.parse(requestBodyText(connectionInit?.body)) as unknown).toMatchObject({
-      input: 'Reply with exactly HOTELCUT_OK.',
-      model: 'gpt-5.6',
-      store: false,
+      enable_thinking: false,
+      messages: [{ content: 'Reply with exactly HOTELCUT_OK.', role: 'user' }],
+      model: 'qwen3.7-plus',
     });
     const planBody = JSON.parse(requestBodyText(providerFetch.mock.calls[1]![1]?.body)) as unknown;
     expect(planBody).toMatchObject({
-      text: {
-        format: {
-          name: 'hotelcut_edit_plan',
-          strict: true,
-          type: 'json_schema',
-        },
-      },
+      enable_thinking: false,
+      response_format: { type: 'json_object' },
     });
+    expect(planBody).not.toHaveProperty('max_tokens');
   });
 });

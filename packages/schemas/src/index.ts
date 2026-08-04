@@ -41,7 +41,7 @@ export const renderArtifactKindSchema = z.enum([
 ]);
 export const qualityReportStatusSchema = z.enum(['passed', 'warning', 'failed']);
 export const videoPlatformSchema = z.enum(['douyin', 'xiaohongshu', 'wechat_channels', 'other']);
-export const modelProviderKindSchema = z.enum(['openai', 'openai-compatible']);
+export const modelProviderKindSchema = z.enum(['openai', 'openai-compatible', 'aliyun-bailian']);
 export const modelApiModeSchema = z.enum(['responses', 'chat_completions']);
 export const modelReasoningEffortSchema = z.enum(['none', 'low', 'medium', 'high', 'xhigh', 'max']);
 
@@ -520,15 +520,32 @@ export const modelProviderSettingsSchema = z.object({
   updatedAt: dateTimeSchema.nullable(),
 });
 
-export const upsertModelProviderSettingsSchema = z.object({
-  provider: modelProviderKindSchema.default('openai'),
-  baseUrl: z.url(),
-  apiMode: modelApiModeSchema.default('responses'),
-  model: z.string().trim().min(1).max(120),
-  reasoningEffort: modelReasoningEffortSchema.default('medium'),
-  enabled: z.boolean().default(true),
-  apiKey: z.string().trim().min(20).max(500).optional(),
-});
+export const upsertModelProviderSettingsSchema = z
+  .object({
+    provider: modelProviderKindSchema.default('openai'),
+    baseUrl: z.url(),
+    apiMode: modelApiModeSchema.default('responses'),
+    model: z
+      .string()
+      .trim()
+      .min(1)
+      .max(120)
+      .refine((value) => !['无', 'none', 'null', 'undefined'].includes(value.toLowerCase()), {
+        message: '请选择有效的模型，不能使用“无”作为模型名称',
+      }),
+    reasoningEffort: modelReasoningEffortSchema.default('medium'),
+    enabled: z.boolean().default(true),
+    apiKey: z.string().trim().min(20).max(500).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.provider === 'aliyun-bailian' && value.apiMode !== 'chat_completions') {
+      context.addIssue({
+        code: 'custom',
+        message: '阿里云百炼的视频理解必须使用 Chat Completions 协议',
+        path: ['apiMode'],
+      });
+    }
+  });
 
 export const modelProviderConnectionResultSchema = z.object({
   ok: z.boolean(),

@@ -12,6 +12,7 @@ import {
   renderJobSchema,
   saveProjectRevisionSchema,
   upsertBrandKitSchema,
+  upsertModelProviderSettingsSchema,
 } from './index.js';
 
 describe('shared input schemas', () => {
@@ -45,6 +46,25 @@ describe('shared input schemas', () => {
         endingText: '欢迎入住',
       }),
     ).toThrow();
+  });
+
+  it('requires a real Bailian model and its video-compatible protocol', () => {
+    const settings = {
+      apiMode: 'chat_completions',
+      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      enabled: true,
+      model: 'qwen3.7-plus',
+      provider: 'aliyun-bailian',
+      reasoningEffort: 'none',
+    };
+
+    expect(upsertModelProviderSettingsSchema.parse(settings)).toMatchObject(settings);
+    expect(() => upsertModelProviderSettingsSchema.parse({ ...settings, model: '无' })).toThrow(
+      '不能使用“无”作为模型名称',
+    );
+    expect(() =>
+      upsertModelProviderSettingsSchema.parse({ ...settings, apiMode: 'responses' }),
+    ).toThrow('必须使用 Chat Completions 协议');
   });
 
   it('defaults a vertical Chinese brief', () => {

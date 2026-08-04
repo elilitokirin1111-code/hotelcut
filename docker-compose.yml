@@ -173,6 +173,7 @@ services:
       ANALYSIS_TRANSCRIPTION_PROVIDER: ${ANALYSIS_TRANSCRIPTION_PROVIDER:-mock}
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
       HF_HOME: /models/huggingface
+      MODEL_API_CONFIG_SECRET: ${MODEL_API_CONFIG_SECRET:-hotelcut-local-model-secret}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       OPENAI_VISION_DETAIL: ${OPENAI_VISION_DETAIL:-high}

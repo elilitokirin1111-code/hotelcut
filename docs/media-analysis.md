@@ -13,9 +13,10 @@ Status: implemented in M2.
 6. FFmpeg creates a 720-pixel editing proxy, JPEG thumbnail and 16 kHz mono WAV. Silent videos
    receive a deterministic silent WAV.
 7. PySceneDetect creates scene ranges and FFmpeg samples up to eight representative JPEG frames.
-8. When `OPENAI_API_KEY` is configured, the OpenAI Responses API analyzes those frames with
-   explicit image detail and strict structured output. It returns hotel-scene tags, editorial
-   quality scores, visible selling points and unusable-shot decisions.
+8. The worker resolves the hotel's encrypted model setting for every job. OpenAI uses Responses;
+   Alibaba Cloud Model Studio (Bailian) uses OpenAI-compatible Chat Completions with Base64 image
+   URLs and JSON mode. Both return hotel-scene tags, editorial quality scores, visible selling
+   points and unusable-shot decisions.
 9. The selected transcription provider creates speech segments, word timestamps and VAD ranges.
 10. Derivatives use deterministic object keys and are upserted.
 11. One PostgreSQL transaction replaces automatic segments, preserves manual tags, writes
@@ -25,13 +26,13 @@ The local Compose default is `ANALYSIS_TRANSCRIPTION_PROVIDER=mock`, which produ
 Chinese test output without downloading a model. `faster-whisper` enables real word timestamps
 and VAD; `disabled` leaves transcription empty while keeping the rest of the pipeline usable.
 
-The visual provider defaults to `OPENAI_VISION_PROVIDER=openai` but activates only when
-`OPENAI_API_KEY` is non-empty. The default model is `gpt-5.6-terra`, with `high` image detail,
-medium reasoning, a maximum of eight frames, a 120-second timeout and two SDK retries. Requests
-use `store=false`; only a SHA-256-derived tenant identifier is sent as the safety identifier.
-Image payloads exist only in the worker's temporary directory and are not persisted as
-derivatives. Provider failures are recorded in `metadata.vision` and fall back to deterministic
-and manual tags unless `OPENAI_VISION_REQUIRED=true`.
+The recommended browser configuration is Alibaba Cloud Model Studio with a region-matched
+workspace Base URL, `qwen3.7-plus` and Chat Completions. The API key is AES-256-GCM encrypted in
+PostgreSQL and is never returned to the browser. The legacy `OPENAI_API_KEY` environment setting
+remains a fallback when the hotel has no stored setting. A maximum of eight representative
+frames are sent; temporary image payloads are deleted with the isolated job directory and are
+not persisted as derivatives. Provider failures are recorded in `metadata.vision` and fall back
+to deterministic/manual tags unless `OPENAI_VISION_REQUIRED=true`.
 
 Analysis workers use isolated temporary directories, sanitized process arguments and retry-safe
 jobs. Commands are argument arrays with `shell=False`.

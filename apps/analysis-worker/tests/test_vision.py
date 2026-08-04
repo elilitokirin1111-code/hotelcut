@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import pytest
 from openai import OpenAI
 
 from hotelcut_analysis_worker.config import Settings
+from hotelcut_analysis_worker.model_provider import ModelProviderConfiguration
 from hotelcut_analysis_worker.models import VisionFrame, VisionModelOutput
 from hotelcut_analysis_worker.vision import (
     DisabledVisualAnalyzer,
@@ -38,6 +39,33 @@ class RecordingResponses:
 class RecordingClient:
     def __init__(self, output: dict[str, object]) -> None:
         self.responses = RecordingResponses(output)
+
+
+class RecordingChatCompletions:
+    def __init__(self, output: dict[str, object]) -> None:
+        self.arguments: dict[str, Any] | None = None
+        self._output = output
+
+    def create(self, **kwargs: Any) -> SimpleNamespace:
+        self.arguments = kwargs
+        return SimpleNamespace(
+            id="chatcmpl_bailian_test",
+            model="qwen3.7-plus",
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content=json.dumps(self._output, ensure_ascii=False),
+                    )
+                )
+            ],
+            usage=SimpleNamespace(prompt_tokens=700, completion_tokens=160, total_tokens=860),
+        )
+
+
+class RecordingChatClient:
+    def __init__(self, output: dict[str, object]) -> None:
+        self.completions = RecordingChatCompletions(output)
+        self.chat = SimpleNamespace(completions=self.completions)
 
 
 def _output(scene_index: int = 1) -> dict[str, object]:
@@ -110,6 +138,45 @@ def test_openai_vision_rejects_scene_index_drift(tmp_path: Path) -> None:
             [VisionFrame(sceneIndex=1, startMs=0, endMs=1_000, imagePath=image)],
             "hotel-1",
         )
+
+
+def test_bailian_vision_uses_chat_image_urls_and_json_mode(tmp_path: Path) -> None:
+    image = tmp_path / "scene.jpg"
+    image.write_bytes(b"bailian-jpeg")
+    client = RecordingChatClient(_output())
+    configuration = ModelProviderConfiguration(
+        provider="aliyun-bailian",
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_mode="chat_completions",
+        model="qwen3.7-plus",
+        reasoning_effort="none",
+        api_key="sk-bailian-test-key",
+    )
+    analyzer = OpenAIVisualAnalyzer(Settings(), configuration, client=client)
+
+    result = analyzer.analyze(
+        [VisionFrame(sceneIndex=1, startMs=0, endMs=5_000, imagePath=image)],
+        "hotel-1",
+    )
+
+    assert result.provider == "aliyun-bailian"
+    assert result.model == "qwen3.7-plus"
+    assert result.usage is not None and result.usage.totalTokens == 860
+    arguments = client.completions.arguments
+    assert arguments is not None
+    assert arguments["response_format"] == {"type": "json_object"}
+    assert arguments["extra_body"] == {"enable_thinking": False}
+    assert "max_tokens" not in arguments
+    messages = cast(list[dict[str, Any]], arguments["messages"])
+    assert "JSON Schema" in messages[0]["content"]
+    content = cast(list[dict[str, Any]], messages[1]["content"])
+    image_inputs = [entry for entry in content if entry["type"] == "image_url"]
+    assert image_inputs == [
+        {
+            "type": "image_url",
+            "image_url": {"url": "data:image/jpeg;base64,YmFpbGlhbi1qcGVn"},
+        }
+    ]
 
 
 def test_visual_analyzer_is_disabled_without_api_key() -> None:

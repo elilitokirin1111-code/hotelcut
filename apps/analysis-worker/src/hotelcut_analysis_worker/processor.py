@@ -24,15 +24,18 @@ from hotelcut_analysis_worker.media_tools import (
     probe_audio,
     probe_video,
 )
+from hotelcut_analysis_worker.model_provider import ModelProviderResolver
 from hotelcut_analysis_worker.models import (
     AnalysisJobData,
     SceneRange,
     TranscriptResult,
     VisionAnalysis,
+    VisionProvider,
 )
 from hotelcut_analysis_worker.providers import Transcriber, create_transcriber
 from hotelcut_analysis_worker.vision import (
     PROMPT_VERSION,
+    DisabledVisualAnalyzer,
     VisualAnalyzer,
     create_visual_analyzer,
 )
@@ -65,12 +68,14 @@ class AnalysisProcessor:
         runner: CommandRunner | None = None,
         transcriber: Transcriber | None = None,
         visual_analyzer: VisualAnalyzer | None = None,
+        model_provider_resolver: ModelProviderResolver | None = None,
         storage: Minio | None = None,
     ) -> None:
         self._settings = settings
         self._runner = runner or SubprocessCommandRunner()
         self._transcriber = transcriber or create_transcriber(settings)
-        self._visual_analyzer = visual_analyzer or create_visual_analyzer(settings)
+        self._visual_analyzer = visual_analyzer
+        self._model_provider_resolver = model_provider_resolver or ModelProviderResolver(settings)
         endpoint = urlparse(settings.S3_ENDPOINT)
         self._storage = storage or Minio(
             endpoint.netloc,
@@ -132,8 +137,22 @@ class AnalysisProcessor:
                 )
                 scenes = detect_scenes(original, video_probe.durationMs)
                 vision = VisionAnalysis.disabled(PROMPT_VERSION)
-                if self._visual_analyzer.enabled:
-                    try:
+                vision_model = self._settings.OPENAI_VISION_MODEL
+                vision_provider: VisionProvider = "openai"
+                try:
+                    visual_analyzer: VisualAnalyzer
+                    if self._visual_analyzer is not None:
+                        visual_analyzer = self._visual_analyzer
+                    else:
+                        configuration = self._model_provider_resolver.resolve(data.hotelId)
+                        visual_analyzer = (
+                            create_visual_analyzer(self._settings, configuration)
+                            if configuration is not None
+                            else DisabledVisualAnalyzer()
+                        )
+                    if visual_analyzer.enabled:
+                        vision_model = visual_analyzer.model or vision_model
+                        vision_provider = visual_analyzer.provider
                         frames = extract_vision_frames(
                             original,
                             scenes,
@@ -145,40 +164,43 @@ class AnalysisProcessor:
                         self._log(
                             data.analysisJobId,
                             "info",
-                            "Analyzing representative scenes with OpenAI vision",
+                            "Analyzing representative scenes with configured vision model",
                             {
                                 "frameCount": len(frames),
-                                "model": self._settings.OPENAI_VISION_MODEL,
+                                "model": vision_model,
+                                "provider": visual_analyzer.provider,
                                 "promptVersion": PROMPT_VERSION,
                             },
                         )
-                        vision = self._visual_analyzer.analyze(frames, data.hotelId)
+                        vision = visual_analyzer.analyze(frames, data.hotelId)
                         self._log(
                             data.analysisJobId,
                             "info",
-                            "OpenAI vision analysis completed",
+                            "Configured vision analysis completed",
                             {
-                                "model": vision.model or self._settings.OPENAI_VISION_MODEL,
+                                "model": vision.model or vision_model,
+                                "provider": vision.provider,
                                 "responseId": vision.responseId or "",
                                 "sceneCount": len(vision.scenes),
                                 "totalTokens": vision.usage.totalTokens if vision.usage else 0,
                             },
                         )
-                    except Exception as error:
-                        code = _error_code(error)
-                        self._log(
-                            data.analysisJobId,
-                            "warning",
-                            "OpenAI vision analysis failed; continuing with deterministic fallback",
-                            {"errorCode": code, "message": str(error)[:300]},
-                        )
-                        if self._settings.OPENAI_VISION_REQUIRED:
-                            raise
-                        vision = VisionAnalysis.failed(
-                            PROMPT_VERSION,
-                            self._settings.OPENAI_VISION_MODEL,
-                            code,
-                        )
+                except Exception as error:
+                    code = _error_code(error)
+                    self._log(
+                        data.analysisJobId,
+                        "warning",
+                        "Vision analysis failed; continuing with deterministic fallback",
+                        {"errorCode": code, "message": str(error)[:300]},
+                    )
+                    if self._settings.OPENAI_VISION_REQUIRED:
+                        raise
+                    vision = VisionAnalysis.failed(
+                        PROMPT_VERSION,
+                        vision_model,
+                        code,
+                        vision_provider,
+                    )
                 self._log(
                     data.analysisJobId,
                     "info",

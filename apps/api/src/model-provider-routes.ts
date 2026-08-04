@@ -249,12 +249,16 @@ function connectionBody(settings: StoredModelProviderSettings): Record<string, u
       store: false,
     };
   }
-  return {
+  const body: Record<string, unknown> = {
     model: settings.model,
     messages: [{ role: 'user', content: 'Reply with exactly HOTELCUT_OK.' }],
     max_tokens: 24,
     temperature: 0,
   };
+  if (settings.provider === 'aliyun-bailian') {
+    body['enable_thinking'] = false;
+  }
+  return body;
 }
 
 function planBody(settings: StoredModelProviderSettings, input: string): Record<string, unknown> {
@@ -276,6 +280,21 @@ function planBody(settings: StoredModelProviderSettings, input: string): Record<
           schema: editPlanJsonSchema,
         },
       },
+    };
+  }
+  if (settings.provider === 'aliyun-bailian') {
+    return {
+      model: settings.model,
+      messages: [
+        {
+          role: 'system',
+          content: `${instructions}\n仅返回合法 JSON，不要使用 Markdown。JSON 必须匹配此 Schema：${JSON.stringify(editPlanJsonSchema)}`,
+        },
+        { role: 'user', content: input },
+      ],
+      temperature: 0.2,
+      enable_thinking: false,
+      response_format: { type: 'json_object' },
     };
   }
   return {

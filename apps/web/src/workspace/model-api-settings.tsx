@@ -35,15 +35,30 @@ type ActionState =
   | { status: 'tested'; result: ModelProviderConnectionResult }
   | { status: 'error'; message: string };
 
+const bailianBaseUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const bailianModels = [
+  { label: 'Qwen 3.7 Plus（推荐，视频理解效果最佳）', value: 'qwen3.7-plus' },
+  { label: 'Qwen 3.6 Plus（均衡）', value: 'qwen3.6-plus' },
+  { label: 'Qwen 3 VL Plus（视觉专用）', value: 'qwen3-vl-plus' },
+] as const;
+
+function invalidModel(value: string): boolean {
+  return ['', '无', 'none', 'null', 'undefined'].includes(value.trim().toLowerCase());
+}
+
 function draftFrom(settings: ModelProviderSettings): SettingsDraft {
+  const isBailian =
+    settings.provider === 'aliyun-bailian' ||
+    settings.baseUrl.includes('dashscope.aliyuncs.com') ||
+    settings.baseUrl.includes('.maas.aliyuncs.com');
   return {
     apiKey: '',
-    apiMode: settings.apiMode,
+    apiMode: isBailian ? 'chat_completions' : settings.apiMode,
     baseUrl: settings.baseUrl,
     enabled: settings.enabled,
-    model: settings.model,
-    provider: settings.provider,
-    reasoningEffort: settings.reasoningEffort,
+    model: isBailian && invalidModel(settings.model) ? 'qwen3.7-plus' : settings.model,
+    provider: isBailian ? 'aliyun-bailian' : settings.provider,
+    reasoningEffort: isBailian ? 'none' : settings.reasoningEffort,
   };
 }
 
@@ -147,7 +162,7 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
           <p className="page-eyebrow">MODEL INTELLIGENCE</p>
           <h2>大模型 API 配置</h2>
           <p>
-            配置自动剪辑策划使用的模型服务。保存后可立即测试，并在 AI 成片向导中生成真实策划方案。
+            同一套配置将用于素材画面分析和 AI 自动剪辑策划；保存后对新上传或重新分析的素材生效。
           </p>
         </div>
         <span className={`model-config-status ${configured ? 'is-ready' : ''}`}>
@@ -164,7 +179,7 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
             </span>
             <div>
               <h3>模型服务</h3>
-              <p>支持 OpenAI Responses API，也支持兼容 Chat Completions 的服务。</p>
+              <p>支持阿里云百炼、OpenAI，以及兼容 Chat Completions 的服务。</p>
             </div>
           </div>
 
@@ -181,8 +196,20 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
                           ...current,
                           provider,
                           ...(provider === 'openai'
-                            ? { baseUrl: 'https://api.openai.com/v1', apiMode: 'responses' }
-                            : {}),
+                            ? {
+                                baseUrl: 'https://api.openai.com/v1',
+                                apiMode: 'responses',
+                                model: 'gpt-5.6',
+                                reasoningEffort: 'medium',
+                              }
+                            : provider === 'aliyun-bailian'
+                              ? {
+                                  baseUrl: bailianBaseUrl,
+                                  apiMode: 'chat_completions',
+                                  model: 'qwen3.7-plus',
+                                  reasoningEffort: 'none',
+                                }
+                              : {}),
                         }
                       : current,
                   );
@@ -190,6 +217,7 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
                 }}
                 value={draft.provider}
               >
+                <option value="aliyun-bailian">阿里云百炼</option>
                 <option value="openai">OpenAI</option>
                 <option value="openai-compatible">OpenAI 兼容服务</option>
               </select>
@@ -199,6 +227,7 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
               <span>调用协议</span>
               <select
                 aria-label="调用协议"
+                disabled={draft.provider === 'aliyun-bailian'}
                 onChange={(event) => {
                   setDraft((current) =>
                     current
@@ -236,25 +265,48 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
 
             <label className="editor-field">
               <span>模型</span>
-              <input
-                aria-label="模型"
-                maxLength={120}
-                onChange={(event) => {
-                  setDraft((current) =>
-                    current ? { ...current, model: event.target.value } : current,
-                  );
-                  setActionState({ status: 'idle' });
-                }}
-                placeholder="gpt-5.6"
-                required
-                value={draft.model}
-              />
+              {draft.provider === 'aliyun-bailian' ? (
+                <select
+                  aria-label="模型"
+                  onChange={(event) => {
+                    setDraft((current) =>
+                      current ? { ...current, model: event.target.value } : current,
+                    );
+                    setActionState({ status: 'idle' });
+                  }}
+                  value={draft.model}
+                >
+                  {!bailianModels.some((item) => item.value === draft.model) ? (
+                    <option value={draft.model}>{draft.model}</option>
+                  ) : null}
+                  {bailianModels.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  aria-label="模型"
+                  maxLength={120}
+                  onChange={(event) => {
+                    setDraft((current) =>
+                      current ? { ...current, model: event.target.value } : current,
+                    );
+                    setActionState({ status: 'idle' });
+                  }}
+                  placeholder="gpt-5.6"
+                  required
+                  value={draft.model}
+                />
+              )}
             </label>
 
             <label className="editor-field">
               <span>推理强度</span>
               <select
                 aria-label="推理强度"
+                disabled={draft.provider === 'aliyun-bailian'}
                 onChange={(event) => {
                   setDraft((current) =>
                     current
@@ -301,11 +353,11 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
 
           <label className="model-enable-row">
             <span>
-              <strong>启用 AI 剪辑策划</strong>
+              <strong>启用 AI 素材分析与剪辑策划</strong>
               <small>关闭后不会向外部模型服务发送请求。</small>
             </span>
             <input
-              aria-label="启用 AI 剪辑策划"
+              aria-label="启用 AI 素材分析与剪辑策划"
               checked={draft.enabled}
               onChange={(event) => {
                 setDraft((current) =>
@@ -370,6 +422,7 @@ export function ModelApiSettings({ api, hotelId }: ModelApiSettingsProps) {
           </p>
           <ul>
             <li>连接测试会产生一次极小的真实模型请求，可能产生少量费用。</li>
+            <li>百炼素材分析只发送抽取后的代表帧，不发送数据库或 API Key。</li>
             <li>AI 策划只发送需求单、模板说明和已分析的素材摘要。</li>
             <li>模型不能编造价格、联系方式或未确认的酒店权益。</li>
           </ul>

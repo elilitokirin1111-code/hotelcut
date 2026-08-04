@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     OPENAI_VISION_TIMEOUT_SECONDS: float = Field(default=120, ge=10, le=300)
     OPENAI_VISION_MAX_RETRIES: int = Field(default=2, ge=0, le=5)
     OPENAI_VISION_REQUIRED: bool = False
+    MODEL_API_CONFIG_SECRET: SecretStr = SecretStr("hotelcut-local-model-secret")
     WHISPER_COMPUTE_TYPE: str = "int8"
     WHISPER_DEVICE: str = "cpu"
     WHISPER_MODEL: str = "tiny"
