@@ -229,6 +229,10 @@ function scoreSource(
     eligible = false;
     reasons.push('Asset is already used by another slot');
   }
+  if (source.segment?.scoreBasisPoints === 0) {
+    eligible = false;
+    reasons.push('Analyzed scene was marked unusable');
+  }
 
   const tagSet = new Set(source.tags);
   const requiredMatches = slot.requiredTags.filter((tag) => tagSet.has(tag.toLowerCase()));

@@ -1268,8 +1268,8 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
         };
       }
     }
-    if (currentAsset.status !== 'failed') {
-      throw new DomainConflictError('Only failed asset analysis can be retried');
+    if (currentAsset.status !== 'failed' && currentAsset.status !== 'ready') {
+      throw new DomainConflictError('Only failed or ready asset analysis can be retried');
     }
 
     return this.db.transaction(async (transaction) => {
@@ -1290,7 +1290,10 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
             {
               at: now.toISOString(),
               level: 'info',
-              message: 'Analysis manually retried',
+              message:
+                currentAsset.status === 'ready'
+                  ? 'Analysis refresh manually queued'
+                  : 'Analysis manually retried',
             },
           ],
         })

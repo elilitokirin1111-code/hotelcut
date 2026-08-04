@@ -12,6 +12,7 @@ dependencies = [
   "fastapi>=0.116,<1",
   "faster-whisper>=1.2,<2",
   "minio>=7.2,<8",
+  "openai>=2.53,<3",
   "pydantic-settings>=2.10,<3",
   "psycopg[binary]>=3.3,<4",
   "redis==7.4.0",

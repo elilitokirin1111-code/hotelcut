@@ -76,6 +76,14 @@ const assets = [
       durationMs: 30_000,
       frameRate: 30,
       height: 1920,
+      vision: {
+        model: 'gpt-5.6-terra-2026-07-01',
+        qualityScore: 89,
+        sellingPoints: ['自然采光', '湖景客房'],
+        status: 'succeeded',
+        summary: '明亮整洁的湖景客房，适合展示空间与窗景。',
+        tags: ['room', 'bright', 'window', 'clean'],
+      },
       width: 1080,
     },
     createdAt: '2026-07-28T08:00:00.000Z',
@@ -579,6 +587,10 @@ describe('M7 email-authenticated hotel workspace', () => {
     await waitFor(() =>
       expect(getAssetDetail).toHaveBeenCalledWith(assets[0]!.id, expect.anything()),
     );
+    expect(await screen.findByRole('region', { name: 'AI 素材理解结果' })).toHaveTextContent(
+      '已进入自动选片',
+    );
+    expect(screen.getByText('明亮整洁的湖景客房，适合展示空间与窗景。')).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材文件名' }), {
       target: { value: '大堂' },

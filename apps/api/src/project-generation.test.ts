@@ -191,6 +191,50 @@ describe('production project generation', () => {
     expect(audio.tags).toEqual(expect.arrayContaining(['bright', 'music', 'travel']));
   });
 
+  it('uses OpenAI scene tags and editorial scores as deterministic compiler inputs', () => {
+    const analyzed = assetDetailToCompilerMedia({
+      ...assetDetail,
+      metadata: {
+        ...assetDetail.metadata,
+        vision: {
+          model: 'gpt-5.6-terra',
+          qualityScore: 88,
+          status: 'succeeded',
+        },
+      },
+      segments: [
+        {
+          assetId,
+          createdAt: now,
+          createdByUserId: null,
+          endMs: 12_000,
+          id: '71000000-0000-4000-8000-000000000003',
+          kind: 'scene',
+          label: '明亮整洁的客房全景',
+          metadata: {
+            category: 'room',
+            tags: ['room', 'bright', 'wide', 'clean'],
+            usable: true,
+          },
+          scoreBasisPoints: 9_200,
+          source: 'automatic',
+          startMs: 0,
+          updatedAt: now,
+        },
+      ],
+    });
+
+    expect(analyzed.scoreBasisPoints).toBe(8_800);
+    expect(analyzed.metadata).toMatchObject({
+      visionModel: 'gpt-5.6-terra',
+      visionStatus: 'succeeded',
+    });
+    expect(analyzed.segments[0]).toMatchObject({ scoreBasisPoints: 9_200 });
+    expect(analyzed.segments[0]?.tags).toEqual(
+      expect.arrayContaining(['bright', 'clean', 'room', 'wide']),
+    );
+  });
+
   it('reports only required missing slots with operator-facing Chinese labels', () => {
     const summary: ProjectGenerationSummary = {
       seed: 1,

@@ -244,7 +244,7 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
         params: assetIdParamsSchema,
         response: { 202: analysisRetryResponseSchema, ...commonResponses },
         security: [{ sessionCookie: [] }, { developmentUser: [] }],
-        summary: 'Safely retry a failed or undispatched analysis job',
+        summary: 'Safely retry, refresh or dispatch an asset analysis job',
         tags: ['assets'],
       },
     },

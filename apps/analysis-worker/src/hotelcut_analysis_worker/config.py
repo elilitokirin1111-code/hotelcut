@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import RedisDsn
+from pydantic import Field, RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +24,17 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "hotelcut-local"
     S3_ENDPOINT: str = "http://localhost:9000"
     S3_SECRET_ACCESS_KEY: str = "hotelcut_local_secret"
+    OPENAI_API_KEY: SecretStr | None = None
+    OPENAI_BASE_URL: str | None = None
+    OPENAI_VISION_PROVIDER: Literal["openai", "disabled"] = "openai"
+    OPENAI_VISION_MODEL: str = "gpt-5.6-terra"
+    OPENAI_VISION_DETAIL: Literal["low", "high", "original"] = "high"
+    OPENAI_VISION_REASONING_EFFORT: Literal["none", "low", "medium", "high"] = "medium"
+    OPENAI_VISION_MAX_FRAMES: int = Field(default=8, ge=1, le=12)
+    OPENAI_VISION_MAX_OUTPUT_TOKENS: int = Field(default=2_048, ge=512, le=8_192)
+    OPENAI_VISION_TIMEOUT_SECONDS: float = Field(default=120, ge=10, le=300)
+    OPENAI_VISION_MAX_RETRIES: int = Field(default=2, ge=0, le=5)
+    OPENAI_VISION_REQUIRED: bool = False
     WHISPER_COMPUTE_TYPE: str = "int8"
     WHISPER_DEVICE: str = "cpu"
     WHISPER_MODEL: str = "tiny"

@@ -194,6 +194,12 @@ export function assetDetailToCompilerMedia(detail: AssetDetail): CompilerMediaCa
   const width = finiteNumber(probe['width']) ?? finiteNumber(detail.metadata['width']);
   const height = finiteNumber(probe['height']) ?? finiteNumber(detail.metadata['height']);
   const frameRate = finiteNumber(probe['frameRate']) ?? finiteNumber(detail.metadata['frameRate']);
+  const vision = asRecord(detail.metadata['vision']);
+  const visionQualityScore = finiteNumber(vision['qualityScore']);
+  const visionScoreBasisPoints =
+    vision['status'] === 'succeeded' && visionQualityScore !== null
+      ? Math.max(0, Math.min(10_000, Math.round(visionQualityScore * 100)))
+      : null;
   const audioCodec = probe['audioCodec'];
   const hasAudio = typeof audioCodec === 'string' && audioCodec.length > 0;
   const segments = detail.segments.map((segment) => segmentToCompiler(segment, durationFrames));
@@ -225,8 +231,10 @@ export function assetDetailToCompilerMedia(detail: AssetDetail): CompilerMediaCa
     metadata: {
       originalFilename: detail.originalFilename,
       source: 'hotelcut-asset-library',
+      visionModel: typeof vision['model'] === 'string' ? vision['model'] : null,
+      visionStatus: typeof vision['status'] === 'string' ? vision['status'] : 'unavailable',
     },
-    scoreBasisPoints: null,
+    scoreBasisPoints: visionScoreBasisPoints,
     segments,
     tags: canonicalTags(tagSources),
   };

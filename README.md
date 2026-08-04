@@ -185,8 +185,10 @@ See `packages/README.md` for package ownership.
 - Local Compose defaults to the deterministic `mock` transcription provider. Set
   `ANALYSIS_TRANSCRIPTION_PROVIDER=faster-whisper` to run the real model; the first run downloads
   the configured model into the persistent Docker model cache.
-- M2 detects scenes, speech and VAD ranges. Black-frame, duplicate-fingerprint and waveform
-  analysis remain follow-up analysis enhancements.
+- M2 detects scenes, speech and VAD ranges. With `OPENAI_API_KEY`, the Analysis Worker also sends
+  bounded representative frames to the OpenAI Responses API for structured hotel-scene tags,
+  visual quality scoring and selling-point extraction. Without the key or during provider
+  failure, deterministic and manual-tag editing remains available.
 - The M5 preview remains an editorial interpreter; M6 final output is produced independently by
   Remotion and FFmpeg.
 - MinIO images use moving development tags and must be pinned before shared staging use.

@@ -4,8 +4,10 @@ import {
   compilerMediaCandidateSchema,
   findDuplicateAssets,
   paginateCaptionLines,
+  rankSlotCandidates,
   splitARollRange,
   splitCaptionLines,
+  templateSlotSchema,
 } from './index.js';
 
 describe('compiler primitives', () => {
@@ -60,5 +62,67 @@ describe('compiler primitives', () => {
     expect(findDuplicateAssets([lower, higher])).toEqual(
       new Map([[lower.assetId, higher.assetId]]),
     );
+  });
+
+  it('never selects a scene that visual analysis marked unusable', () => {
+    const media = compilerMediaCandidateSchema.parse({
+      assetId: '10000000-0000-4000-8000-000000000003',
+      kind: 'video',
+      durationFrames: 300,
+      tags: [],
+      scoreBasisPoints: 8_000,
+      metadata: {},
+      availability: 'ready',
+      contentFingerprint: null,
+      analysis: {
+        width: 1080,
+        height: 1920,
+        frameRate: 30,
+        hasAudio: false,
+        silenceRatioBasisPoints: 10_000,
+        qualityBasisPoints: 9_000,
+      },
+      segments: [
+        {
+          id: '11000000-0000-4000-8000-000000000001',
+          kind: 'scene',
+          startFrame: 0,
+          durationFrames: 300,
+          label: '严重模糊的客房画面',
+          tags: ['room'],
+          scoreBasisPoints: 0,
+          transcript: null,
+          words: [],
+        },
+      ],
+    });
+    const slot = {
+      ...templateSlotSchema.parse({
+        id: 'room.hero',
+        track: 'main',
+        role: 'montage',
+        startBasisPoints: 0,
+        endBasisPoints: 5_000,
+        acceptedKinds: ['video'],
+        requiredTags: ['room'],
+        preferredTags: [],
+        required: true,
+        allowAssetReuse: false,
+        audioPolicy: 'mute',
+        transition: 'cut',
+      }),
+      startFrame: 0,
+      durationFrames: 150,
+    };
+
+    const ranking = rankSlotCandidates(
+      [media],
+      slot,
+      { assetIds: new Set(), candidateIds: new Set() },
+      20260804,
+    );
+
+    expect(ranking.selected).toBeNull();
+    expect(ranking.records[0]?.reasons).toContain('Analyzed scene was marked unusable');
   });
 });

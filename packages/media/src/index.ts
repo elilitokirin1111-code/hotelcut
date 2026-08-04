@@ -1,6 +1,6 @@
 export const ANALYSIS_QUEUE_NAME = 'hotelcut-analysis';
 export const ANALYSIS_JOB_NAME = 'analyze-asset';
-export const ANALYSIS_PIPELINE_VERSION = 'm2-v2';
+export const ANALYSIS_PIPELINE_VERSION = 'm2-v3';
 
 export interface AnalysisJobData {
   analysisJobId: string;

@@ -62,6 +62,35 @@ const uploadPhaseLabels: Record<AssetUploadProgress['phase'], string> = {
   finalizing: '正在校验并提交分析',
 };
 
+const visionTagLabels: Record<string, string> = {
+  exterior: '酒店外观',
+  lobby: '大堂',
+  room: '客房',
+  bathroom: '卫浴',
+  facility: '设施',
+  detail: '细节',
+  service: '服务',
+  promotion: '促销',
+  host: '口播人物',
+  presenter: '出镜人物',
+  wide: '全景',
+  bright: '明亮',
+  window: '窗景',
+  clean: '整洁',
+  day: '日景',
+  night: '夜景',
+  staff: '员工',
+  pool: '泳池',
+  gym: '健身房',
+  restaurant: '餐厅',
+  breakfast: '早餐',
+  bed: '床品',
+  view: '景观',
+  design: '设计',
+  amenity: '用品',
+  travel: '旅拍',
+};
+
 function formatError(error: unknown): string {
   if (error instanceof WorkspaceApiError || error instanceof Error) {
     return error.message;
@@ -94,6 +123,18 @@ function metadataNumber(detail: AssetDetail, key: string): number | null {
       ? (probe as Record<string, unknown>)[key]
       : undefined);
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : [];
 }
 
 function AssetStatus({ status }: { status: Asset['status'] }) {
@@ -582,6 +623,13 @@ function AssetDetailPanel({
   const latestJob = detail.analysisJobs[0];
   const manualSegments = detail.segments.filter((segment) => segment.source === 'manual');
   const transcriptSegments = detail.segments.filter((segment) => segment.kind === 'speech');
+  const vision = asRecord(detail.metadata['vision']);
+  const visionStatus = typeof vision['status'] === 'string' ? vision['status'] : null;
+  const visionSummary = typeof vision['summary'] === 'string' ? vision['summary'] : '';
+  const visionModel = typeof vision['model'] === 'string' ? vision['model'] : '';
+  const visionQuality = typeof vision['qualityScore'] === 'number' ? vision['qualityScore'] : null;
+  const visionTags = stringArray(vision['tags']);
+  const visionSellingPoints = stringArray(vision['sellingPoints']);
 
   return (
     <>
@@ -639,6 +687,73 @@ function AssetDetailPanel({
           </p>
           <button className="editor-secondary-button mt-3" onClick={onRetry} type="button">
             重新分析
+          </button>
+        </div>
+      ) : null}
+
+      {detail.kind === 'video' && detail.status === 'ready' && visionStatus === 'succeeded' ? (
+        <section
+          aria-label="AI 素材理解结果"
+          className="mt-5 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-black text-indigo-950">AI 素材理解完成</p>
+              <p className="mt-1 text-[10px] text-indigo-500">
+                {visionModel || 'OpenAI 视觉模型'}
+                {visionQuality !== null ? ` · 画面评分 ${visionQuality}/100` : ''}
+              </p>
+            </div>
+            <span className="rounded-full bg-indigo-100 px-3 py-1 text-[10px] font-black text-indigo-700">
+              已进入自动选片
+            </span>
+          </div>
+          {visionSummary ? (
+            <p className="mt-4 text-xs leading-6 text-slate-600">{visionSummary}</p>
+          ) : null}
+          {visionTags.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {visionTags.map((tag) => (
+                <span
+                  className="rounded-full bg-white px-2.5 py-1 text-[9px] font-black text-indigo-700"
+                  key={tag}
+                >
+                  {visionTagLabels[tag] ?? tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {visionSellingPoints.length > 0 ? (
+            <p className="mt-4 text-[10px] leading-5 text-slate-500">
+              可用卖点：{visionSellingPoints.join('、')}
+            </p>
+          ) : null}
+          <button className="editor-secondary-button mt-4" onClick={onRetry} type="button">
+            重新进行 AI 分析
+          </button>
+        </section>
+      ) : null}
+
+      {detail.kind === 'video' && detail.status === 'ready' && visionStatus === 'failed' ? (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-xs font-black text-amber-900">AI 素材理解暂时失败</p>
+          <p className="mt-1 text-[10px] leading-5 text-amber-700">
+            当前素材仍可通过规则和人工标签剪辑；点击“重新分析”可再次调用模型。
+          </p>
+          <button className="editor-secondary-button mt-3" onClick={onRetry} type="button">
+            重新分析
+          </button>
+        </div>
+      ) : null}
+
+      {detail.kind === 'video' && detail.status === 'ready' && visionStatus === 'disabled' ? (
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-black text-slate-700">AI 素材理解未启用</p>
+          <p className="mt-1 text-[10px] leading-5 text-slate-500">
+            配置 OPENAI_API_KEY 后重新分析，即可自动识别客房、卫浴、设施与画面质量。
+          </p>
+          <button className="editor-secondary-button mt-3" onClick={onRetry} type="button">
+            配置后重新分析
           </button>
         </div>
       ) : null}

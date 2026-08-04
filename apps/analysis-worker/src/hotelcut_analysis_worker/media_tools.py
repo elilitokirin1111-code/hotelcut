@@ -9,7 +9,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Protocol, cast
 
-from hotelcut_analysis_worker.models import AudioProbe, SceneRange, VideoProbe
+from hotelcut_analysis_worker.models import AudioProbe, SceneRange, VideoProbe, VisionFrame
 
 
 class CommandRunner(Protocol):
@@ -234,3 +234,60 @@ def detect_scenes(input_path: Path, duration_ms: int) -> list[SceneRange]:
         for start, end in detected
     ]
     return scenes or [SceneRange(startMs=0, endMs=duration_ms)]
+
+
+def _sample_scene_indices(scene_count: int, maximum_frames: int) -> list[int]:
+    if scene_count <= maximum_frames:
+        return list(range(scene_count))
+    if maximum_frames == 1:
+        return [scene_count // 2]
+    return sorted(
+        {
+            round(position * (scene_count - 1) / (maximum_frames - 1))
+            for position in range(maximum_frames)
+        }
+    )
+
+
+def extract_vision_frames(
+    input_path: Path,
+    scenes: list[SceneRange],
+    output_directory: Path,
+    runner: CommandRunner,
+    ffmpeg_path: str,
+    maximum_frames: int,
+) -> list[VisionFrame]:
+    """Extract bounded, representative JPEGs while retaining original scene indices."""
+
+    output_directory.mkdir(parents=True, exist_ok=True)
+    frames: list[VisionFrame] = []
+    for scene_index in _sample_scene_indices(len(scenes), maximum_frames):
+        scene = scenes[scene_index]
+        sample_ms = scene.startMs + max(0, (scene.endMs - scene.startMs) // 2)
+        output_path = output_directory / f"scene-{scene_index + 1:03d}.jpg"
+        runner.run(
+            [
+                ffmpeg_path,
+                "-y",
+                "-ss",
+                f"{sample_ms / 1_000:.3f}",
+                "-i",
+                str(input_path),
+                "-frames:v",
+                "1",
+                "-vf",
+                "scale=1280:1280:force_original_aspect_ratio=decrease",
+                "-q:v",
+                "3",
+                str(output_path),
+            ]
+        )
+        frames.append(
+            VisionFrame(
+                sceneIndex=scene_index + 1,
+                startMs=scene.startMs,
+                endMs=scene.endMs,
+                imagePath=output_path,
+            )
+        )
+    return frames

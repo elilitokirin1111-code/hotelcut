@@ -215,7 +215,7 @@ describeWithDatabase('M2 media API integration', () => {
       assetId: registration.asset.id,
       assetKind: 'video',
       expectedChecksumSha256: checksum,
-      pipelineVersion: 'm2-v2',
+      pipelineVersion: 'm2-v3',
     });
 
     const manualResponse = await app.inject({
@@ -283,6 +283,26 @@ describeWithDatabase('M2 media API integration', () => {
     expect(retryResponse.statusCode, retryResponse.body).toBe(202);
     expect(queue.jobs).toHaveLength(2);
     expect(queue.jobs[1]?.analysisJobId).not.toBe(queue.jobs[0]?.analysisJobId);
+
+    await client.sql`
+      update assets set status = 'ready' where id = ${registration.asset.id}
+    `;
+    await client.sql`
+      update analysis_jobs set status = 'succeeded'
+      where id = ${queue.jobs[1]!.analysisJobId}
+    `;
+    const refreshResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${registration.asset.id}/analysis/retry`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(refreshResponse.statusCode, refreshResponse.body).toBe(202);
+    expect(queue.jobs).toHaveLength(3);
+    expect(queue.jobs[2]).toMatchObject({
+      assetId: registration.asset.id,
+      assetKind: 'video',
+      pipelineVersion: 'm2-v3',
+    });
   });
 
   it('registers audio and queues the audio-only analysis pipeline', async () => {
@@ -321,7 +341,7 @@ describeWithDatabase('M2 media API integration', () => {
     expect(queue.jobs.at(-1)).toMatchObject({
       assetId: registration.asset.id,
       assetKind: 'audio',
-      pipelineVersion: 'm2-v2',
+      pipelineVersion: 'm2-v3',
     });
   });
 });
