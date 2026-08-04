@@ -5,8 +5,13 @@ import subprocess
 from collections.abc import Sequence
 from pathlib import Path
 
-from hotelcut_analysis_worker.media_tools import create_derivatives, probe_video
-from hotelcut_analysis_worker.models import VideoProbe
+from hotelcut_analysis_worker.media_tools import (
+    create_derivatives,
+    extract_vision_frames,
+    probe_audio,
+    probe_video,
+)
+from hotelcut_analysis_worker.models import SceneRange, VideoProbe
 
 
 class RecordingRunner:
@@ -56,6 +61,30 @@ def test_probe_video_normalizes_ffprobe_json() -> None:
     assert runner.arguments[0][0] == "ffprobe"
 
 
+def test_probe_audio_normalizes_audio_only_ffprobe_json() -> None:
+    runner = RecordingRunner(
+        {
+            "format": {"duration": "31.25", "bit_rate": "192000"},
+            "streams": [
+                {
+                    "codec_type": "audio",
+                    "codec_name": "mp3",
+                    "channels": 2,
+                    "sample_rate": "48000",
+                }
+            ],
+        }
+    )
+
+    probe = probe_audio(Path("background-music.mp3"), runner, "ffprobe")
+
+    assert probe.durationMs == 31_250
+    assert probe.audioCodec == "mp3"
+    assert probe.audioChannels == 2
+    assert probe.sampleRate == 48_000
+    assert probe.bitRate == 192_000
+
+
 def test_silent_video_generates_analysis_audio_without_an_input_stream() -> None:
     runner = RecordingRunner()
     probe = VideoProbe(
@@ -82,3 +111,33 @@ def test_silent_video_generates_analysis_audio_without_an_input_stream() -> None
     assert runner.arguments[2][1:4] == ["-y", "-f", "lavfi"]
     assert "anullsrc=channel_layout=mono:sample_rate=16000" in runner.arguments[2]
     assert "2.500" in runner.arguments[2]
+
+
+def test_vision_frames_cover_long_scene_lists_without_losing_scene_indices(
+    tmp_path: Path,
+) -> None:
+    runner = RecordingRunner()
+    scenes = [SceneRange(startMs=index * 1_000, endMs=(index + 1) * 1_000) for index in range(10)]
+
+    frames = extract_vision_frames(
+        Path("input.mp4"),
+        scenes,
+        tmp_path,
+        runner,
+        "ffmpeg",
+        maximum_frames=4,
+    )
+
+    assert [frame.sceneIndex for frame in frames] == [1, 4, 7, 10]
+    assert [frame.startMs for frame in frames] == [0, 3_000, 6_000, 9_000]
+    assert len(runner.arguments) == 4
+    assert [arguments[arguments.index("-ss") + 1] for arguments in runner.arguments] == [
+        "0.500",
+        "3.500",
+        "6.500",
+        "9.500",
+    ]
+    assert all(
+        any("force_original_aspect_ratio=decrease" in argument for argument in arguments)
+        for arguments in runner.arguments
+    )

@@ -1,11 +1,12 @@
 import { getActiveClips } from '@hotelcut/editor';
 import type { CaptionClip, HotelVideoProjectV1, TextClip } from '@hotelcut/timeline';
 
-import { findEditorAsset } from './demo-data';
+import { editorAssets, findEditorAsset, type EditorAsset } from './demo-data';
 import { Icon } from './icon';
 import { PreviewArtwork } from './preview-artwork';
 
 interface StudioPreviewProps {
+  assets?: readonly EditorAsset[];
   project: HotelVideoProjectV1;
   currentFrame: number;
   isPlaying: boolean;
@@ -22,6 +23,7 @@ function formatTime(frame: number, frameRate: number): string {
 }
 
 export function StudioPreview({
+  assets = editorAssets,
   project,
   currentFrame,
   isPlaying,
@@ -35,7 +37,9 @@ export function StudioPreview({
   const activeCaption = activeClips.find((clip): clip is CaptionClip => clip.kind === 'caption');
   const activeTitle = activeClips.find((clip): clip is TextClip => clip.kind === 'text');
   const asset =
-    activeVisual && 'assetId' in activeVisual ? findEditorAsset(activeVisual.assetId) : undefined;
+    activeVisual && 'assetId' in activeVisual
+      ? findEditorAsset(activeVisual.assetId, assets)
+      : undefined;
   const ctaActive =
     project.cta &&
     project.cta.startFrame <= currentFrame &&

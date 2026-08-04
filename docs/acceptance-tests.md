@@ -270,3 +270,126 @@ Verified on 2026-07-28:
 - selecting a hotel entered a workspace bound to that hotel and organization
 - Web typecheck, eight component/client tests and the production build passed
 - the browser flow completed login, list, search and selection with no console warnings or errors
+
+## M7 slice 2 verification record
+
+Verified on 2026-07-28:
+
+- scrypt credential tests covered correct, incorrect and malformed password hashes
+- opaque 256-bit tokens were stored only as SHA-256 digests in the new `user_sessions` table
+- email login issued an HttpOnly, SameSite cookie; protected routes ignored client user IDs when
+  the development compatibility path was disabled
+- session restoration, anonymous `204` probing, explicit logout revocation and expired-session
+  handling were covered by API and Web tests
+- migration `0003` applied to the active PostgreSQL service and the database-enabled integration
+  suite passed all seven M1/M2/M5/M6/M7 cases
+- the rebuilt Compose stack passed every service health check; a real login saw one tenant-scoped
+  organization and the revoked cookie received HTTP 401
+- format, lint, typecheck, unit tests, integration tests and the production build passed
+
+- the Chromium flow completed email login, hotel selection and workspace entry with no console or
+  page errors
+
+## M7 slice 3 verification record
+
+Verified on 2026-07-29:
+
+- entering a selected hotel loaded schema-validated hotel detail and BrandKit responses through
+  the server-owned session
+- an accessible hotel without a BrandKit received editable client defaults without an automatic
+  database write
+- hotel profile and BrandKit forms saved independently through the administrator-scoped
+  production APIs, updated the visible hotel snapshot and preserved an existing Logo reference
+- Web client/component coverage passed 13 tests, including request methods and bodies, initial
+  BrandKit defaults, saved state, header refresh and stable asynchronous loading
+- the PostgreSQL/API integration test covered hotel update, BrandKit read/write and returned 404
+  for another tenant's BrandKit read and write attempts
+- all six integration files and seven database tests passed against the active PostgreSQL service
+- the Chromium E2E flow completed email login, hotel selection and both configuration saves with
+  no console or page errors
+- the rebuilt Compose stack passed every service health check; desktop 1280×720 and mobile
+  390×844 browser reviews showed no horizontal overflow or visual overlap
+- format, lint, typecheck, unit tests, integration tests and the production build passed
+
+## M7 slice 4 verification record
+
+Verified on 2026-07-30:
+
+- the workspace listed only the selected hotel's production assets and loaded validated detail,
+  analysis jobs, logs, segments and derivative download responses
+- a real browser incrementally hashed and uploaded a generated MP4 through presigned multipart
+  URLs, received exposed MinIO ETags and completed registration without buffering the full file
+- the analysis worker changed the uploaded asset from waiting to ready and the selected detail
+  refreshed when the list state changed
+- operators could filter the library, inspect proxy or thumbnail derivatives, retry a failed
+  analysis and add a manual time-range label
+- Web tests covered client contracts, SHA-256 multipart completion, progress, status refresh,
+  retry and manual tagging
+- the PostgreSQL/API integration test covered owner listing and returned 404 for another
+  tenant's asset listing and upload registration
+- the Chromium workflow covered ready and failed assets, multipart completion, retry, tagging and
+  hotel/BrandKit saves without browser errors
+
+## M7 slice 5 verification record
+
+Verified on 2026-07-30:
+
+- the authenticated workspace exposed the three versioned templates, their supported durations
+  and required media-tag guidance
+- the workflow persisted a complete VideoBrief before generation and retained it for an explicit
+  retry when compilation failed
+- the API derived compiler input from the tenant-scoped Brief, BrandKit and ready asset detail;
+  it converted probe and segment timing to frames and mapped Chinese filenames/manual labels to
+  stable compiler tags
+- a PostgreSQL/API integration test created four tagged production assets, compiled all four
+  promotion slots, persisted immutable revision one, reloaded it and returned 404 to an outsider
+- the API and real browser rejected a zero-visual-slot compilation with an actionable retry
+  message, retained the Brief and verified that no empty video project was persisted
+- API and Web tests covered template contracts, media conversion, generation requests, project
+  persistence summaries and the vertical result preview
+- the Chromium workflow selected a template, saved a Brief, generated a project and displayed a
+  four-of-four slot result without browser errors; desktop and mobile reviews had no horizontal
+  overflow
+
+## M7 slice 6 verification record
+
+Verified on 2026-07-30:
+
+- generated and saved production projects opened in the existing Studio scene rail, preview,
+  inspector and simplified timeline
+- caption edits were debounced into revision two through the authenticated production API and
+  the visible revision state advanced after persistence
+- an HTTP 409 autosave conflict remained visible and the operator could explicitly load the
+  current server revision
+- the Studio blocked list navigation while local edits were pending and registered a browser
+  unload warning for unsaved changes
+- API integration rejected a ready video belonging to another hotel before writing a project
+  revision, while same-hotel project creation, autosave, reload and stale-revision rejection
+  continued to pass
+- Web component/client tests and the Chromium workflow covered Studio entry, caption editing,
+  production autosave, project-list return and conflict recovery
+
+## M7 slice 7 verification record
+
+Verified on 2026-07-30:
+
+- the hotel workspace exposed the production Render Center and listed only projects returned by
+  the selected hotel's authenticated project API
+- submitting a render locked the current immutable project revision and immediately exposed the
+  persisted queue attempt, progress bar and structured stage logs
+- active jobs polled detail until a persisted terminal state and exposed safe cancellation;
+  failed or cancelled attempts exposed retry only while the server attempt budget remained
+- completed attempts displayed the quality score, passed/warning/failed summary and individual
+  Worker checks rather than inferring delivery success from progress alone
+- each persisted video, thumbnail, caption, report, project or manifest artifact requested its
+  own short-lived membership-checked download URL
+- Web client and component coverage exercised submission, polling, cancellation, retry, quality
+  details and download preparation; the Chromium workflow covered Studio revision two through
+  completed render delivery without browser errors
+- a real Compose browser run uploaded and analyzed a 15-second asset, compiled an immutable
+  project revision, followed live rendering to quality control and prepared a membership-checked
+  video download URL; the run also proved that captionless projects omit the empty optional SRT
+  instead of violating the positive-size artifact constraint
+- the same real run surfaced the mandatory abnormal-silence failure with a 91 quality score while
+  still retaining five diagnostic/delivery artifacts, confirming that terminal delivery state is
+  driven by persisted quality results rather than progress reaching 100%

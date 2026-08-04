@@ -46,20 +46,26 @@ branch and discards the former redo stack.
 
 The Web app batches rapid edits behind a debounce. The save adapter receives the complete
 validated project and its `baseRevision`. Successful saves advance the visible revision; failed
-saves remain visibly failed and may be retried without an uncontrolled retry loop.
+saves remain visibly failed and may be retried without an uncontrolled retry loop. Production
+Studio also exposes immediate save, blocks returning to the list while dirty and warns on browser
+unload.
 
 ## Project API
 
 The implemented routes are:
 
 - `GET/POST /v1/hotels/:hotelId/video-projects`
+- `POST /v1/hotels/:hotelId/video-projects/generate`
+- `GET /v1/video-project-templates`
 - `GET /v1/video-projects/:id`
 - `GET/POST /v1/video-projects/:id/revisions`
 
 Project creation persists revision 1. Revision creation uses optimistic concurrency and returns
 HTTP 409 for a stale base revision. Repository joins enforce membership, so a caller outside the
-organization receives the same not-found response as an unknown project.
+organization receives the same not-found response as an unknown project. Before persistence, the
+API verifies that every visual/audio clip references a ready, compatible asset belonging to the
+persisted project hotel.
 
-M5 ships a fictional local Studio adapter so the editing surface is independently demonstrable.
-The API boundary is ready for the authenticated hotel/project workspace to select and save real
-projects in M7.
+M7 now opens generated and saved production projects in the same Studio surface. Debounced edits
+use the optimistic-concurrency revision API, and a stale editor offers an explicit reload of the
+server revision. The fictional adapter remains only as an isolated component-test/demo default.

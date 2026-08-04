@@ -1,4 +1,5 @@
 import type { DatabaseClient } from './client.js';
+import { hashPassword } from '@hotelcut/auth';
 import { brandKits, hotels, memberships, organizations, users, videoBriefs } from './schema.js';
 
 export const developmentSeed = {
@@ -7,9 +8,16 @@ export const developmentSeed = {
   hotelId: '30000000-0000-4000-8000-000000000001',
   brandKitId: '40000000-0000-4000-8000-000000000001',
   videoBriefId: '50000000-0000-4000-8000-000000000001',
+  email: 'owner@hotelcut.example',
+  password: 'hotelcut-local',
 } as const;
 
-export async function seedDevelopmentData(client: DatabaseClient): Promise<void> {
+export async function seedDevelopmentData(
+  client: DatabaseClient,
+  password: string = developmentSeed.password,
+): Promise<void> {
+  const passwordHash = await hashPassword(password);
+
   await client.db
     .insert(organizations)
     .values({
@@ -24,10 +32,14 @@ export async function seedDevelopmentData(client: DatabaseClient): Promise<void>
     .values({
       id: developmentSeed.userId,
       externalSubject: 'local-dev-owner',
-      email: 'owner@hotelcut.example',
+      email: developmentSeed.email,
+      passwordHash,
       displayName: '演示管理员',
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: users.id,
+      set: { passwordHash, updatedAt: new Date() },
+    });
 
   await client.db
     .insert(memberships)

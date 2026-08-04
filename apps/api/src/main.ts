@@ -17,12 +17,17 @@ const objectStorage = new S3MultipartObjectStorage({
   secretAccessKey: environment.S3_SECRET_ACCESS_KEY,
 });
 const app = await buildApp({
+  allowDevelopmentIdentity:
+    environment.NODE_ENV !== 'production' && environment.ALLOW_DEVELOPMENT_IDENTITY,
   analysisQueue,
+  authRepository: repository,
   downloadUrlTtlSeconds: environment.UPLOAD_URL_TTL_SECONDS,
   logger: true,
   objectStorage,
   renderQueue,
   repository,
+  secureSessionCookie: environment.SESSION_COOKIE_SECURE ?? environment.NODE_ENV === 'production',
+  sessionTtlSeconds: environment.AUTH_SESSION_TTL_SECONDS,
   storageBucket: environment.S3_BUCKET,
   uploadUrlTtlSeconds: environment.UPLOAD_URL_TTL_SECONDS,
 });

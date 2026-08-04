@@ -34,6 +34,7 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-http://localhost:5173,http://127.0.0.1:5173}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY:-hotelcut_local_secret}
       MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID:-hotelcut}
     ports:
@@ -67,8 +68,10 @@ services:
       args:
         APP_FILTER: '@hotelcut/api'
     environment:
+      ALLOW_DEVELOPMENT_IDENTITY: ${ALLOW_DEVELOPMENT_IDENTITY:-true}
       API_HOST: 0.0.0.0
       API_PORT: 3000
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-604800}
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
       NODE_ENV: development
       REDIS_URL: redis://redis:6379
@@ -78,6 +81,7 @@ services:
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-hotelcut_local_secret}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
     depends_on:
       db-bootstrap:
         condition: service_completed_successfully
@@ -107,6 +111,7 @@ services:
         APP_FILTER: '@hotelcut/database'
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
+      DEVELOPMENT_SEED_PASSWORD: ${DEVELOPMENT_SEED_PASSWORD:-hotelcut-local}
       SEED_DEVELOPMENT_DATA: ${SEED_DEVELOPMENT_DATA:-true}
     depends_on:
       postgres:
@@ -165,6 +170,17 @@ services:
       ANALYSIS_TRANSCRIPTION_PROVIDER: ${ANALYSIS_TRANSCRIPTION_PROVIDER:-mock}
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
       HF_HOME: /models/huggingface
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      OPENAI_VISION_DETAIL: ${OPENAI_VISION_DETAIL:-high}
+      OPENAI_VISION_MAX_FRAMES: ${OPENAI_VISION_MAX_FRAMES:-8}
+      OPENAI_VISION_MAX_OUTPUT_TOKENS: ${OPENAI_VISION_MAX_OUTPUT_TOKENS:-2048}
+      OPENAI_VISION_MAX_RETRIES: ${OPENAI_VISION_MAX_RETRIES:-2}
+      OPENAI_VISION_MODEL: ${OPENAI_VISION_MODEL:-gpt-5.6-terra}
+      OPENAI_VISION_PROVIDER: ${OPENAI_VISION_PROVIDER:-openai}
+      OPENAI_VISION_REASONING_EFFORT: ${OPENAI_VISION_REASONING_EFFORT:-medium}
+      OPENAI_VISION_REQUIRED: ${OPENAI_VISION_REQUIRED:-false}
+      OPENAI_VISION_TIMEOUT_SECONDS: ${OPENAI_VISION_TIMEOUT_SECONDS:-120}
       REDIS_URL: redis://redis:6379
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-hotelcut}
       S3_BUCKET: ${S3_BUCKET:-hotelcut-local}

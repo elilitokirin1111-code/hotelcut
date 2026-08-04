@@ -213,7 +213,7 @@ function createVisualClip(
     transitionIn: transitionForSlot(slot, 'in'),
     transitionOut: transitionForSlot(slot, 'out'),
     volume: slot.audioPolicy === 'keep' ? 1 : 0,
-    muted: slot.audioPolicy === 'mute',
+    muted: slot.audioPolicy !== 'keep',
     playbackRate: 1,
     metadata,
   };
@@ -370,9 +370,26 @@ function createTitleClip(
   };
 }
 
+function hasEligibleBackgroundMusic(input: CompilerInput, template: CompilationTemplate): boolean {
+  if (!template.music) {
+    return false;
+  }
+  const requiredTags = new Set(template.music.requiredTags.map((tag) => tag.toLowerCase()));
+  const duplicateAssets = findDuplicateAssets(input.media);
+  return input.media.some(
+    (media) =>
+      media.kind === 'audio' &&
+      media.availability === 'ready' &&
+      media.durationFrames !== null &&
+      !duplicateAssets.has(media.assetId) &&
+      media.tags.some((tag) => requiredTags.has(tag.toLowerCase())),
+  );
+}
+
 function createMusic(
   input: CompilerInput,
   template: CompilationTemplate,
+  selectedSlots: readonly SelectedSlot[],
   id: (namespace?: string) => string,
   warnings: CompilationResult['warnings'],
   scoreRecords: MediaScoreRecord[],
@@ -382,9 +399,9 @@ function createMusic(
     message: string,
     details?: Record<string, unknown>,
   ) => void,
-): { clips: AudioClip[]; manifestSlot: ManifestSlot | null } {
+): { clips: AudioClip[]; manifestSlot: ManifestSlot | null; trackName: string } {
   if (!template.music) {
-    return { clips: [], manifestSlot: null };
+    return { clips: [], manifestSlot: null, trackName: '背景音乐' };
   }
   const requiredTags = new Set(template.music.requiredTags.map((tag) => tag.toLowerCase()));
   const duplicateAssets = findDuplicateAssets(input.media);
@@ -463,14 +480,100 @@ function createMusic(
   scoreRecords.push(...candidates.map((candidate) => candidate.record));
   const selected = candidates.find((candidate) => candidate.record.eligible);
   if (!selected || selected.media.durationFrames === null) {
+    const ambienceAssetIds = new Set(
+      selectedSlots
+        .filter(
+          (selection) => selection.slot.audioPolicy === 'duck' && selection.clip?.kind === 'video',
+        )
+        .map((selection) => selection.clip?.assetId)
+        .filter((assetId): assetId is string => typeof assetId === 'string'),
+    );
+    const ambience = input.media
+      .filter(
+        (media) =>
+          ambienceAssetIds.has(media.assetId) &&
+          media.kind === 'video' &&
+          media.availability === 'ready' &&
+          media.durationFrames !== null &&
+          media.analysis.hasAudio &&
+          media.analysis.silenceRatioBasisPoints <= 8_000,
+      )
+      .sort(
+        (left, right) =>
+          left.analysis.silenceRatioBasisPoints - right.analysis.silenceRatioBasisPoints ||
+          right.analysis.qualityBasisPoints - left.analysis.qualityBasisPoints ||
+          (right.durationFrames ?? 0) - (left.durationFrames ?? 0) ||
+          compareStrings(left.assetId, right.assetId),
+      )[0];
+    if (ambience?.durationFrames) {
+      const clips: AudioClip[] = [];
+      let cursor = 0;
+      let index = 0;
+      while (cursor < input.output.durationFrames) {
+        const durationFrames = Math.min(
+          ambience.durationFrames,
+          input.output.durationFrames - cursor,
+        );
+        clips.push({
+          id: id(`ambience:${index}`),
+          kind: 'audio',
+          assetId: ambience.assetId,
+          startFrame: cursor,
+          durationFrames,
+          sourceStartFrame: 0,
+          sourceDurationFrames: durationFrames,
+          volume: 0.18,
+          fadeInFrames: cursor === 0 ? Math.min(12, durationFrames) : 0,
+          fadeOutFrames:
+            cursor + durationFrames === input.output.durationFrames
+              ? Math.min(12, durationFrames)
+              : 0,
+          metadata: {
+            slotId: 'music',
+            loopIndex: index,
+            sourceType: 'ambience-fallback',
+          },
+        });
+        cursor += durationFrames;
+        index += 1;
+      }
+      warnings.push({
+        code: 'BACKGROUND_MUSIC_MISSING',
+        message: 'No eligible background music was available; source ambience fallback is active',
+        severity: 'info',
+        path: 'media',
+      });
+      explain(
+        'music',
+        'SOURCE_AMBIENCE_FALLBACK',
+        'Filled the project audio bed with ambience from a selected video',
+        { assetId: ambience.assetId, loopCount: clips.length, volume: 0.18 },
+      );
+      return {
+        clips,
+        manifestSlot: {
+          slotId: 'music',
+          role: 'music',
+          startFrame: 0,
+          durationFrames: input.output.durationFrames,
+          clipId: clips[0]?.id ?? null,
+          assetId: ambience.assetId,
+          segmentId: null,
+          score: ambience.scoreBasisPoints ?? ambience.analysis.qualityBasisPoints,
+          locked: false,
+          reason: 'Source ambience fallback fills the project',
+        },
+        trackName: '原视频环境声',
+      };
+    }
     warnings.push({
       code: 'BACKGROUND_MUSIC_MISSING',
-      message: 'No eligible background music was available',
+      message: 'No eligible background music or source ambience was available',
       severity: 'warning',
       path: 'media',
     });
-    explain('music', 'BACKGROUND_MUSIC_MISSING', 'No background music was selected');
-    return { clips: [], manifestSlot: null };
+    explain('music', 'BACKGROUND_MUSIC_MISSING', 'No usable audio source was selected');
+    return { clips: [], manifestSlot: null, trackName: '背景音乐' };
   }
   selected.record.selected = true;
   selected.record.reasons.push('Highest score for background music');
@@ -526,6 +629,7 @@ function createMusic(
       locked: false,
       reason: 'Highest deterministic music score',
     },
+    trackName: '背景音乐',
   };
 }
 
@@ -599,6 +703,7 @@ export function compileVideo(rawInput: unknown, rawTemplate: unknown): Compilati
   });
   const selectedSlots: SelectedSlot[] = [];
   const resolvedSlots = resolveTemplateSlots(template, input.output.durationFrames);
+  const preferAudibleVisuals = !hasEligibleBackgroundMusic(input, template);
 
   resolvedSlots.forEach((slot) => {
     const lockedClip = findLockedClip(input.previousProject, lockedClipIds, slot.id);
@@ -640,7 +745,13 @@ export function compileVideo(rawInput: unknown, rawTemplate: unknown): Compilati
       return;
     }
 
-    const ranking = rankSlotCandidates(input.media, slot, usage(), input.seed);
+    const ranking = rankSlotCandidates(
+      input.media,
+      slot,
+      usage(),
+      input.seed,
+      preferAudibleVisuals,
+    );
     scoreRecords.push(...ranking.records);
     const selectedRecord = ranking.records.find((record) => record.selected);
     if (!ranking.selected || !selectedRecord) {
@@ -679,7 +790,7 @@ export function compileVideo(rawInput: unknown, rawTemplate: unknown): Compilati
       clip,
       score: selectedRecord.totalScore,
       locked: false,
-      reason: 'Highest deterministic score for slot',
+      reason: selectedRecord.reasons.at(-1) ?? 'Highest deterministic score for slot',
     });
     explain('select', 'SLOT_MEDIA_SELECTED', `Selected media for ${slot.id}`, {
       assetId: ranking.selected.media.assetId,
@@ -761,12 +872,20 @@ export function compileVideo(rawInput: unknown, rawTemplate: unknown): Compilati
     });
   }
 
-  const music = createMusic(input, template, createId, warnings, scoreRecords, explain);
+  const music = createMusic(
+    input,
+    template,
+    selectedSlots,
+    createId,
+    warnings,
+    scoreRecords,
+    explain,
+  );
   if (music.clips.length > 0) {
     tracks.push({
       id: createId('track:music'),
       kind: 'audio',
-      name: '背景音乐',
+      name: music.trackName,
       enabled: true,
       locked: false,
       muted: false,

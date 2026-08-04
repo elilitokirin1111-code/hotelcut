@@ -1,13 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, lt } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 import {
   DomainConflictError,
   DomainNotFoundError,
   assertRenderJobTransition,
+  type AuthRepository,
   type AssetUploadContext,
+  type CreateUserSessionInput,
   type HotelCutRepository,
   type PersistQualityReportInput,
   type PersistRenderArtifactInput,
@@ -42,6 +44,7 @@ import type {
   RenderJobStatus,
   UpdateHotelInput,
   UpsertBrandKitInput,
+  User,
   VideoBrief,
   VideoProject,
   VideoProjectDetail,
@@ -70,6 +73,18 @@ function toIso(value: Date): string {
 
 function mapOrganization(row: typeof schema.organizations.$inferSelect): Organization {
   return { ...row, createdAt: toIso(row.createdAt), updatedAt: toIso(row.updatedAt) };
+}
+
+function mapUser(row: typeof schema.users.$inferSelect): User {
+  return {
+    id: row.id,
+    externalSubject: row.externalSubject,
+    email: row.email,
+    displayName: row.displayName,
+    status: row.status,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  };
 }
 
 function mapHotel(row: typeof schema.hotels.$inferSelect): Hotel {
@@ -203,11 +218,59 @@ function renderStageForStatus(status: RenderJobStatus): RenderLogEntry['stage'] 
   return 'validating';
 }
 
-export class PostgresHotelCutRepository implements HotelCutRepository {
+export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepository {
   constructor(private readonly db: Database) {}
 
   async ping(): Promise<void> {
     await this.db.execute('select 1');
+  }
+
+  async findPasswordCredentialByEmail(email: string) {
+    const [row] = await this.db
+      .select()
+      .from(schema.users)
+      .where(and(eq(schema.users.email, email), eq(schema.users.status, 'active')))
+      .limit(1);
+
+    if (!row?.passwordHash) {
+      return null;
+    }
+    return { passwordHash: row.passwordHash, user: mapUser(row) };
+  }
+
+  async createUserSession(input: CreateUserSessionInput): Promise<void> {
+    await this.db.transaction(async (transaction) => {
+      await transaction
+        .delete(schema.userSessions)
+        .where(
+          and(
+            eq(schema.userSessions.userId, input.userId),
+            lt(schema.userSessions.expiresAt, new Date()),
+          ),
+        );
+      await transaction.insert(schema.userSessions).values(input);
+    });
+  }
+
+  async findUserBySessionTokenHash(tokenHash: string, now: Date) {
+    const [row] = await this.db
+      .select({ expiresAt: schema.userSessions.expiresAt, user: schema.users })
+      .from(schema.userSessions)
+      .innerJoin(schema.users, eq(schema.users.id, schema.userSessions.userId))
+      .where(
+        and(
+          eq(schema.userSessions.tokenHash, tokenHash),
+          gt(schema.userSessions.expiresAt, now),
+          eq(schema.users.status, 'active'),
+        ),
+      )
+      .limit(1);
+
+    return row ? { expiresAt: row.expiresAt, user: mapUser(row.user) } : null;
+  }
+
+  async revokeUserSession(tokenHash: string): Promise<void> {
+    await this.db.delete(schema.userSessions).where(eq(schema.userSessions.tokenHash, tokenHash));
   }
 
   async listOrganizations(actorUserId: string): Promise<Organization[]> {
@@ -1205,8 +1268,8 @@ export class PostgresHotelCutRepository implements HotelCutRepository {
         };
       }
     }
-    if (currentAsset.status !== 'failed') {
-      throw new DomainConflictError('Only failed asset analysis can be retried');
+    if (currentAsset.status !== 'failed' && currentAsset.status !== 'ready') {
+      throw new DomainConflictError('Only failed or ready asset analysis can be retried');
     }
 
     return this.db.transaction(async (transaction) => {
@@ -1227,7 +1290,10 @@ export class PostgresHotelCutRepository implements HotelCutRepository {
             {
               at: now.toISOString(),
               level: 'info',
-              message: 'Analysis manually retried',
+              message:
+                currentAsset.status === 'ready'
+                  ? 'Analysis refresh manually queued'
+                  : 'Analysis manually retried',
             },
           ],
         })

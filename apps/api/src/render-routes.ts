@@ -5,7 +5,6 @@ import { z } from 'zod';
 import type { HotelCutRepository } from '@hotelcut/domain';
 import type { RenderQueue } from '@hotelcut/job-queue';
 import {
-  actorHeadersSchema,
   createRenderJobSchema,
   errorResponseSchema,
   idParamsSchema,
@@ -47,19 +46,18 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
     '/v1/video-projects/:id/render-jobs',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: z.array(renderJobSchema),
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'List immutable render attempts for a video project',
         tags: ['render-jobs'],
       },
     },
-    async (request) => repository().listRenderJobs(request.headers['x-user-id'], request.params.id),
+    async (request) => repository().listRenderJobs(request.actorUserId, request.params.id),
   );
 
   app.post(
@@ -67,7 +65,6 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
     {
       schema: {
         body: createRenderJobSchema,
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           201: renderJobSchema,
@@ -75,14 +72,14 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
           404: errorResponseSchema,
           409: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Queue a render for an immutable project revision',
         tags: ['render-jobs'],
       },
     },
     async (request, reply) => {
       const job = await repository().createRenderJob(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.id,
         request.body,
       );
@@ -107,26 +104,24 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
     '/v1/render-jobs/:id',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: renderJobDetailSchema,
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Get render progress, logs, artifacts, and quality report',
         tags: ['render-jobs'],
       },
     },
-    async (request) => repository().getRenderJob(request.headers['x-user-id'], request.params.id),
+    async (request) => repository().getRenderJob(request.actorUserId, request.params.id),
   );
 
   app.post(
     '/v1/render-jobs/:id/cancel',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: renderJobSchema,
@@ -134,20 +129,19 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
           404: errorResponseSchema,
           409: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Request cancellation without mutating the source project',
         tags: ['render-jobs'],
       },
     },
     async (request) =>
-      repository().requestRenderCancellation(request.headers['x-user-id'], request.params.id),
+      repository().requestRenderCancellation(request.actorUserId, request.params.id),
   );
 
   app.post(
     '/v1/render-jobs/:id/retry',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: renderJobSchema,
@@ -155,16 +149,13 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
           404: errorResponseSchema,
           409: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Retry a failed or cancelled render within its attempt budget',
         tags: ['render-jobs'],
       },
     },
     async (request) => {
-      const job = await repository().retryRenderJob(
-        request.headers['x-user-id'],
-        request.params.id,
-      );
+      const job = await repository().retryRenderJob(request.actorUserId, request.params.id);
       try {
         await renderQueue().enqueue({
           attempt: job.attempt + 1,
@@ -186,23 +177,19 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
     '/v1/render-artifacts/:id/download',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: renderArtifactDownloadSchema,
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Create a short-lived download URL for a render artifact',
         tags: ['render-artifacts'],
       },
     },
     async (request) => {
-      const artifact = await repository().getRenderArtifact(
-        request.headers['x-user-id'],
-        request.params.id,
-      );
+      const artifact = await repository().getRenderArtifact(request.actorUserId, request.params.id);
       const downloadUrl = await objectStorage().presignDownload(
         { bucket: artifact.storageBucket, key: artifact.storageKey },
         options.downloadUrlTtlSeconds,

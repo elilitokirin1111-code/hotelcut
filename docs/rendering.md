@@ -15,8 +15,9 @@ cancellation signal and a progress callback.
   probes codecs and detects long black or silent ranges.
 - `OpenCutRenderer` remains an optional future adapter only.
 
-Required artifacts are MP4, SRT, cover frame, normalized project JSON, media manifest and quality
-report. They use deterministic keys under `renders/{jobId}/attempt-{attempt}/`.
+Required artifacts are MP4, cover frame, normalized project JSON, media manifest and quality
+report. SRT is included when the project contains captions; an empty optional SRT is not uploaded
+or persisted. Artifacts use deterministic keys under `renders/{jobId}/attempt-{attempt}/`.
 
 ## Job flow
 
@@ -48,6 +49,17 @@ video project to `draft`; a failed attempt never edits its bound revision.
 
 All reads and operator actions are membership scoped. Artifact downloads use short-lived
 S3-compatible signed URLs.
+
+## M7 workspace adapter
+
+The hotel workspace Render Center consumes these production endpoints directly. It lists
+tenant-visible projects and immutable render attempts, submits the current project revision,
+polls only while the selected job is active and exposes cancellation or retry according to the
+server-owned state machine. Completed attempts show Worker logs, quality-control details and
+artifact metadata before requesting a short-lived download URL.
+
+The UI does not infer success from queue progress alone. It reloads `RenderJobDetail` and treats
+the persisted terminal status, quality report and artifacts as the delivery source of truth.
 
 ## Local verification
 

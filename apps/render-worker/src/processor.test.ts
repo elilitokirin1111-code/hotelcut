@@ -108,7 +108,10 @@ function queueJob(): Job<RenderJobData> {
   } as unknown as Job<RenderJobData>;
 }
 
-function successfulRenderer(missingAssetIds: string[] = []): RendererAdapter {
+function successfulRenderer(
+  missingAssetIds: string[] = [],
+  captionsContent = 'fixture',
+): RendererAdapter {
   return {
     name: 'test-renderer',
     async render(request): Promise<RendererOutput> {
@@ -119,7 +122,11 @@ function successfulRenderer(missingAssetIds: string[] = []): RendererAdapter {
         manifestPath: join(request.outputDirectory, 'manifest.json'),
         projectPath: join(request.outputDirectory, 'project.json'),
       };
-      await Promise.all(Object.values(paths).map((path) => writeFile(path, 'fixture')));
+      await Promise.all(
+        Object.entries(paths).map(([kind, path]) =>
+          writeFile(path, kind === 'captionsPath' ? captionsContent : 'fixture'),
+        ),
+      );
       await request.onProgress?.({
         phase: 'rendering',
         basisPoints: 8_000,
@@ -191,6 +198,28 @@ describe('M6 render processor', () => {
       ]),
       expect.objectContaining({ status: 'passed', scoreBasisPoints: 10_000 }),
     );
+  });
+
+  it('skips an empty optional captions artifact', async () => {
+    const fakeRepository = repository();
+    const fakeStorage = storage();
+    const putObjectSpy = vi.spyOn(fakeStorage, 'putObject');
+    const persistOutcomeSpy = vi.spyOn(fakeRepository, 'persistRenderOutcome');
+    const processRender = createRenderProcessor({
+      assetUrlTtlSeconds: 900,
+      bucket: 'hotelcut-test',
+      objectStorage: fakeStorage,
+      renderer: successfulRenderer([], ''),
+      repository: fakeRepository,
+      tempRoot: await tempRoot(),
+    });
+
+    await expect(processRender(queueJob())).resolves.toMatchObject({ status: 'succeeded' });
+
+    const artifacts = persistOutcomeSpy.mock.calls[0]?.[1] ?? [];
+    expect(putObjectSpy).toHaveBeenCalledTimes(5);
+    expect(artifacts.map((artifact) => artifact.kind)).not.toContain('captions');
+    expect(artifacts.every((artifact) => artifact.byteSize > 0)).toBe(true);
   });
 
   it('persists failed quality results and rejects the BullMQ job', async () => {

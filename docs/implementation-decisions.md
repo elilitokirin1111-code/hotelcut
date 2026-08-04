@@ -338,3 +338,79 @@
   fake password form or hidden hard-coded identity would misrepresent the authentication state.
 - Impact: the workspace can exercise real tenant isolation now, while the UI must continue to
   label the session as development-only until formal email authentication replaces it.
+
+## ID-035: Basic email authentication uses opaque database sessions
+
+- Date: 2026-07-28
+- Status: accepted
+- Decision: hash local passwords with scrypt, issue 256-bit opaque tokens, persist only token
+  digests and expiries, and deliver the raw token in an HttpOnly, SameSite cookie.
+- Reason: browser-supplied user IDs cannot be a production trust boundary, while revocable opaque
+  sessions keep identity server-owned without pulling enterprise SSO into the MVP.
+- Impact: every protected API route resolves a current active user before tenant authorization;
+  `x-user-id` is a non-production compatibility path and the seed credential is local-only.
+
+## ID-036: BrandKit editing defers Logo selection to the asset library
+
+- Date: 2026-07-29
+- Status: accepted
+- Decision: expose editable hotel and BrandKit text/style fields through existing
+  administrator-scoped APIs, preserve any current `logoAssetId`, and do not accept a raw Logo
+  asset ID in the Web form.
+- Reason: a useful Logo picker must list only same-hotel image assets and validate ownership;
+  exposing UUID entry before the M7 asset-library slice would create an unsafe and confusing
+  workflow.
+- Impact: the configuration slice is production-backed for hotel details and BrandKit defaults;
+  the asset-library slice owns Logo selection and its cross-hotel failure states.
+
+## ID-037: Browser uploads hash and transfer video incrementally
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: compute SHA-256 from bounded browser slices, upload presigned multipart parts with
+  bounded concurrency and complete the upload with the exact MinIO `ETag` values.
+- Reason: whole-file buffering makes normal hotel footage unsafe on memory-constrained browsers,
+  while application-proxied uploads add avoidable server bandwidth and timeout pressure.
+- Impact: storage CORS must allow the Web origin and expose `ETag`; direct storage requests never
+  receive session cookies, and the API remains responsible for size/checksum validation before
+  analysis is queued.
+
+## ID-038: Production compilation derives all media input on the server
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: accept only a tenant-scoped VideoBrief ID, catalog template key and optional seed at
+  the generation endpoint; load BrandKit and ready asset details through the repository, map
+  analyzed timing and operator labels into compiler input, then persist revision one.
+- Reason: accepting browser-supplied media candidates or project JSON would let clients bypass
+  tenant ownership, readiness and analysis guarantees.
+- Impact: the API depends on the pure compiler and template packages, compilation failures return
+  explicit validation errors, and the browser receives only the persisted project plus a compact
+  generation summary.
+
+## ID-039: Production Studio saves immutable whole-document revisions
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: reuse the M5 command/history editor for tenant-scoped projects, debounce complete
+  validated documents into the existing revision endpoint and retain optimistic concurrency.
+  Validate every referenced media asset against the persisted project hotel before saving.
+- Reason: a second editor model or browser-authored patch format would split timeline behavior,
+  while accepting arbitrary asset UUIDs would bypass the hotel ownership and readiness boundary.
+- Impact: rapid changes create one auditable revision, stale editors receive HTTP 409 with an
+  explicit reload action, and cross-hotel or incompatible media references fail before
+  persistence.
+
+## ID-040: Render delivery treats persisted job detail as the source of truth
+
+- Date: 2026-07-30
+- Status: accepted
+- Decision: submit the current project through the existing immutable-revision render endpoint,
+  poll only the selected active job and present persisted status, logs, quality report and
+  artifacts. Request artifact download URLs individually from the API.
+- Reason: queue progress alone cannot prove that post-processing, mandatory quality checks or
+  artifact persistence completed, and browser-constructed object URLs would bypass membership
+  authorization.
+- Impact: Studio edits after submission cannot mutate the render input; cancellation and retry
+  continue to follow the server state machine and attempt budget; every download uses a
+  short-lived membership-checked URL without exposing storage credentials.

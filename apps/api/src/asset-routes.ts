@@ -4,7 +4,6 @@ import type { HotelCutRepository, QueuedAssetAnalysis } from '@hotelcut/domain';
 import type { AnalysisQueue } from '@hotelcut/job-queue';
 import { ANALYSIS_PIPELINE_VERSION, type AnalysisJobData } from '@hotelcut/media';
 import {
-  actorHeadersSchema,
   analysisRetryResponseSchema,
   assetDerivativeParamsSchema,
   assetDetailSchema,
@@ -43,9 +42,13 @@ function analysisJobData(queued: QueuedAssetAnalysis): AnalysisJobData {
   if (!queued.asset.checksumSha256) {
     throw new DomainConflictError('Asset checksum is required before analysis');
   }
+  if (queued.asset.kind !== 'video' && queued.asset.kind !== 'audio') {
+    throw new DomainConflictError(`Asset kind ${queued.asset.kind} is not supported for analysis`);
+  }
   return {
     analysisJobId: queued.analysisJob.id,
     assetId: queued.asset.id,
+    assetKind: queued.asset.kind,
     hotelId: queued.asset.hotelId,
     storageBucket: queued.asset.storageBucket,
     storageKey: queued.asset.storageKey,
@@ -78,16 +81,14 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
     '/v1/hotels/:hotelId/assets',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: { 200: z.array(assetSchema), ...commonResponses },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'List media assets for a hotel',
         tags: ['assets'],
       },
     },
-    async (request) =>
-      repository().listAssets(request.headers['x-user-id'], request.params.hotelId),
+    async (request) => repository().listAssets(request.actorUserId, request.params.hotelId),
   );
 
   app.post(
@@ -95,16 +96,15 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
     {
       schema: {
         body: createAssetUploadSchema,
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: { 201: createAssetUploadResponseSchema, ...commonResponses },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Create a multipart object-storage upload',
         tags: ['assets'],
       },
     },
     async (request, reply) => {
-      const actorUserId = request.headers['x-user-id'];
+      const actorUserId = request.actorUserId;
       const hotelId = request.params.hotelId;
       await repository().getHotel(actorUserId, hotelId);
 
@@ -162,17 +162,16 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
     {
       schema: {
         body: completeAssetUploadSchema,
-        headers: actorHeadersSchema,
         params: assetIdParamsSchema,
         response: { 202: completeAssetUploadResponseSchema, ...commonResponses },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Complete an upload and queue media analysis',
         tags: ['assets'],
       },
     },
     async (request, reply) => {
       const context = await repository().getAssetUpload(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.assetId,
         request.body.uploadId,
       );
@@ -211,7 +210,7 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
       }
 
       const queued = await repository().completeAssetUpload(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.assetId,
         request.body,
       );
@@ -228,33 +227,30 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
     '/v1/assets/:assetId',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: assetIdParamsSchema,
         response: { 200: assetDetailSchema, ...commonResponses },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Get media parameters, derivatives, segments, transcript and analysis logs',
         tags: ['assets'],
       },
     },
-    async (request) =>
-      repository().getAssetDetail(request.headers['x-user-id'], request.params.assetId),
+    async (request) => repository().getAssetDetail(request.actorUserId, request.params.assetId),
   );
 
   app.post(
     '/v1/assets/:assetId/analysis/retry',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: assetIdParamsSchema,
         response: { 202: analysisRetryResponseSchema, ...commonResponses },
-        security: [{ developmentUser: [] }],
-        summary: 'Safely retry a failed or undispatched analysis job',
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Safely retry, refresh or dispatch an asset analysis job',
         tags: ['assets'],
       },
     },
     async (request, reply) => {
       const queued = await repository().retryAssetAnalysis(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.assetId,
       );
       await analysisQueue().enqueue(analysisJobData(queued));
@@ -271,17 +267,16 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
     {
       schema: {
         body: createManualSegmentSchema,
-        headers: actorHeadersSchema,
         params: assetIdParamsSchema,
         response: { 201: assetSegmentSchema, ...commonResponses },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Add a manual media label or time range',
         tags: ['assets'],
       },
     },
     async (request, reply) => {
       const segment = await repository().createManualSegment(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.assetId,
         request.body,
       );
@@ -293,17 +288,16 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
     '/v1/assets/:assetId/derivatives/:kind/download',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: assetDerivativeParamsSchema,
         response: { 200: derivativeDownloadSchema, ...commonResponses },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Create a short-lived derivative download URL',
         tags: ['assets'],
       },
     },
     async (request) => {
       const derivative = await repository().getAssetDerivative(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.assetId,
         request.params.kind,
       );

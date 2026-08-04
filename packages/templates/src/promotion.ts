@@ -2,7 +2,7 @@ import { defineCompilationTemplate } from '@hotelcut/compiler';
 
 export const promotionTemplate = defineCompilationTemplate({
   id: 'hotel.promotion',
-  version: '1.0.0',
+  version: '1.1.0',
   name: 'Hotel promotion video',
   minDurationSeconds: 15,
   maxDurationSeconds: 25,
@@ -18,7 +18,7 @@ export const promotionTemplate = defineCompilationTemplate({
       preferredTags: ['wide', 'day'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
     {
@@ -32,7 +32,7 @@ export const promotionTemplate = defineCompilationTemplate({
       preferredTags: ['window', 'clean'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
     {
@@ -46,7 +46,7 @@ export const promotionTemplate = defineCompilationTemplate({
       preferredTags: ['staff', 'welcome'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
     {
@@ -60,7 +60,7 @@ export const promotionTemplate = defineCompilationTemplate({
       preferredTags: ['food', 'weekend'],
       required: true,
       allowAssetReuse: false,
-      audioPolicy: 'mute',
+      audioPolicy: 'duck',
       transition: 'dissolve',
     },
   ],

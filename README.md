@@ -7,7 +7,8 @@ quality report.
 ## Milestone status
 
 M0 through M6 were completed and locally accepted on 2026-07-28. M7 is in progress through
-small, reviewable workspace slices. The repository now includes:
+small, reviewable workspace slices, including the production render-delivery center. The
+repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -54,6 +55,12 @@ small, reviewable workspace slices. The repository now includes:
 - fixed-media golden rendering for all three hotel templates
 - an explicit development seed-account entry for the M7 Web workspace
 - tenant-scoped organization and hotel discovery with search and hotel selection
+- scrypt-based email login with an HttpOnly opaque session cookie
+- PostgreSQL session revocation and server-derived actor identity on protected routes
+- editable hotel details and BrandKit defaults through administrator-scoped production APIs
+- production-backed asset upload, analysis monitoring, filtering, preview, retry and manual tags
+- production VideoBrief, template selection, deterministic automatic compilation and revision-one
+  project preview
 
 ## Prerequisites
 
@@ -98,12 +105,16 @@ pnpm down
 For local hot reload, start infrastructure with `pnpm dev:infra` and applications with
 `pnpm dev:apps`.
 
-Compose applies migrations and loads fictional development data before starting the API. Local
-requests use the seeded development identity until the authentication milestone:
+Compose applies migrations and loads fictional development data before starting the API. Sign in
+through the Web app with the local-only seed credential:
 
 ```text
-x-user-id: 20000000-0000-4000-8000-000000000001
+email: owner@hotelcut.example
+password: hotelcut-local
 ```
+
+Set `ALLOW_DEVELOPMENT_IDENTITY=false` to disable the legacy `x-user-id` integration-test path
+and exercise only server-owned sessions.
 
 The seeded organization is `云栖酒店集团（演示）`. To manage the database manually:
 
@@ -169,25 +180,38 @@ See `packages/README.md` for package ownership.
 
 ## Current limitations
 
-- `x-user-id` is a development-only identity boundary; SSO/JWT authentication is not yet
-  implemented.
+- Basic email/password sessions are implemented, but self-service signup, password reset, email
+  verification, login rate limiting, MFA and enterprise SSO are not yet implemented.
 - Local Compose defaults to the deterministic `mock` transcription provider. Set
   `ANALYSIS_TRANSCRIPTION_PROVIDER=faster-whisper` to run the real model; the first run downloads
   the configured model into the persistent Docker model cache.
-- M2 detects scenes, speech and VAD ranges. Black-frame, duplicate-fingerprint and waveform
-  analysis remain follow-up analysis enhancements.
+- M2 detects scenes, speech and VAD ranges. With `OPENAI_API_KEY`, the Analysis Worker also sends
+  bounded representative frames to the OpenAI Responses API for structured hotel-scene tags,
+  visual quality scoring and selling-point extraction. Without the key or during provider
+  failure, deterministic and manual-tag editing remains available.
 - The M5 preview remains an editorial interpreter; M6 final output is produced independently by
   Remotion and FFmpeg.
 - MinIO images use moving development tags and must be pinned before shared staging use.
 - OpenCut is documentation and adapter planning only.
-- The M7 workspace now selects a tenant-scoped hotel through the production API, but formal email
-  authentication and production video-project selection are not yet wired. The M5 Studio still
-  uses its fictional local project adapter.
+- The M7 workspace now authenticates with a server-owned session, selects a tenant-scoped hotel,
+  edits its hotel/BrandKit configuration, operates its video asset library and creates
+  automatically compiled production projects. Generated and saved projects now open in the full
+  Studio, persist later edits as immutable production revisions and can be rendered into
+  quality-checked downloadable delivery artifacts.
 - Remotion licensing and expected rendering capacity must be reviewed before commercial launch.
 
 ## M7 progress
 
-The first M7 slice uses the documented development seed account to load only organizations and
-hotels visible to its actor identity, search the hotel list and enter a selected hotel workspace.
-Formal email authentication, hotel configuration, the asset library, production project
-selection, the render center, operation audit and quotas remain M7 work.
+The first M7 slice added tenant-scoped hotel discovery and selection. The second slice adds
+email/password verification, revocable PostgreSQL sessions, HttpOnly cookie restoration and
+logout, and server-derived identity for all protected APIs. The third slice adds editable hotel
+details and BrandKit defaults, preserves existing Logo references until the asset library can
+offer an ownership-checked selector, and covers BrandKit cross-tenant reads and writes. The fourth
+slice adds the production video asset library with chunked hashing, direct multipart upload,
+analysis monitoring, filtering, derivative preview, manual tags and safe retry. The fifth slice
+adds a production VideoBrief form, template catalog, Chinese-to-canonical media-tag mapping,
+server-side deterministic compilation, revision-one persistence and result preview. Production
+Studio persistence is now connected with debounced autosave, manual save, conflict recovery and
+same-hotel asset validation. The seventh slice connects render submission, live progress,
+cancellation, retry, quality reports and short-lived artifact downloads. Operation audit, Logo
+selection and quotas follow.

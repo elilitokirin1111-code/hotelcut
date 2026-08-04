@@ -229,6 +229,10 @@ function scoreSource(
     eligible = false;
     reasons.push('Asset is already used by another slot');
   }
+  if (source.segment?.scoreBasisPoints === 0) {
+    eligible = false;
+    reasons.push('Analyzed scene was marked unusable');
+  }
 
   const tagSet = new Set(source.tags);
   const requiredMatches = slot.requiredTags.filter((tag) => tagSet.has(tag.toLowerCase()));
@@ -348,17 +352,26 @@ export function rankSlotCandidates(
   slot: ResolvedTemplateSlot,
   usage: CandidateUsage,
   seed: number,
+  preferAudibleForAmbientAudio = false,
 ): { selected: SourceCandidate | null; records: MediaScoreRecord[] } {
   const scored = buildSourceCandidates(media, slot).map((source) =>
     scoreSource(source, slot, usage, seed),
   );
-  const ranked = scored
-    .filter((entry) => entry.record.eligible)
-    .sort(
-      (left, right) =>
-        right.record.totalScore - left.record.totalScore ||
-        compareStrings(left.source.candidateId, right.source.candidateId),
-    );
+  const eligible = scored.filter((entry) => entry.record.eligible);
+  const audible =
+    preferAudibleForAmbientAudio && slot.audioPolicy === 'duck'
+      ? eligible.filter(
+          (entry) =>
+            entry.source.media.kind === 'video' &&
+            entry.source.media.analysis.hasAudio &&
+            entry.source.media.analysis.silenceRatioBasisPoints <= 8_000,
+        )
+      : [];
+  const ranked = (audible.length > 0 ? audible : eligible).sort(
+    (left, right) =>
+      right.record.totalScore - left.record.totalScore ||
+      compareStrings(left.source.candidateId, right.source.candidateId),
+  );
   const selected = ranked[0]?.source ?? null;
   if (selected) {
     const selectedRecord = scored.find(
@@ -366,7 +379,11 @@ export function rankSlotCandidates(
     );
     if (selectedRecord) {
       selectedRecord.record.selected = true;
-      selectedRecord.record.reasons.push('Highest deterministic score for slot');
+      selectedRecord.record.reasons.push(
+        audible.length > 0
+          ? 'Highest deterministic score among audible ambient candidates'
+          : 'Highest deterministic score for slot',
+      );
     }
   }
 

@@ -9,7 +9,7 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any, Protocol, cast
 
-from hotelcut_analysis_worker.models import SceneRange, VideoProbe
+from hotelcut_analysis_worker.models import AudioProbe, SceneRange, VideoProbe, VisionFrame
 
 
 class CommandRunner(Protocol):
@@ -89,6 +89,43 @@ def probe_video(
         audioCodec=str(audio.get("codec_name")) if audio else None,
         audioChannels=int(audio["channels"]) if audio and audio.get("channels") else None,
         rotation=rotation,
+    )
+
+
+def probe_audio(
+    input_path: Path,
+    runner: CommandRunner,
+    ffprobe_path: str,
+) -> AudioProbe:
+    """Normalize audio-only ffprobe JSON without requiring a video stream."""
+
+    completed = runner.run(
+        [
+            ffprobe_path,
+            "-v",
+            "error",
+            "-print_format",
+            "json",
+            "-show_format",
+            "-show_streams",
+            str(input_path),
+        ]
+    )
+    payload = cast(dict[str, Any], json.loads(completed.stdout))
+    audio = _stream(payload, "audio")
+    if audio is None:
+        raise ValueError("Uploaded object has no audio stream")
+    format_data = cast(dict[str, Any], payload.get("format", {}))
+    duration_seconds = float(audio.get("duration") or format_data.get("duration") or 0)
+    channels = audio.get("channels")
+    sample_rate = audio.get("sample_rate")
+    bit_rate = audio.get("bit_rate") or format_data.get("bit_rate")
+    return AudioProbe(
+        durationMs=max(1, round(duration_seconds * 1_000)),
+        audioCodec=str(audio.get("codec_name") or "unknown"),
+        audioChannels=int(channels) if channels else None,
+        sampleRate=int(sample_rate) if sample_rate else None,
+        bitRate=int(bit_rate) if bit_rate else None,
     )
 
 
@@ -197,3 +234,60 @@ def detect_scenes(input_path: Path, duration_ms: int) -> list[SceneRange]:
         for start, end in detected
     ]
     return scenes or [SceneRange(startMs=0, endMs=duration_ms)]
+
+
+def _sample_scene_indices(scene_count: int, maximum_frames: int) -> list[int]:
+    if scene_count <= maximum_frames:
+        return list(range(scene_count))
+    if maximum_frames == 1:
+        return [scene_count // 2]
+    return sorted(
+        {
+            round(position * (scene_count - 1) / (maximum_frames - 1))
+            for position in range(maximum_frames)
+        }
+    )
+
+
+def extract_vision_frames(
+    input_path: Path,
+    scenes: list[SceneRange],
+    output_directory: Path,
+    runner: CommandRunner,
+    ffmpeg_path: str,
+    maximum_frames: int,
+) -> list[VisionFrame]:
+    """Extract bounded, representative JPEGs while retaining original scene indices."""
+
+    output_directory.mkdir(parents=True, exist_ok=True)
+    frames: list[VisionFrame] = []
+    for scene_index in _sample_scene_indices(len(scenes), maximum_frames):
+        scene = scenes[scene_index]
+        sample_ms = scene.startMs + max(0, (scene.endMs - scene.startMs) // 2)
+        output_path = output_directory / f"scene-{scene_index + 1:03d}.jpg"
+        runner.run(
+            [
+                ffmpeg_path,
+                "-y",
+                "-ss",
+                f"{sample_ms / 1_000:.3f}",
+                "-i",
+                str(input_path),
+                "-frames:v",
+                "1",
+                "-vf",
+                "scale=1280:1280:force_original_aspect_ratio=decrease",
+                "-q:v",
+                "3",
+                str(output_path),
+            ]
+        )
+        frames.append(
+            VisionFrame(
+                sceneIndex=scene_index + 1,
+                startMs=scene.startMs,
+                endMs=scene.endMs,
+                imagePath=output_path,
+            )
+        )
+    return frames

@@ -12,6 +12,7 @@ from hotelcut_analysis_worker import __version__
 from hotelcut_analysis_worker.config import Settings
 from hotelcut_analysis_worker.processor import AnalysisProcessor
 from hotelcut_analysis_worker.queue_worker import create_queue_worker
+from hotelcut_analysis_worker.vision import vision_is_configured
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -49,6 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "service": "hotelcut-analysis-worker",
             "status": "ok",
             "version": __version__,
+            "vision": "configured" if vision_is_configured(resolved_settings) else "disabled",
         }
 
     @app.get("/ready")
@@ -71,7 +73,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=503, detail="analysis_dependencies_unavailable")
 
         return {
-            "checks": {"ffmpeg": "ok", "ffprobe": "ok", "redis": "ok"},
+            "checks": {
+                "ffmpeg": "ok",
+                "ffprobe": "ok",
+                "redis": "ok",
+                "vision": ("configured" if vision_is_configured(resolved_settings) else "disabled"),
+            },
             "service": "hotelcut-analysis-worker",
             "status": "ready",
         }

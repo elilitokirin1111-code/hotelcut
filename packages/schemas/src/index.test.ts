@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assetSegmentSchema,
+  createAssetUploadSchema,
   createHotelSchema,
   createVideoProjectSchema,
   createVideoBriefSchema,
   dateTimeSchema,
+  generateVideoProjectSchema,
+  projectTemplateSchema,
   renderJobSchema,
   saveProjectRevisionSchema,
   upsertBrandKitSchema,
@@ -53,6 +56,45 @@ describe('shared input schemas', () => {
     });
 
     expect(brief).toMatchObject({ aspectRatio: '9:16', language: 'zh-CN' });
+  });
+
+  it('accepts video and audio production uploads while rejecting mismatched media types', () => {
+    const base = {
+      byteSize: 1_024,
+      checksumSha256: 'a'.repeat(64),
+      originalFilename: 'hotel-media',
+      partSize: 8 * 1024 * 1024,
+    };
+    expect(
+      createAssetUploadSchema.parse({ ...base, contentType: 'video/mp4', kind: 'video' }),
+    ).toMatchObject({ kind: 'video' });
+    expect(
+      createAssetUploadSchema.parse({ ...base, contentType: 'audio/mpeg', kind: 'audio' }),
+    ).toMatchObject({ kind: 'audio' });
+    expect(() =>
+      createAssetUploadSchema.parse({ ...base, contentType: 'video/mp4', kind: 'audio' }),
+    ).toThrow('Content type must match asset kind audio');
+  });
+
+  it('validates the automatic-edit template contract and optional deterministic seed', () => {
+    expect(
+      projectTemplateSchema.parse({
+        key: 'hotel.room-montage',
+        version: '1.0.0',
+        name: '客房卖点混剪',
+        description: '适合客房与设施展示',
+        minDurationSeconds: 15,
+        maxDurationSeconds: 35,
+        requiredTags: ['exterior', 'room'],
+      }),
+    ).toMatchObject({ key: 'hotel.room-montage', minDurationSeconds: 15 });
+    expect(
+      generateVideoProjectSchema.parse({
+        videoBriefId: '50000000-0000-4000-8000-000000000001',
+        templateKey: 'hotel.room-montage',
+        seed: 20260730,
+      }),
+    ).toMatchObject({ seed: 20260730 });
   });
 
   it('rejects a media segment whose end precedes its start', () => {

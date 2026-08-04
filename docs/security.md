@@ -6,9 +6,26 @@ Organization and hotel access are verified for every read and write. Storage key
 URLs, projects, BrandKits and artifacts must not cross tenant boundaries.
 
 M1 performs membership joins inside PostgreSQL repository queries. Unauthorized resource reads
-return not found so callers cannot use response differences to enumerate other tenants. The
-`x-user-id` development header is not authentication and must never be enabled as a production
-trust boundary.
+return not found so callers cannot use response differences to enumerate other tenants.
+
+## Authentication and sessions
+
+M7 basic email authentication uses:
+
+- scrypt password hashes with per-password random salts
+- 256-bit opaque random session tokens
+- SHA-256 token digests in PostgreSQL; raw tokens exist only in the browser cookie
+- HttpOnly, SameSite=Lax cookies with bounded lifetime and explicit logout revocation
+- active-user checks on every session lookup
+- one generic invalid-credential response and equivalent password work for unknown emails
+
+Protected API routes derive the actor user ID from the server-owned session before repository
+authorization. The `x-user-id` header remains only for non-production integration compatibility;
+the production process disables that trust path even if a caller supplies the header.
+
+Production deployment must set `SEED_DEVELOPMENT_DATA=false`, use HTTPS with
+`SESSION_COOKIE_SECURE=true`, add deployment-level login rate limiting, and provide password
+reset and email-verification operations before onboarding customer accounts.
 
 ## Uploads and media tools
 

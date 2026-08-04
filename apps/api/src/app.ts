@@ -12,11 +12,11 @@ import { z } from 'zod';
 import {
   DomainConflictError,
   DomainNotFoundError,
+  type AuthRepository,
   type HotelCutRepository,
 } from '@hotelcut/domain';
 import type { AnalysisQueue, RenderQueue } from '@hotelcut/job-queue';
 import {
-  actorHeadersSchema,
   brandKitSchema,
   createHotelSchema,
   createVideoBriefSchema,
@@ -32,16 +32,21 @@ import {
 import type { MultipartObjectStorage } from '@hotelcut/storage';
 
 import { assetRoutes } from './asset-routes.js';
+import { configureAuthentication } from './authentication.js';
 import { projectRoutes } from './project-routes.js';
 import { renderRoutes } from './render-routes.js';
 
 interface BuildAppOptions {
+  allowDevelopmentIdentity?: boolean;
   analysisQueue?: AnalysisQueue;
+  authRepository?: AuthRepository;
   downloadUrlTtlSeconds?: number;
   logger?: boolean;
   objectStorage?: MultipartObjectStorage;
   renderQueue?: RenderQueue;
   repository?: HotelCutRepository;
+  secureSessionCookie?: boolean;
+  sessionTtlSeconds?: number;
   storageBucket?: string;
   uploadUrlTtlSeconds?: number;
 }
@@ -110,7 +115,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
             type: 'apiKey',
             in: 'header',
             name: 'x-user-id',
-            description: 'M1 development identity; replace with SSO/JWT in a later milestone.',
+            description: 'Non-production compatibility identity; disabled in production.',
+          },
+          sessionCookie: {
+            type: 'apiKey',
+            in: 'cookie',
+            name: 'hotelcut_session',
+            description: 'Opaque server-owned session created by email login.',
           },
         },
       },
@@ -160,32 +171,37 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return options.repository;
   };
 
+  configureAuthentication(app, {
+    allowDevelopmentIdentity: options.allowDevelopmentIdentity ?? true,
+    repository: options.authRepository,
+    secureSessionCookie: options.secureSessionCookie ?? false,
+    sessionTtlSeconds: options.sessionTtlSeconds ?? 604_800,
+  });
+
   app.get(
     '/v1/organizations',
     {
       schema: {
-        headers: actorHeadersSchema,
         response: { 200: z.array(organizationSchema), 400: errorResponseSchema },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'List organizations visible to the current user',
         tags: ['organizations'],
       },
     },
-    async (request) => repository().listOrganizations(request.headers['x-user-id']),
+    async (request) => repository().listOrganizations(request.actorUserId),
   );
 
   app.get(
     '/v1/hotels',
     {
       schema: {
-        headers: actorHeadersSchema,
         response: { 200: z.array(hotelSchema), 400: errorResponseSchema },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'List hotels in the current user organizations',
         tags: ['hotels'],
       },
     },
-    async (request) => repository().listHotels(request.headers['x-user-id']),
+    async (request) => repository().listHotels(request.actorUserId),
   );
 
   app.post(
@@ -193,20 +209,19 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     {
       schema: {
         body: createHotelSchema,
-        headers: actorHeadersSchema,
         response: {
           201: hotelSchema,
           400: errorResponseSchema,
           404: errorResponseSchema,
           409: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Create a hotel in an administered organization',
         tags: ['hotels'],
       },
     },
     async (request, reply) => {
-      const hotel = await repository().createHotel(request.headers['x-user-id'], request.body);
+      const hotel = await repository().createHotel(request.actorUserId, request.body);
       return reply.code(201).send(hotel);
     },
   );
@@ -215,15 +230,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/v1/hotels/:id',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: { 200: hotelSchema, 400: errorResponseSchema, 404: errorResponseSchema },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Get a tenant-scoped hotel',
         tags: ['hotels'],
       },
     },
-    async (request) => repository().getHotel(request.headers['x-user-id'], request.params.id),
+    async (request) => repository().getHotel(request.actorUserId, request.params.id),
   );
 
   app.patch(
@@ -231,32 +245,29 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     {
       schema: {
         body: updateHotelSchema,
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: { 200: hotelSchema, 400: errorResponseSchema, 404: errorResponseSchema },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Update an administered hotel',
         tags: ['hotels'],
       },
     },
     async (request) =>
-      repository().updateHotel(request.headers['x-user-id'], request.params.id, request.body),
+      repository().updateHotel(request.actorUserId, request.params.id, request.body),
   );
 
   app.get(
     '/v1/hotels/:hotelId/brand-kit',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: { 200: brandKitSchema, 400: errorResponseSchema, 404: errorResponseSchema },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Get a hotel brand kit',
         tags: ['brand-kits'],
       },
     },
-    async (request) =>
-      repository().getBrandKit(request.headers['x-user-id'], request.params.hotelId),
+    async (request) => repository().getBrandKit(request.actorUserId, request.params.hotelId),
   );
 
   app.put(
@@ -264,40 +275,33 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     {
       schema: {
         body: upsertBrandKitSchema,
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: { 200: brandKitSchema, 400: errorResponseSchema, 404: errorResponseSchema },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Create or replace an administered hotel brand kit',
         tags: ['brand-kits'],
       },
     },
     async (request) =>
-      repository().upsertBrandKit(
-        request.headers['x-user-id'],
-        request.params.hotelId,
-        request.body,
-      ),
+      repository().upsertBrandKit(request.actorUserId, request.params.hotelId, request.body),
   );
 
   app.get(
     '/v1/hotels/:hotelId/video-briefs',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: {
           200: z.array(videoBriefSchema),
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'List video briefs for a hotel',
         tags: ['video-briefs'],
       },
     },
-    async (request) =>
-      repository().listVideoBriefs(request.headers['x-user-id'], request.params.hotelId),
+    async (request) => repository().listVideoBriefs(request.actorUserId, request.params.hotelId),
   );
 
   app.post(
@@ -305,21 +309,20 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     {
       schema: {
         body: createVideoBriefSchema,
-        headers: actorHeadersSchema,
         params: hotelIdParamsSchema,
         response: {
           201: videoBriefSchema,
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Create a video brief for a hotel',
         tags: ['video-briefs'],
       },
     },
     async (request, reply) => {
       const brief = await repository().createVideoBrief(
-        request.headers['x-user-id'],
+        request.actorUserId,
         request.params.hotelId,
         request.body,
       );
@@ -331,19 +334,18 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     '/v1/video-briefs/:id',
     {
       schema: {
-        headers: actorHeadersSchema,
         params: idParamsSchema,
         response: {
           200: videoBriefSchema,
           400: errorResponseSchema,
           404: errorResponseSchema,
         },
-        security: [{ developmentUser: [] }],
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
         summary: 'Get a tenant-scoped video brief',
         tags: ['video-briefs'],
       },
     },
-    async (request) => repository().getVideoBrief(request.headers['x-user-id'], request.params.id),
+    async (request) => repository().getVideoBrief(request.actorUserId, request.params.id),
   );
 
   await app.register(assetRoutes, {

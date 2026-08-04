@@ -17,4 +17,5 @@ async def test_health_reports_service_identity() -> None:
         "service": "hotelcut-analysis-worker",
         "status": "ok",
         "version": "0.0.0",
+        "vision": "disabled",
     }

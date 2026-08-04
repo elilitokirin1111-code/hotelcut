@@ -37,23 +37,120 @@ membership joins in the repository remain the source of truth, and inaccessible 
 continue to return 404. Search and selection operate only on the already tenant-filtered API
 response.
 
-The seed identity is not formal authentication. It is:
+The original seed identity was fictional, development-only, not persisted in browser storage and
+visibly labeled as incomplete authentication.
 
-- fictional
-- development-only
-- not persisted in browser storage
-- visibly labeled as incomplete authentication
+## Slice 2: basic email session
 
-M7 must add basic email authentication before this path can be considered suitable for real
-hotel customers. Complex enterprise SSO remains outside the MVP.
+The second slice replaces the Web seed-button identity with a real email/password session:
+
+1. `POST /v1/auth/login` verifies the normalized email and scrypt password hash.
+2. PostgreSQL stores only a digest of the opaque session token and its expiry.
+3. The API returns the raw token only in an HttpOnly, SameSite cookie.
+4. Protected routes resolve that cookie to an active user and inject the actor identity before
+   tenant-scoped repository calls.
+5. `GET /v1/auth/session` restores the Web session and `DELETE /v1/auth/session` revokes it.
+6. The development header remains available only when explicitly allowed outside production.
+
+The fictional seed account now exercises this formal boundary. It remains clearly labeled as
+local-only data; production must disable seeding. Password reset, email verification, login rate
+limiting and enterprise SSO remain later hardening or expansion work.
+
+## Slice 3: hotel and BrandKit configuration
+
+The third slice turns the first workspace module into a production-backed configuration flow:
+
+1. Entering a selected hotel loads its tenant-scoped hotel detail and BrandKit.
+2. An accessible hotel without a BrandKit receives editable client defaults but no database row
+   until the operator explicitly saves.
+3. Hotel profile and BrandKit forms save independently through the administrator-scoped
+   `PATCH /v1/hotels/:id` and `PUT /v1/hotels/:hotelId/brand-kit` routes.
+4. Successful hotel updates replace the selected hotel in the workspace snapshot so the header,
+   search list and next entry use the persisted value.
+5. BrandKit saving preserves an existing Logo asset reference. Logo selection remains disabled
+   until the asset-library slice can expose only same-hotel assets and validate ownership.
+
+The UI never accepts a raw Logo asset UUID. Contact and ending copy remain operator-supplied
+facts; the application does not invent booking or contact claims.
+
+## Slice 4: production video asset library
+
+The fourth slice connects the hotel workspace to the complete M2 media pipeline:
+
+1. The browser hashes videos incrementally and uploads presigned MinIO parts with bounded
+   concurrency and visible phase progress.
+2. Tenant-scoped production APIs list assets and load detail, analysis logs and signed
+   derivatives.
+3. The library filters by file name and processing state, polls only while work is active and
+   refreshes the selected detail when analysis changes.
+4. Operators can retry failed analysis and add manual time-range tags without replacing
+   automatic scene, speech or VAD segments.
+5. Upload and derivative URLs remain short-lived; direct storage requests do not receive the
+   application session cookie.
+
+Compose explicitly exposes the MinIO `ETag` response header to the configured Web origins because
+multipart completion requires the exact server-returned value.
+
+## Slice 5: production automatic-edit workflow
+
+The fifth slice turns analyzed assets into a saved, editable project:
+
+1. The operator selects one of the three versioned HotelCut templates and sees its supported
+   duration and required media categories.
+2. The workspace saves a tenant-scoped VideoBrief with platform, duration, tone, audience,
+   objective and approved CTA copy.
+3. The API loads the persisted Brief, BrandKit and only ready assets visible to the actor.
+4. Chinese filenames and manual segment labels are mapped to the compiler's stable media tags;
+   probe timing, resolution, audio state, scene/speech/manual segments and transcript words are
+   converted to integer-frame candidates.
+5. The existing deterministic compiler selects and lays out clips. The API persists its validated
+   project as immutable revision one and returns slot, asset and warning summaries.
+6. The workspace shows a vertical review preview, track/clip counts and all persisted projects.
+   A failed compilation preserves the Brief and exposes an explicit retry.
+
+The browser never sends compiler media records or a project document. Those are derived on the
+server from tenant-authorized production data so a caller cannot smuggle another hotel's assets
+into a generated project.
+
+## Slice 6: production Studio and autosave
+
+The sixth slice connects the existing no-JSON editor to selected production projects:
+
+1. A generated or previously saved project opens directly in HotelCut Studio.
+2. The scene rail, preview, timeline and inspector operate on the persisted project document.
+3. Ready video, image and audio assets from the selected hotel become the replacement catalog.
+4. Rapid edits are debounced into `POST /v1/video-projects/:id/revisions`; a manual save action is
+   available while changes are pending.
+5. Successful saves advance the visible immutable revision. HTTP 409 leaves the local edit
+   visibly failed and offers an explicit server-revision reload instead of overwriting it.
+6. The API validates every referenced clip asset against the persisted project hotel, ready
+   state and compatible media kind before creating a revision.
+
+The Studio prevents returning to the project list while local changes remain unsaved. Browser
+unload also receives a native unsaved-change warning.
+
+## Slice 7: render delivery center
+
+The seventh slice exposes the existing M6 render pipeline in the tenant-scoped workspace:
+
+1. The render center lists only projects visible in the selected hotel workspace.
+2. Submitting a render locks the current immutable project revision; later Studio edits cannot
+   mutate an in-flight or completed render input.
+3. The selected render attempt polls authenticated detail for preprocessing, rendering,
+   validation, progress, logs and terminal state.
+4. Active jobs can request safe cancellation. Failed or cancelled jobs can retry within the
+   server-owned attempt budget.
+5. The completed job displays the quality score, passed/warning/failed summary and individual
+   checks produced by the Worker.
+6. MP4, thumbnail, captions, report, project and manifest artifacts receive short-lived
+   membership-checked download links only when requested.
+
+The browser never receives storage credentials or constructs object keys. Download authorization
+is regenerated by the API for the authenticated hotel member.
 
 ## Remaining M7 slices
 
-- basic email login and server-owned session identity
-- editable hotel and BrandKit configuration
-- asset upload, analysis status, filtering and manual tagging
-- production video-project selection and Studio autosave adapter
-- render submission, progress, retry and artifact downloads
+- ownership-checked BrandKit Logo selection
 - operation audit
 - basic quotas and quota failure states
 - end-to-end cross-tenant tests for assets, projects, artifacts, BrandKit and upload URLs
@@ -64,8 +161,11 @@ hotel customers. Complex enterprise SSO remains outside the MVP.
 docker compose up -d --build web
 pnpm --filter @hotelcut/web typecheck
 pnpm --filter @hotelcut/web test
+pnpm test:e2e
 pnpm --filter @hotelcut/web build
 ```
 
-Open `http://localhost:5173`, enter with the seed account, search for the fictional hotel and
-enter its workspace.
+Open `http://localhost:5173`, enter with the seed account, search for the fictional hotel, enter
+its workspace, upload and tag analyzed videos, then create an automatic-edit project from the
+Video Project module. Save Studio edits, open Render Center, submit the current revision and
+review its progress, quality report and delivery downloads.

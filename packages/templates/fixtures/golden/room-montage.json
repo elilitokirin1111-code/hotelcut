@@ -5,7 +5,7 @@
     "id": "21111111-1111-4111-8111-111111111111",
     "hotelId": "22222222-2222-4222-8222-222222222222",
     "name": "云栖酒店客房卖点",
-    "template": { "id": "hotel.room-montage", "version": "1.0.0" },
+    "template": { "id": "hotel.room-montage", "version": "1.1.0" },
     "output": {
       "width": 1080,
       "height": 1920,
@@ -76,7 +76,7 @@
     },
     "tracks": [
       {
-        "id": "d4d10713-c4f4-4118-b338-9878046af84c",
+        "id": "8a7d6703-a666-457d-bb6c-9054b31ba101",
         "kind": "video",
         "name": "主画面",
         "enabled": true,
@@ -85,7 +85,7 @@
         "zIndex": 0,
         "clips": [
           {
-            "id": "cb559519-d525-4771-8e0c-05bcf5a89962",
+            "id": "295e9f3a-6c0a-4f77-af7c-7b23f8de3bbe",
             "startFrame": 0,
             "durationFrames": 135,
             "transform": {
@@ -116,7 +116,7 @@
             "playbackRate": 1
           },
           {
-            "id": "dcab66f7-cd1d-44d7-9127-ea8c336bd29a",
+            "id": "bbcd14ed-a963-41ca-a6e6-dc32af2f2ee7",
             "startFrame": 135,
             "durationFrames": 180,
             "transform": {
@@ -147,7 +147,7 @@
             "playbackRate": 1
           },
           {
-            "id": "344ef6ef-9390-4df7-a887-228222c12d68",
+            "id": "218f4501-88ce-41b4-9ac7-ef8ff6496b62",
             "startFrame": 315,
             "durationFrames": 120,
             "transform": {
@@ -173,7 +173,7 @@
             "assetId": "10000000-0000-4000-8000-000000000006"
           },
           {
-            "id": "77be77c5-4dae-4115-ada1-0607fb6e3197",
+            "id": "efbe0c81-de41-407e-a544-2f59267610e4",
             "startFrame": 435,
             "durationFrames": 150,
             "transform": {
@@ -204,7 +204,7 @@
             "playbackRate": 1
           },
           {
-            "id": "b40925c6-49ec-45e0-a361-d366a58341c7",
+            "id": "beafa295-f010-4ef1-856e-d95111a6cdf1",
             "startFrame": 585,
             "durationFrames": 165,
             "transform": {
@@ -233,7 +233,7 @@
         "metadata": { "compilerTrack": "main" }
       },
       {
-        "id": "c499c15e-f934-4dda-85dd-24c3132b9d1d",
+        "id": "0d74882a-d019-46d7-8de5-8f1f074d5dee",
         "kind": "overlay",
         "name": "标题",
         "enabled": true,
@@ -242,7 +242,7 @@
         "zIndex": 20,
         "clips": [
           {
-            "id": "27bbfc99-127c-4fcc-891d-68ada8e23d2d",
+            "id": "3f1e4383-1f60-42c9-9d5b-21d3d12f0ec3",
             "startFrame": 0,
             "durationFrames": 113,
             "transform": {
@@ -274,7 +274,7 @@
         "metadata": { "compilerTrack": "title" }
       },
       {
-        "id": "0fb44d94-1ba6-4a57-a1b8-5d0a8e49d520",
+        "id": "d0be2158-42a3-49b1-9ef5-8c3f320409da",
         "kind": "audio",
         "name": "背景音乐",
         "enabled": true,
@@ -283,7 +283,7 @@
         "zIndex": 0,
         "clips": [
           {
-            "id": "8f303902-2363-40df-b224-51123a1c47e4",
+            "id": "40bd49a5-6b6b-45f5-bc0a-a3bd82d4a8cc",
             "kind": "audio",
             "assetId": "10000000-0000-4000-8000-000000000011",
             "startFrame": 0,
@@ -296,7 +296,7 @@
             "metadata": { "slotId": "music", "loopIndex": 0 }
           },
           {
-            "id": "1b345eeb-6d33-40f3-8b3c-455becc1d856",
+            "id": "5c74d4ed-5994-4fda-9308-bb068c281b43",
             "kind": "audio",
             "assetId": "10000000-0000-4000-8000-000000000011",
             "startFrame": 600,
@@ -316,7 +316,7 @@
     "metadata": {
       "compilation": {
         "operation": "initial",
-        "inputHash": "216385725e4f21d4f292adc57b65bc898629a4584e723b6360b23c50c9f5dfdb"
+        "inputHash": "f210904a47ca2903e30fd79f1e0ff8080dc8e7f0324fbda9bea20af1041fe1a8"
       }
     }
   },
@@ -325,16 +325,16 @@
     "compilerVersion": "1.0.0",
     "operation": "initial",
     "projectId": "21111111-1111-4111-8111-111111111111",
-    "template": { "id": "hotel.room-montage", "version": "1.0.0" },
+    "template": { "id": "hotel.room-montage", "version": "1.1.0" },
     "seed": 20260727,
-    "inputHash": "216385725e4f21d4f292adc57b65bc898629a4584e723b6360b23c50c9f5dfdb",
+    "inputHash": "f210904a47ca2903e30fd79f1e0ff8080dc8e7f0324fbda9bea20af1041fe1a8",
     "slots": [
       {
         "slotId": "room.exterior",
         "role": "montage",
         "startFrame": 0,
         "durationFrames": 135,
-        "clipId": "cb559519-d525-4771-8e0c-05bcf5a89962",
+        "clipId": "295e9f3a-6c0a-4f77-af7c-7b23f8de3bbe",
         "assetId": "10000000-0000-4000-8000-000000000003",
         "segmentId": "13000000-0000-4000-8000-000000000001",
         "score": 14197,
@@ -346,7 +346,7 @@
         "role": "montage",
         "startFrame": 135,
         "durationFrames": 180,
-        "clipId": "dcab66f7-cd1d-44d7-9127-ea8c336bd29a",
+        "clipId": "bbcd14ed-a963-41ca-a6e6-dc32af2f2ee7",
         "assetId": "10000000-0000-4000-8000-000000000005",
         "segmentId": "15000000-0000-4000-8000-000000000001",
         "score": 14704,
@@ -358,7 +358,7 @@
         "role": "montage",
         "startFrame": 315,
         "durationFrames": 120,
-        "clipId": "344ef6ef-9390-4df7-a887-228222c12d68",
+        "clipId": "218f4501-88ce-41b4-9ac7-ef8ff6496b62",
         "assetId": "10000000-0000-4000-8000-000000000006",
         "segmentId": null,
         "score": 12980,
@@ -370,7 +370,7 @@
         "role": "montage",
         "startFrame": 435,
         "durationFrames": 150,
-        "clipId": "77be77c5-4dae-4115-ada1-0607fb6e3197",
+        "clipId": "efbe0c81-de41-407e-a544-2f59267610e4",
         "assetId": "10000000-0000-4000-8000-000000000007",
         "segmentId": "17000000-0000-4000-8000-000000000001",
         "score": 13204,
@@ -382,7 +382,7 @@
         "role": "montage",
         "startFrame": 585,
         "durationFrames": 165,
-        "clipId": "b40925c6-49ec-45e0-a361-d366a58341c7",
+        "clipId": "beafa295-f010-4ef1-856e-d95111a6cdf1",
         "assetId": "10000000-0000-4000-8000-000000000009",
         "segmentId": null,
         "score": 12950,
@@ -394,7 +394,7 @@
         "role": "music",
         "startFrame": 0,
         "durationFrames": 750,
-        "clipId": "8f303902-2363-40df-b224-51123a1c47e4",
+        "clipId": "40bd49a5-6b6b-45f5-bc0a-a3bd82d4a8cc",
         "assetId": "10000000-0000-4000-8000-000000000011",
         "segmentId": null,
         "score": 12250,

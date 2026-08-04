@@ -23,10 +23,12 @@ const checksum = 'a'.repeat(64);
 
 class FakeObjectStorage implements MultipartObjectStorage {
   completedParts: MultipartPart[] = [];
+  startedUploads = 0;
 
   startMultipartUpload(input: MultipartUploadInput): Promise<string> {
     void input;
-    return Promise.resolve('provider-upload-id');
+    this.startedUploads += 1;
+    return Promise.resolve(`provider-upload-id-${this.startedUploads}`);
   }
 
   presignUploadPart(
@@ -211,8 +213,9 @@ describeWithDatabase('M2 media API integration', () => {
     expect(queue.jobs).toHaveLength(1);
     expect(queue.jobs[0]).toMatchObject({
       assetId: registration.asset.id,
+      assetKind: 'video',
       expectedChecksumSha256: checksum,
-      pipelineVersion: 'm2-v1',
+      pipelineVersion: 'm2-v3',
     });
 
     const manualResponse = await app.inject({
@@ -224,12 +227,44 @@ describeWithDatabase('M2 media API integration', () => {
     expect(manualResponse.statusCode, manualResponse.body).toBe(201);
     expect(manualResponse.json()).toMatchObject({ kind: 'manual', source: 'manual' });
 
+    const ownerListResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotelId}/assets`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(ownerListResponse.statusCode, ownerListResponse.body).toBe(200);
+    expect(ownerListResponse.json<{ id: string }[]>()).toEqual([
+      expect.objectContaining({ id: registration.asset.id }),
+    ]);
+
     const outsiderResponse = await app.inject({
       method: 'GET',
       url: `/v1/assets/${registration.asset.id}`,
       headers: { 'x-user-id': outsiderUserId },
     });
     expect(outsiderResponse.statusCode, outsiderResponse.body).toBe(404);
+
+    const outsiderListResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotelId}/assets`,
+      headers: { 'x-user-id': outsiderUserId },
+    });
+    expect(outsiderListResponse.statusCode, outsiderListResponse.body).toBe(404);
+
+    const outsiderUploadResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/uploads`,
+      headers: { 'x-user-id': outsiderUserId },
+      payload: {
+        kind: 'video',
+        originalFilename: 'cross-tenant.mp4',
+        contentType: 'video/mp4',
+        byteSize: 35_687,
+        checksumSha256: checksum,
+        partSize: 5 * 1024 * 1024,
+      },
+    });
+    expect(outsiderUploadResponse.statusCode, outsiderUploadResponse.body).toBe(404);
 
     await client.sql`
       update assets set status = 'failed' where id = ${registration.asset.id}
@@ -248,5 +283,65 @@ describeWithDatabase('M2 media API integration', () => {
     expect(retryResponse.statusCode, retryResponse.body).toBe(202);
     expect(queue.jobs).toHaveLength(2);
     expect(queue.jobs[1]?.analysisJobId).not.toBe(queue.jobs[0]?.analysisJobId);
+
+    await client.sql`
+      update assets set status = 'ready' where id = ${registration.asset.id}
+    `;
+    await client.sql`
+      update analysis_jobs set status = 'succeeded'
+      where id = ${queue.jobs[1]!.analysisJobId}
+    `;
+    const refreshResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${registration.asset.id}/analysis/retry`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(refreshResponse.statusCode, refreshResponse.body).toBe(202);
+    expect(queue.jobs).toHaveLength(3);
+    expect(queue.jobs[2]).toMatchObject({
+      assetId: registration.asset.id,
+      assetKind: 'video',
+      pipelineVersion: 'm2-v3',
+    });
+  });
+
+  it('registers audio and queues the audio-only analysis pipeline', async () => {
+    const queuedBefore = queue.jobs.length;
+    const registrationResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/uploads`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        kind: 'audio',
+        originalFilename: 'hotel-bgm.mp3',
+        contentType: 'audio/mpeg',
+        byteSize: 35_687,
+        checksumSha256: checksum,
+        partSize: 5 * 1024 * 1024,
+      },
+    });
+    expect(registrationResponse.statusCode, registrationResponse.body).toBe(201);
+    const registration = registrationResponse.json<{
+      asset: { id: string; kind: string };
+      upload: { providerUploadId: string };
+    }>();
+    expect(registration.asset.kind).toBe('audio');
+
+    const completionResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${registration.asset.id}/uploads/complete`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        uploadId: registration.upload.providerUploadId,
+        parts: [{ partNumber: 1, etag: '"audio-etag"' }],
+      },
+    });
+    expect(completionResponse.statusCode, completionResponse.body).toBe(202);
+    expect(queue.jobs).toHaveLength(queuedBefore + 1);
+    expect(queue.jobs.at(-1)).toMatchObject({
+      assetId: registration.asset.id,
+      assetKind: 'audio',
+      pipelineVersion: 'm2-v3',
+    });
   });
 });

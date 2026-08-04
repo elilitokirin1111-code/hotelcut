@@ -8,13 +8,14 @@ import type {
 } from '@hotelcut/timeline';
 import { useEffect, useMemo, useState } from 'react';
 
-import { editorAssets, findEditorAsset } from './demo-data';
+import { editorAssets, findEditorAsset, type EditorAsset } from './demo-data';
 import { Icon, type IconName } from './icon';
 import { PreviewArtwork } from './preview-artwork';
 
 type InspectorTab = 'shot' | 'copy' | 'cta' | 'music';
 
 interface InspectorProps {
+  assets?: readonly EditorAsset[];
   project: HotelVideoProjectV1;
   currentFrame: number;
   selectedClipId: string | null;
@@ -32,7 +33,13 @@ function allClips(project: HotelVideoProjectV1): Clip[] {
   return project.tracks.flatMap((track) => track.clips);
 }
 
-export function Inspector({ project, currentFrame, selectedClipId, execute }: InspectorProps) {
+export function Inspector({
+  assets = editorAssets,
+  project,
+  currentFrame,
+  selectedClipId,
+  execute,
+}: InspectorProps) {
   const [tab, setTab] = useState<InspectorTab>('shot');
   const selectedClip = allClips(project).find((clip) => clip.id === selectedClipId);
   const selectedVideo = selectedClip?.kind === 'video' ? selectedClip : null;
@@ -73,11 +80,17 @@ export function Inspector({ project, currentFrame, selectedClipId, execute }: In
     setCaptionDraft(activeCaption.text);
   }, [activeCaption?.id]);
 
-  const visualAssets = useMemo(() => editorAssets.filter((asset) => asset.kind === 'video'), []);
-  const audioAssets = useMemo(() => editorAssets.filter((asset) => asset.kind === 'audio'), []);
+  const visualAssets = useMemo(
+    () => assets.filter((asset) => asset.kind === 'video' || asset.kind === 'image'),
+    [assets],
+  );
+  const compatibleVisualAssets = visualAssets.filter((asset) =>
+    selectedClip?.kind === 'image' ? asset.kind === 'image' : asset.kind === 'video',
+  );
+  const audioAssets = useMemo(() => assets.filter((asset) => asset.kind === 'audio'), [assets]);
   const currentAsset =
     selectedClip && (selectedClip.kind === 'video' || selectedClip.kind === 'image')
-      ? findEditorAsset(selectedClip.assetId)
+      ? findEditorAsset(selectedClip.assetId, assets)
       : undefined;
   const currentMusicId = project.tracks
     .flatMap((track) => track.clips)
@@ -209,7 +222,7 @@ export function Inspector({ project, currentFrame, selectedClipId, execute }: In
             <div>
               <p className="editor-label">替换镜头</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                {visualAssets.slice(3).map((asset) => (
+                {compatibleVisualAssets.map((asset) => (
                   <button
                     aria-label={`替换为 ${asset.name}`}
                     className={`group overflow-hidden rounded-xl border text-left transition ${
@@ -242,6 +255,11 @@ export function Inspector({ project, currentFrame, selectedClipId, execute }: In
                     </p>
                   </button>
                 ))}
+                {compatibleVisualAssets.length === 0 ? (
+                  <p className="col-span-2 rounded-xl bg-slate-50 p-3 text-[10px] leading-4 text-slate-500">
+                    当前酒店没有可用于替换的已就绪画面素材。
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -411,6 +429,11 @@ export function Inspector({ project, currentFrame, selectedClipId, execute }: In
                 )}
               </button>
             ))}
+            {audioAssets.length === 0 ? (
+              <p className="rounded-xl bg-slate-50 p-3 text-[10px] leading-4 text-slate-500">
+                当前酒店没有可用于替换的已就绪音频素材。
+              </p>
+            ) : null}
           </div>
         )}
       </div>

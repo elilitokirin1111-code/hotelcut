@@ -20,10 +20,22 @@ from hotelcut_analysis_worker.media_tools import (
     SubprocessCommandRunner,
     create_derivatives,
     detect_scenes,
+    extract_vision_frames,
+    probe_audio,
     probe_video,
 )
-from hotelcut_analysis_worker.models import AnalysisJobData, SceneRange, TranscriptResult
+from hotelcut_analysis_worker.models import (
+    AnalysisJobData,
+    SceneRange,
+    TranscriptResult,
+    VisionAnalysis,
+)
 from hotelcut_analysis_worker.providers import Transcriber, create_transcriber
+from hotelcut_analysis_worker.vision import (
+    PROMPT_VERSION,
+    VisualAnalyzer,
+    create_visual_analyzer,
+)
 
 
 def _now() -> str:
@@ -38,6 +50,11 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _error_code(error: Exception) -> str:
+    message = str(error)
+    return message if message.isidentifier() else type(error).__name__
+
+
 class AnalysisProcessor:
     """Downloads one asset, creates derivatives, and atomically persists results."""
 
@@ -47,11 +64,13 @@ class AnalysisProcessor:
         *,
         runner: CommandRunner | None = None,
         transcriber: Transcriber | None = None,
+        visual_analyzer: VisualAnalyzer | None = None,
         storage: Minio | None = None,
     ) -> None:
         self._settings = settings
         self._runner = runner or SubprocessCommandRunner()
         self._transcriber = transcriber or create_transcriber(settings)
+        self._visual_analyzer = visual_analyzer or create_visual_analyzer(settings)
         endpoint = urlparse(settings.S3_ENDPOINT)
         self._storage = storage or Minio(
             endpoint.netloc,
@@ -81,8 +100,22 @@ class AnalysisProcessor:
                 if actual_checksum.lower() != data.expectedChecksumSha256.lower():
                     raise ValueError("checksum_mismatch")
 
+                if data.assetKind == "audio":
+                    self._log(data.analysisJobId, "info", "Probing audio stream")
+                    audio_probe = probe_audio(original, self._runner, self._settings.FFPROBE_PATH)
+                    transcript = TranscriptResult(text="", language=None, segments=[], vad=[])
+                    self._persist_success(
+                        data,
+                        audio_probe.model_dump(),
+                        transcript,
+                        VisionAnalysis.disabled(PROMPT_VERSION),
+                        [],
+                        [],
+                    )
+                    return {"assetId": data.assetId, "status": "ready"}
+
                 self._log(data.analysisJobId, "info", "Probing video streams")
-                probe = probe_video(original, self._runner, self._settings.FFPROBE_PATH)
+                video_probe = probe_video(original, self._runner, self._settings.FFPROBE_PATH)
                 self._log(
                     data.analysisJobId,
                     "info",
@@ -93,18 +126,66 @@ class AnalysisProcessor:
                     proxy,
                     thumbnail,
                     audio,
-                    probe,
+                    video_probe,
                     self._runner,
                     self._settings.FFMPEG_PATH,
                 )
-                scenes = detect_scenes(original, probe.durationMs)
+                scenes = detect_scenes(original, video_probe.durationMs)
+                vision = VisionAnalysis.disabled(PROMPT_VERSION)
+                if self._visual_analyzer.enabled:
+                    try:
+                        frames = extract_vision_frames(
+                            original,
+                            scenes,
+                            workspace / "vision-frames",
+                            self._runner,
+                            self._settings.FFMPEG_PATH,
+                            self._settings.OPENAI_VISION_MAX_FRAMES,
+                        )
+                        self._log(
+                            data.analysisJobId,
+                            "info",
+                            "Analyzing representative scenes with OpenAI vision",
+                            {
+                                "frameCount": len(frames),
+                                "model": self._settings.OPENAI_VISION_MODEL,
+                                "promptVersion": PROMPT_VERSION,
+                            },
+                        )
+                        vision = self._visual_analyzer.analyze(frames, data.hotelId)
+                        self._log(
+                            data.analysisJobId,
+                            "info",
+                            "OpenAI vision analysis completed",
+                            {
+                                "model": vision.model or self._settings.OPENAI_VISION_MODEL,
+                                "responseId": vision.responseId or "",
+                                "sceneCount": len(vision.scenes),
+                                "totalTokens": vision.usage.totalTokens if vision.usage else 0,
+                            },
+                        )
+                    except Exception as error:
+                        code = _error_code(error)
+                        self._log(
+                            data.analysisJobId,
+                            "warning",
+                            "OpenAI vision analysis failed; continuing with deterministic fallback",
+                            {"errorCode": code, "message": str(error)[:300]},
+                        )
+                        if self._settings.OPENAI_VISION_REQUIRED:
+                            raise
+                        vision = VisionAnalysis.failed(
+                            PROMPT_VERSION,
+                            self._settings.OPENAI_VISION_MODEL,
+                            code,
+                        )
                 self._log(
                     data.analysisJobId,
                     "info",
                     "Transcribing speech with word timestamps and VAD",
                     {"provider": self._settings.ANALYSIS_TRANSCRIPTION_PROVIDER},
                 )
-                transcript = self._transcriber.transcribe(audio, probe.durationMs)
+                transcript = self._transcriber.transcribe(audio, video_probe.durationMs)
 
                 derivative_rows = self._upload_derivatives(
                     data,
@@ -114,8 +195,9 @@ class AnalysisProcessor:
                 )
                 self._persist_success(
                     data,
-                    probe.model_dump(),
+                    video_probe.model_dump(),
                     transcript,
+                    vision,
                     scenes,
                     derivative_rows,
                 )
@@ -216,32 +298,69 @@ class AnalysisProcessor:
         data: AnalysisJobData,
         probe: dict[str, object],
         transcript: TranscriptResult,
+        vision: VisionAnalysis,
         scenes: list[SceneRange],
         derivatives: list[dict[str, object]],
     ) -> None:
         metadata = {
-            "analysis": {"completedAt": _now(), "pipelineVersion": data.pipelineVersion},
+            "analysis": {
+                "completedAt": _now(),
+                "pipelineVersion": data.pipelineVersion,
+                "visionStatus": vision.status,
+            },
             "probe": probe,
             "transcript": transcript.model_dump(),
+            "vision": vision.model_dump(mode="json"),
         }
+        vision_scenes = {scene.sceneIndex: scene for scene in vision.scenes}
         with self._connect() as connection, connection.cursor() as cursor:
             cursor.execute(
                 "delete from asset_segments where asset_id = %s and source = 'automatic'",
                 (data.assetId,),
             )
             for index, scene in enumerate(scenes, start=1):
+                scene_analysis = vision_scenes.get(index)
+                scene_metadata = (
+                    {
+                        "category": scene_analysis.category,
+                        "confidenceBasisPoints": scene_analysis.confidenceScore * 100,
+                        "description": scene_analysis.description,
+                        "issues": scene_analysis.issues,
+                        "provider": vision.provider,
+                        "sellingPoints": scene_analysis.sellingPoints,
+                        "tags": scene_analysis.tags,
+                        "usable": scene_analysis.usable,
+                    }
+                    if scene_analysis is not None
+                    else {}
+                )
+                score_basis_points = (
+                    scene_analysis.qualityScore * 100
+                    if scene_analysis is not None and scene_analysis.usable
+                    else 0
+                    if scene_analysis is not None
+                    else None
+                )
+                label = (
+                    scene_analysis.description[:160]
+                    if scene_analysis is not None and scene_analysis.description
+                    else f"Scene {index}"
+                )
                 cursor.execute(
                     """
                     insert into asset_segments (
-                        id, asset_id, start_ms, end_ms, label, kind, source, metadata
-                    ) values (%s, %s, %s, %s, %s, 'scene', 'automatic', '{}'::jsonb)
+                        id, asset_id, start_ms, end_ms, label, kind, source,
+                        score_basis_points, metadata
+                    ) values (%s, %s, %s, %s, %s, 'scene', 'automatic', %s, %s::jsonb)
                     """,
                     (
                         str(uuid.uuid4()),
                         data.assetId,
                         scene.startMs,
                         scene.endMs,
-                        f"Scene {index}",
+                        label,
+                        score_basis_points,
+                        json.dumps(scene_metadata, ensure_ascii=False),
                     ),
                 )
             for segment in transcript.segments:
@@ -304,13 +423,24 @@ class AnalysisProcessor:
             cursor.execute(
                 """
                 update assets
-                set status = 'ready', metadata = %s::jsonb, updated_at = now()
+                set status = 'ready', metadata = coalesce(metadata, '{}'::jsonb) || %s::jsonb,
+                    updated_at = now()
                 where id = %s
                 """,
                 (json.dumps(metadata, ensure_ascii=False), data.assetId),
             )
             success_log = json.dumps(
-                [{"at": _now(), "level": "info", "message": "Analysis completed"}],
+                [
+                    {
+                        "at": _now(),
+                        "level": "info",
+                        "message": "Analysis completed",
+                        "details": {
+                            "visionModel": vision.model,
+                            "visionStatus": vision.status,
+                        },
+                    }
+                ],
                 ensure_ascii=False,
             )
             cursor.execute(
@@ -333,7 +463,7 @@ class AnalysisProcessor:
         final = attempt >= max_attempts
         job_status = "failed" if final else "queued"
         asset_status = "failed" if final else "uploaded"
-        error_code = str(error) if str(error).isidentifier() else type(error).__name__
+        error_code = _error_code(error)
         log = json.dumps(
             [
                 {

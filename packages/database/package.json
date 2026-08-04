@@ -23,6 +23,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
   },
   "dependencies": {
+    "@hotelcut/auth": "workspace:*",
     "@hotelcut/domain": "workspace:*",
     "@hotelcut/schemas": "workspace:*",
     "drizzle-orm": "^0.45.2",
