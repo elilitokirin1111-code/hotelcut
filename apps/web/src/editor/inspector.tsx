@@ -8,14 +8,14 @@ import type {
 } from '@hotelcut/timeline';
 import { useEffect, useMemo, useState } from 'react';
 
-import { editorAssets, findEditorAsset, type EditorAsset } from './demo-data';
+import { findEditorAsset, type EditorAsset } from './editor-asset';
 import { Icon, type IconName } from './icon';
 import { PreviewArtwork } from './preview-artwork';
 
 type InspectorTab = 'shot' | 'copy' | 'cta' | 'music';
 
 interface InspectorProps {
-  assets?: readonly EditorAsset[];
+  assets: readonly EditorAsset[];
   project: HotelVideoProjectV1;
   currentFrame: number;
   selectedClipId: string | null;
@@ -34,7 +34,7 @@ function allClips(project: HotelVideoProjectV1): Clip[] {
 }
 
 export function Inspector({
-  assets = editorAssets,
+  assets,
   project,
   currentFrame,
   selectedClipId,

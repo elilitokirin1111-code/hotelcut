@@ -13,7 +13,7 @@ import { hotelVideoProjectV1Schema, type HotelVideoProjectV1 } from '@hotelcut/t
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { ProjectStudio } from '../App';
-import type { DemoArtwork, EditorAsset } from '../editor/demo-data';
+import type { EditorAsset, PreviewArtworkKind } from '../editor/editor-asset';
 import { StudioPreview } from '../editor/studio-preview';
 import type { WorkspaceApi } from './workspace-api';
 
@@ -148,7 +148,7 @@ function generationGuidance(
   };
 }
 
-const productionArtwork: readonly DemoArtwork[] = [
+const productionArtwork: readonly PreviewArtworkKind[] = [
   'room',
   'lake',
   'lobby',

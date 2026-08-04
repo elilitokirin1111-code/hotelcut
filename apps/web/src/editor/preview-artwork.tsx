@@ -1,7 +1,7 @@
-import type { DemoArtwork } from './demo-data';
+import type { PreviewArtworkKind } from './editor-asset';
 
 interface PreviewArtworkProps {
-  artwork: DemoArtwork;
+  artwork: PreviewArtworkKind;
   colors: readonly [string, string];
 }
 

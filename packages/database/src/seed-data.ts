@@ -1,13 +1,12 @@
 import type { DatabaseClient } from './client.js';
 import { hashPassword } from '@hotelcut/auth';
-import { brandKits, hotels, memberships, organizations, users, videoBriefs } from './schema.js';
+import { brandKits, hotels, memberships, organizations, users } from './schema.js';
 
 export const developmentSeed = {
   organizationId: '10000000-0000-4000-8000-000000000001',
   userId: '20000000-0000-4000-8000-000000000001',
   hotelId: '30000000-0000-4000-8000-000000000001',
   brandKitId: '40000000-0000-4000-8000-000000000001',
-  videoBriefId: '50000000-0000-4000-8000-000000000001',
   email: 'owner@hotelcut.example',
   password: 'hotelcut-local',
 } as const;
@@ -22,8 +21,8 @@ export async function seedDevelopmentData(
     .insert(organizations)
     .values({
       id: developmentSeed.organizationId,
-      name: '云栖酒店集团（演示）',
-      slug: 'cloud-rest-demo',
+      name: 'HotelCut 本地工作区',
+      slug: 'hotelcut-local-workspace',
     })
     .onConflictDoNothing();
 
@@ -34,7 +33,7 @@ export async function seedDevelopmentData(
       externalSubject: 'local-dev-owner',
       email: developmentSeed.email,
       passwordHash,
-      displayName: '演示管理员',
+      displayName: '本地管理员',
     })
     .onConflictDoUpdate({
       target: users.id,
@@ -56,9 +55,9 @@ export async function seedDevelopmentData(
     .values({
       id: developmentSeed.hotelId,
       organizationId: developmentSeed.organizationId,
-      name: '云栖湖畔酒店（虚构）',
-      city: '杭州',
-      address: '示例路 88 号',
+      name: '我的酒店',
+      city: '待配置',
+      address: null,
       timezone: 'Asia/Shanghai',
     })
     .onConflictDoNothing();
@@ -73,25 +72,8 @@ export async function seedDevelopmentData(
       accentColor: '#C99A5B',
       fontFamily: 'Noto Sans SC',
       subtitleStyle: 'clean',
-      endingText: '在湖畔，住进一段慢时光',
-      contactText: '400-000-0000（演示）',
-    })
-    .onConflictDoNothing();
-
-  await client.db
-    .insert(videoBriefs)
-    .values({
-      id: developmentSeed.videoBriefId,
-      hotelId: developmentSeed.hotelId,
-      title: '湖畔周末度假推广',
-      platform: 'douyin',
-      durationSeconds: 30,
-      aspectRatio: '9:16',
-      tone: '温暖松弛',
-      language: 'zh-CN',
-      objective: '展示虚构酒店的湖景客房与早餐',
-      targetAudience: '周末短途度假的城市情侣',
-      callToAction: '收藏并预约周末入住',
+      endingText: '欢迎了解酒店详情',
+      contactText: null,
     })
     .onConflictDoNothing();
 }

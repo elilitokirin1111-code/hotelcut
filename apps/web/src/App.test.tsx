@@ -4,6 +4,14 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App';
+import { demoProject, editorAssets } from './editor/demo-data';
+
+const appProps = {
+  assets: editorAssets,
+  initialProject: demoProject,
+  initialRevision: 1,
+  onSaveRevision: async (_project: HotelVideoProjectV1, baseRevision: number) => baseRevision + 1,
+};
 
 afterEach(() => {
   vi.useRealTimers();
@@ -11,7 +19,7 @@ afterEach(() => {
 
 describe('M5 editor workspace', () => {
   it('shows preview, scene list, simplified timeline and revision state', () => {
-    render(<App />);
+    render(<App {...appProps} />);
 
     expect(screen.getByRole('heading', { name: 'HotelCut Studio' })).toBeInTheDocument();
     expect(screen.getByLabelText('视频预览')).toBeInTheDocument();
@@ -22,7 +30,7 @@ describe('M5 editor workspace', () => {
   });
 
   it('replaces a selected shot without editing JSON', () => {
-    render(<App />);
+    render(<App {...appProps} />);
 
     fireEvent.click(screen.getByRole('button', { name: '替换为 大堂 · 黄昏灯光' }));
 
@@ -35,7 +43,7 @@ describe('M5 editor workspace', () => {
     const saveRevision = vi.fn((_project, baseRevision: number) =>
       Promise.resolve(baseRevision + 1),
     );
-    render(<App autosaveDelayMs={20} onSaveRevision={saveRevision} />);
+    render(<App {...appProps} autosaveDelayMs={20} onSaveRevision={saveRevision} />);
 
     fireEvent.click(screen.getByRole('button', { name: '文案' }));
     fireEvent.change(screen.getByLabelText('字幕文本'), {
@@ -64,7 +72,7 @@ describe('M5 editor workspace', () => {
     const saveRevision = vi.fn((_project: HotelVideoProjectV1, baseRevision: number) =>
       Promise.resolve(baseRevision + 1),
     );
-    render(<App autosaveDelayMs={20} onSaveRevision={saveRevision} />);
+    render(<App {...appProps} autosaveDelayMs={20} onSaveRevision={saveRevision} />);
 
     fireEvent.change(screen.getByLabelText('素材入点'), { target: { value: '40' } });
     fireEvent.change(screen.getByLabelText('素材出点'), { target: { value: '310' } });

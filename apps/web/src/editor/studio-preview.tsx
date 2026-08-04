@@ -1,12 +1,12 @@
 import { getActiveClips } from '@hotelcut/editor';
 import type { CaptionClip, HotelVideoProjectV1, TextClip } from '@hotelcut/timeline';
 
-import { editorAssets, findEditorAsset, type EditorAsset } from './demo-data';
+import { findEditorAsset, type EditorAsset } from './editor-asset';
 import { Icon } from './icon';
 import { PreviewArtwork } from './preview-artwork';
 
 interface StudioPreviewProps {
-  assets?: readonly EditorAsset[];
+  assets: readonly EditorAsset[];
   project: HotelVideoProjectV1;
   currentFrame: number;
   isPlaying: boolean;
@@ -23,7 +23,7 @@ function formatTime(frame: number, frameRate: number): string {
 }
 
 export function StudioPreview({
-  assets = editorAssets,
+  assets,
   project,
   currentFrame,
   isPlaying,
@@ -71,7 +71,7 @@ export function StudioPreview({
         )}
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,15,18,.16),transparent_30%,transparent_62%,rgba(6,15,18,.68))]" />
         <div className="absolute left-5 right-5 top-5 flex items-center justify-between text-[10px] font-semibold tracking-[0.14em] text-white/80">
-          <span>云栖湖畔酒店</span>
+          <span>HotelCut</span>
           <span className="rounded-full bg-black/20 px-2 py-1 backdrop-blur-md">M5 PREVIEW</span>
         </div>
 

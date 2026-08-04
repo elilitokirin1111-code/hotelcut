@@ -2,7 +2,7 @@ import { getEditorScenes } from '@hotelcut/editor';
 import type { Clip, HotelVideoProjectV1 } from '@hotelcut/timeline';
 import { useEffect, useMemo, useState } from 'react';
 
-import { demoProject, editorAssets, type EditorAsset } from './editor/demo-data';
+import type { EditorAsset } from './editor/editor-asset';
 import { Icon, type IconName } from './editor/icon';
 import { Inspector } from './editor/inspector';
 import { SceneRail } from './editor/scene-rail';
@@ -15,14 +15,15 @@ import {
 } from './editor/use-project-editor';
 
 interface AppProps {
-  initialProject?: HotelVideoProjectV1;
-  initialRevision?: number;
+  assets: readonly EditorAsset[];
+  initialProject: HotelVideoProjectV1;
+  initialRevision: number;
   autosaveDelayMs?: number;
-  onSaveRevision?: SaveProjectRevision;
+  onSaveRevision: SaveProjectRevision;
 }
 
 export interface ProjectStudioProps {
-  assets?: readonly EditorAsset[];
+  assets: readonly EditorAsset[];
   autosaveDelayMs?: number;
   embedded?: boolean;
   initialProject: HotelVideoProjectV1;
@@ -46,16 +47,8 @@ const saveLabels: Record<SaveState, string> = {
   error: '保存失败',
 };
 
-async function saveDemoRevision(
-  _project: HotelVideoProjectV1,
-  baseRevision: number,
-): Promise<number> {
-  await new Promise<void>((resolve) => window.setTimeout(resolve, 140));
-  return baseRevision + 1;
-}
-
 export function ProjectStudio({
-  assets = editorAssets,
+  assets,
   initialProject,
   initialRevision,
   autosaveDelayMs = 800,
@@ -247,6 +240,7 @@ export function ProjectStudio({
 
             <div className="studio-timeline-wrap mt-3">
               <SimpleTimeline
+                assets={assets}
                 currentFrame={currentFrame}
                 onScrub={setCurrentFrame}
                 onSelectClip={selectClip}
@@ -298,13 +292,15 @@ export function ProjectStudio({
 }
 
 export function App({
-  initialProject = demoProject,
-  initialRevision = 1,
+  assets,
+  initialProject,
+  initialRevision,
   autosaveDelayMs = 800,
-  onSaveRevision = saveDemoRevision,
+  onSaveRevision,
 }: AppProps) {
   return (
     <ProjectStudio
+      assets={assets}
       autosaveDelayMs={autosaveDelayMs}
       initialProject={initialProject}
       initialRevision={initialRevision}

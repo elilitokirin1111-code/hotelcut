@@ -1,16 +1,6 @@
 import { parseHotelVideoProject } from '@hotelcut/timeline';
 
-export type DemoArtwork = 'host' | 'lake' | 'room' | 'breakfast' | 'lobby' | 'suite' | 'spa';
-
-export interface EditorAsset {
-  id: string;
-  kind: 'video' | 'image' | 'audio';
-  name: string;
-  detail: string;
-  durationFrames: number;
-  artwork: DemoArtwork;
-  colors: readonly [string, string];
-}
+import type { EditorAsset } from './editor-asset';
 
 export const editorAssets: readonly EditorAsset[] = [
   {
@@ -444,10 +434,3 @@ export const demoProject = parseHotelVideoProject({
     mode: 'm5-demo',
   },
 });
-
-export function findEditorAsset(
-  assetId: string,
-  assets: readonly EditorAsset[] = editorAssets,
-): EditorAsset | undefined {
-  return assets.find((asset) => asset.id === assetId);
-}
