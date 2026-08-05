@@ -511,6 +511,9 @@ function createApi(initialSession: AuthSession | null): {
       createCreativeBriefRevision,
       createCreativeProject,
       createReferenceVideoProfile,
+      generateEditBlueprint: vi
+        .fn<WorkspaceApi['generateEditBlueprint']>()
+        .mockRejectedValue(new Error('test fixture does not generate blueprints')),
       generateAssetRequirements,
       createRenderJob,
       createManualSegment,
@@ -518,6 +521,9 @@ function createApi(initialSession: AuthSession | null): {
       generateAiEditPlan,
       generateScript,
       generateVideoProject,
+      generateVideoVersions: vi
+        .fn<WorkspaceApi['generateVideoVersions']>()
+        .mockRejectedValue(new Error('test fixture does not generate video versions')),
       getAssetDerivativeDownload,
       getAssetDetail,
       getAiDirectorFeatures,
@@ -530,6 +536,10 @@ function createApi(initialSession: AuthSession | null): {
       listAssets,
       listCreativeBriefRevisions,
       listCreativeProjects,
+      listCreativeVideoVersions: vi
+        .fn<WorkspaceApi['listCreativeVideoVersions']>()
+        .mockResolvedValue([]),
+      listEditBlueprints: vi.fn<WorkspaceApi['listEditBlueprints']>().mockResolvedValue([]),
       listProjectTemplates,
       listRenderJobs,
       listReferenceVideoProfiles,

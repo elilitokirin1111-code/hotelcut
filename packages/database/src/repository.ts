@@ -21,6 +21,7 @@ import {
   type PersistReferenceVideoProfileInput,
   type CreateAssetRequirementInput,
   type PersistEditBlueprintInput,
+  type PersistCreativeVideoVersionInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
@@ -40,6 +41,7 @@ import type {
   BrandKit,
   CompleteAssetUploadInput,
   CreativeProject,
+  CreativeVideoVersion,
   CreativeBriefRevision,
   CreateCreativeProjectInput,
   CreateHotelInput,
@@ -73,6 +75,7 @@ import {
   assetUploadSchema,
   assetRequirementSchema,
   editBlueprintSchema,
+  creativeVideoVersionSchema,
   creativeProjectSchema,
   creativeBriefRevisionSchema,
   modelApiModeSchema,
@@ -235,6 +238,17 @@ function mapEditBlueprint(
       caption: beat.caption ?? null,
       createdAt: toIso(beat.createdAt),
     })),
+  });
+}
+
+function mapCreativeVideoVersion(
+  row: typeof schema.creativeVideoVersions.$inferSelect,
+): CreativeVideoVersion {
+  return creativeVideoVersionSchema.parse({
+    ...row,
+    seed: Number(row.seed),
+    usedAssetIds: row.usedAssetIds,
+    createdAt: toIso(row.createdAt),
   });
 }
 
@@ -1014,6 +1028,33 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
     if (!created || created.id !== id)
       throw new Error('Edit blueprint insert did not return a row');
     return created;
+  }
+
+  async listCreativeVideoVersions(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<CreativeVideoVersion[]> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.creativeVideoVersions)
+      .where(eq(schema.creativeVideoVersions.creativeProjectId, projectId))
+      .orderBy(desc(schema.creativeVideoVersions.createdAt));
+    return rows.map(mapCreativeVideoVersion);
+  }
+
+  async createCreativeVideoVersion(
+    actorUserId: string,
+    projectId: string,
+    input: PersistCreativeVideoVersionInput,
+  ): Promise<CreativeVideoVersion> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const [row] = await this.db
+      .insert(schema.creativeVideoVersions)
+      .values({ id: randomUUID(), creativeProjectId: projectId, ...input })
+      .returning();
+    if (!row) throw new Error('Creative video version insert did not return a row');
+    return mapCreativeVideoVersion(row);
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {

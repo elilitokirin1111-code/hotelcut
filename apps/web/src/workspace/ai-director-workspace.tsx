@@ -8,6 +8,8 @@ import type {
   CreativeBriefRevision,
   CreativeProject,
   CreativeProjectMode,
+  CreativeVideoVersion,
+  EditBlueprint,
   ScriptPackage,
   ReferenceVideoProfile,
 } from '@hotelcut/schemas';
@@ -74,6 +76,8 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
   const [referenceAssets, setReferenceAssets] = useState<Asset[]>([]);
   const [referenceProfiles, setReferenceProfiles] = useState<ReferenceVideoProfile[]>([]);
   const [assetRequirements, setAssetRequirements] = useState<AssetRequirement[]>([]);
+  const [blueprints, setBlueprints] = useState<EditBlueprint[]>([]);
+  const [videoVersions, setVideoVersions] = useState<CreativeVideoVersion[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -96,15 +100,19 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
     void Promise.all([
       api.listAssets(hotelId),
       api.listAssetRequirements(selectedProjectId),
+      api.listEditBlueprints(selectedProjectId),
+      api.listCreativeVideoVersions(selectedProjectId),
       loadState.flags.referenceAnalysisEnabled
         ? api.listReferenceVideoProfiles(selectedProjectId)
         : Promise.resolve([]),
     ])
-      .then(([assets, requirements, profiles]) => {
+      .then(([assets, requirements, blueprints, versions, profiles]) => {
         setReferenceAssets(
           assets.filter((asset) => asset.kind === 'video' && asset.status === 'ready'),
         );
         setAssetRequirements(requirements);
+        setBlueprints(blueprints);
+        setVideoVersions(versions);
         setReferenceProfiles(profiles);
       })
       .catch((error: unknown) => setCreateError(errorMessage(error)));
@@ -191,6 +199,34 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
       setAssetRequirements((current) =>
         current.map((requirement) => (requirement.id === updated.id ? updated : requirement)),
       );
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
+  const generateBlueprint = async () => {
+    if (!selectedProjectId) return;
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      const blueprint = await api.generateEditBlueprint(selectedProjectId);
+      setBlueprints((current) => [blueprint, ...current]);
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
+  const generateVideoVersions = async (blueprintId: string) => {
+    if (!selectedProjectId) return;
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      const batch = await api.generateVideoVersions(selectedProjectId, { blueprintId });
+      setVideoVersions(batch.versions);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -411,6 +447,74 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
               </article>
             ))}
           </div>
+
+          {loadState.flags.dynamicBlueprintEnabled ? (
+            <div className="mt-6 border-t border-slate-200 pt-6">
+              <h4 className="font-black">动态蓝图与 A/B/C 成片版本</h4>
+              <p className="mt-2 text-xs text-slate-500">
+                蓝图先经过时长、镜头和素材边界校验，再编译为可在 Studio 继续修改的时间线。
+              </p>
+              <button
+                className="mt-3 rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                disabled={directing}
+                onClick={() => void generateBlueprint()}
+                type="button"
+              >
+                {directing ? '正在生成…' : '生成已校验 EditBlueprint'}
+              </button>
+              {blueprints.map((blueprint) => (
+                <article
+                  className="mt-3 rounded-xl border border-slate-200 p-4 text-xs"
+                  key={blueprint.id}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <strong>
+                      蓝图 v{blueprint.revision} · {blueprint.beats.length} 个节拍
+                    </strong>
+                    <button
+                      className="rounded-lg bg-[#9a6b3c] px-3 py-2 font-black text-white disabled:opacity-60"
+                      disabled={directing || videoVersions.length > 0}
+                      onClick={() => void generateVideoVersions(blueprint.id)}
+                      type="button"
+                    >
+                      生成 A/B/C 成片
+                    </button>
+                  </div>
+                  <p className="mt-2 text-slate-500">
+                    {blueprint.style.pace} · {JSON.stringify(blueprint.captionStyle)} · 种子{' '}
+                    {blueprint.seed}
+                  </p>
+                </article>
+              ))}
+              {videoVersions.length > 0 ? (
+                <div className="mt-3 grid gap-3 md:grid-cols-3">
+                  {videoVersions.map((version) => (
+                    <article className="rounded-xl bg-slate-50 p-4 text-xs" key={version.id}>
+                      <strong>
+                        版本 {version.variant}
+                        {version.variant === 'A'
+                          ? ' · 严格脚本'
+                          : version.variant === 'B'
+                            ? ' · 快节奏 Hook'
+                            : ' · 转化 CTA'}
+                      </strong>
+                      <p className="mt-2">
+                        综合 {version.scoreBasisPoints} · 钩子 {version.hookScoreBasisPoints}
+                      </p>
+                      <p className="mt-1">
+                        卖点 {version.sellingPointCoverageBasisPoints} · 节奏{' '}
+                        {version.paceScoreBasisPoints}
+                      </p>
+                      <p className="mt-2 text-slate-500">{version.recommendationReason}</p>
+                      <p className="mt-2 font-black text-[#9a6b3c]">
+                        已生成可编辑项目：{version.videoProjectId}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {loadState.status === 'ready' && loadState.flags.referenceAnalysisEnabled ? (
             <div className="mt-6 border-t border-slate-200 pt-6">

@@ -742,6 +742,51 @@ export const editBlueprintBeats = pgTable(
   ],
 );
 
+export const creativeVideoVersions = pgTable(
+  'creative_video_versions',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    editBlueprintId: uuid('edit_blueprint_id')
+      .notNull()
+      .references(() => editBlueprints.id, { onDelete: 'restrict' }),
+    videoProjectId: uuid('video_project_id')
+      .notNull()
+      .references(() => videoProjects.id, { onDelete: 'cascade' }),
+    variant: varchar('variant', { length: 1 }).notNull(),
+    seed: bigint('seed', { mode: 'number' }).notNull(),
+    scoreBasisPoints: integer('score_basis_points').notNull(),
+    hookScoreBasisPoints: integer('hook_score_basis_points').notNull(),
+    sellingPointCoverageBasisPoints: integer('selling_point_coverage_basis_points').notNull(),
+    paceScoreBasisPoints: integer('pace_score_basis_points').notNull(),
+    usedAssetIds: jsonb('used_asset_ids')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    repeatedAssetCount: integer('repeated_asset_count').default(0).notNull(),
+    recommendationReason: text('recommendation_reason').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('creative_video_versions_project_variant_unique').on(
+      table.creativeProjectId,
+      table.variant,
+    ),
+    index('creative_video_versions_project_idx').on(table.creativeProjectId),
+    check('creative_video_versions_variant_valid', sql`${table.variant} in ('A', 'B', 'C')`),
+    check('creative_video_versions_seed_nonnegative', sql`${table.seed} >= 0`),
+    check(
+      'creative_video_versions_score_ranges',
+      sql`${table.scoreBasisPoints} between 0 and 10000 and ${table.hookScoreBasisPoints} between 0 and 10000 and ${table.sellingPointCoverageBasisPoints} between 0 and 10000 and ${table.paceScoreBasisPoints} between 0 and 10000`,
+    ),
+    check(
+      'creative_video_versions_repeated_asset_nonnegative',
+      sql`${table.repeatedAssetCount} >= 0`,
+    ),
+  ],
+);
+
 export const assetRequirements = pgTable(
   'asset_requirements',
   {

@@ -11,6 +11,7 @@ import type {
   BrandKit,
   CompleteAssetUploadInput,
   CreativeProject,
+  CreativeVideoVersion,
   CreativeBriefRevision,
   CreateCreativeBriefRevisionInput,
   CreateCreativeProjectInput,
@@ -232,6 +233,20 @@ export interface PersistEditBlueprintInput extends EditBlueprintGeneration {
   inputSummary?: string | null;
 }
 
+export interface PersistCreativeVideoVersionInput {
+  editBlueprintId: string;
+  videoProjectId: string;
+  variant: CreativeVideoVersion['variant'];
+  seed: number;
+  scoreBasisPoints: number;
+  hookScoreBasisPoints: number;
+  sellingPointCoverageBasisPoints: number;
+  paceScoreBasisPoints: number;
+  usedAssetIds: string[];
+  repeatedAssetCount: number;
+  recommendationReason: string;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -325,6 +340,15 @@ export interface HotelCutRepository {
     input: PersistEditBlueprintInput,
   ): Promise<EditBlueprint>;
   listEditBlueprints(actorUserId: string, projectId: string): Promise<EditBlueprint[]>;
+  createCreativeVideoVersion(
+    actorUserId: string,
+    projectId: string,
+    input: PersistCreativeVideoVersionInput,
+  ): Promise<CreativeVideoVersion>;
+  listCreativeVideoVersions(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<CreativeVideoVersion[]>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

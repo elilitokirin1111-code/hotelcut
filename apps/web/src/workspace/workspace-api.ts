@@ -11,11 +11,15 @@ import {
   createCreativeProjectSchema,
   createCreativeBriefRevisionSchema,
   creativeBriefRevisionSchema,
+  creativeVideoVersionBatchSchema,
+  creativeVideoVersionSchema,
   creativeProjectSchema,
   createAssetUploadResponseSchema,
   createRenderJobSchema,
   derivativeDownloadSchema,
   generatedVideoProjectSchema,
+  generateBlueprintSchema,
+  generateVideoVersionsSchema,
   hotelSchema,
   aiEditPlanSchema,
   modelProviderConnectionResultSchema,
@@ -26,6 +30,7 @@ import {
   renderJobDetailSchema,
   renderJobSchema,
   referenceVideoProfileSchema,
+  editBlueprintSchema,
   scriptPackageSchema,
   videoBriefSchema,
   videoProjectDetailSchema,
@@ -41,6 +46,7 @@ import {
   type AuthSession,
   type BrandKit,
   type CreativeProject,
+  type CreativeVideoVersion,
   type CreativeBriefRevision,
   type CreateCreativeProjectInput,
   type CreateCreativeBriefRevisionInput,
@@ -49,6 +55,7 @@ import {
   type CreateVideoBriefInput,
   type GenerateVideoProjectInput,
   type GeneratedVideoProject,
+  type EditBlueprint,
   type Hotel,
   type ModelProviderConnectionResult,
   type ModelProviderSettings,
@@ -128,6 +135,19 @@ export interface WorkspaceApi {
   generateScript(projectId: string, briefRevisionId?: string): Promise<ScriptPackage>;
   listScriptPackages(projectId: string, signal?: AbortSignal): Promise<ScriptPackage[]>;
   selectScript(projectId: string, scriptId: string): Promise<CreativeProject>;
+  listEditBlueprints(projectId: string, signal?: AbortSignal): Promise<EditBlueprint[]>;
+  generateEditBlueprint(
+    projectId: string,
+    input?: { scriptId?: string; seed?: number },
+  ): Promise<EditBlueprint>;
+  generateVideoVersions(
+    projectId: string,
+    input?: { blueprintId?: string; seed?: number },
+  ): Promise<{ versions: CreativeVideoVersion[]; recommendedVariant: 'A' | 'B' | 'C' }>;
+  listCreativeVideoVersions(
+    projectId: string,
+    signal?: AbortSignal,
+  ): Promise<CreativeVideoVersion[]>;
   createReferenceVideoProfile(projectId: string, assetId: string): Promise<ReferenceVideoProfile>;
   listReferenceVideoProfiles(
     projectId: string,
@@ -420,6 +440,46 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
         },
+      );
+    },
+
+    async listEditBlueprints(projectId, signal) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/blueprints`,
+        editBlueprintSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async generateEditBlueprint(projectId, input) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/blueprints/generate`,
+        editBlueprintSchema,
+        {
+          body: JSON.stringify(generateBlueprintSchema.parse(input ?? {})),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async generateVideoVersions(projectId, input) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/generate-video-versions`,
+        creativeVideoVersionBatchSchema,
+        {
+          body: JSON.stringify(generateVideoVersionsSchema.parse(input ?? {})),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async listCreativeVideoVersions(projectId, signal) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/video-versions`,
+        creativeVideoVersionSchema.array(),
+        signal ? { signal } : undefined,
       );
     },
 

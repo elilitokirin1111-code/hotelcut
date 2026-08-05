@@ -402,6 +402,38 @@ export const compileBlueprintSchema = z
   .object({ seed: z.number().int().min(0).max(4_294_967_295).optional() })
   .strict();
 
+export const videoVersionVariantSchema = z.enum(['A', 'B', 'C']);
+export const creativeVideoVersionSchema = z
+  .object({
+    id: directorIdSchema,
+    creativeProjectId: directorIdSchema,
+    editBlueprintId: directorIdSchema,
+    videoProjectId: directorIdSchema,
+    variant: videoVersionVariantSchema,
+    seed: z.number().int().min(0).max(4_294_967_295),
+    scoreBasisPoints: z.number().int().min(0).max(10_000),
+    hookScoreBasisPoints: z.number().int().min(0).max(10_000),
+    sellingPointCoverageBasisPoints: z.number().int().min(0).max(10_000),
+    paceScoreBasisPoints: z.number().int().min(0).max(10_000),
+    usedAssetIds: z.array(directorIdSchema),
+    repeatedAssetCount: z.number().int().nonnegative(),
+    recommendationReason: z.string().min(1).max(1_000),
+    createdAt: directorDateTimeSchema,
+  })
+  .strict();
+export const generateVideoVersionsSchema = z
+  .object({
+    blueprintId: directorIdSchema.optional(),
+    seed: z.number().int().min(0).max(4_294_967_295).optional(),
+  })
+  .strict();
+export const creativeVideoVersionBatchSchema = z
+  .object({
+    versions: z.array(creativeVideoVersionSchema).length(3),
+    recommendedVariant: videoVersionVariantSchema,
+  })
+  .strict();
+
 export type CreativeProjectMode = z.infer<typeof creativeProjectModeSchema>;
 export type CreativeProjectStatus = z.infer<typeof creativeProjectStatusSchema>;
 export type CreativeProject = z.infer<typeof creativeProjectSchema>;
@@ -422,3 +454,5 @@ export type AssetRequirement = z.infer<typeof assetRequirementSchema>;
 export type EditBlueprint = z.infer<typeof editBlueprintSchema>;
 export type BlueprintBeat = z.infer<typeof blueprintBeatSchema>;
 export type EditBlueprintGeneration = z.infer<typeof editBlueprintGenerationSchema>;
+export type VideoVersionVariant = z.infer<typeof videoVersionVariantSchema>;
+export type CreativeVideoVersion = z.infer<typeof creativeVideoVersionSchema>;

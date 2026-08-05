@@ -68,6 +68,9 @@ function createRepository() {
   const listCreativeProjects = vi.fn<HotelCutRepository['listCreativeProjects']>(() =>
     Promise.resolve(projects),
   );
+  const listCreativeVideoVersions = vi.fn<HotelCutRepository['listCreativeVideoVersions']>(() =>
+    Promise.resolve([]),
+  );
   const updateCreativeProject = vi.fn<HotelCutRepository['updateCreativeProject']>(
     (_actor, _projectId, input) => {
       const updated: CreativeProject = {
@@ -97,9 +100,10 @@ function createRepository() {
     createCreativeProject,
     getCreativeProject,
     listCreativeProjects,
+    listCreativeVideoVersions,
     updateCreativeProject,
   } as unknown as HotelCutRepository;
-  return { createCreativeProject, projects, repository };
+  return { createCreativeProject, listCreativeVideoVersions, projects, repository };
 }
 
 const enabledFlags = {
@@ -110,6 +114,22 @@ const enabledFlags = {
 };
 
 describe('AI Director creative project routes', () => {
+  it('lists persisted A/B/C versions through the tenant-scoped API', async () => {
+    const { listCreativeVideoVersions, repository } = createRepository();
+    const app = await buildApp({ aiDirectorFeatureFlags: enabledFlags, repository });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { 'x-user-id': actorUserId },
+      method: 'GET',
+      url: `/v1/creative-projects/${projectId}/video-versions`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual([]);
+    expect(listCreativeVideoVersions).toHaveBeenCalledWith(actorUserId, projectId);
+  });
+
   it('creates, lists, reads and updates a tenant-scoped creative project', async () => {
     const { createCreativeProject, repository } = createRepository();
     const app = await buildApp({ aiDirectorFeatureFlags: enabledFlags, repository });

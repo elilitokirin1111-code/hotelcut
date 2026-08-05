@@ -50,6 +50,13 @@
       "when": 1785899110387,
       "tag": "0006_youthful_tarot",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785900000000,
+      "tag": "0007_dynamic_multiverse",
+      "breakpoints": true
     }
   ]
 }

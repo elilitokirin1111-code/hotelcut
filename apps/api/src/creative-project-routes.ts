@@ -12,12 +12,15 @@ import {
 import {
   DomainNotFoundError,
   type HotelCutRepository,
+  type PersistCreativeVideoVersionInput,
   type StoredModelProviderSettings,
 } from '@hotelcut/domain';
 import {
   aiDirectorFeatureFlagsSchema,
   assignAssetRequirementSchema,
   compileBlueprintSchema,
+  creativeVideoVersionBatchSchema,
+  creativeVideoVersionSchema,
   createCreativeBriefRevisionSchema,
   createReferenceProfileSchema,
   createCreativeProjectSchema,
@@ -29,6 +32,7 @@ import {
   hotelIdParamsSchema,
   generateAssetRequirementsSchema,
   generateBlueprintSchema,
+  generateVideoVersionsSchema,
   generatedVideoProjectSchema,
   reviseScriptSchema,
   referenceVideoProfileGenerationSchema,
@@ -41,7 +45,9 @@ import {
   selectRevisionSchema,
   updateCreativeProjectSchema,
   type AiDirectorFeatureFlags,
+  type EditBlueprint,
   type ScriptPackage,
+  type VideoVersionVariant,
 } from '@hotelcut/schemas';
 
 import {
@@ -69,6 +75,91 @@ const promptVersion = 'ai-director-v1';
 const generationParameters = { temperature: 0.2, topP: 0.9 };
 const scriptParamsSchema = z.object({ projectId: z.uuid(), scriptId: z.uuid() });
 const blueprintParamsSchema = creativeProjectIdParamsSchema.extend({ blueprintId: z.uuid() });
+
+function deriveVersionBlueprint(
+  blueprint: EditBlueprint,
+  variant: VideoVersionVariant,
+  seed: number,
+) {
+  const speedMultiplier = variant === 'B' ? 0.65 : 1;
+  return {
+    durationSeconds: blueprint.durationSeconds,
+    frameRate: blueprint.frameRate,
+    aspectRatio: blueprint.aspectRatio,
+    music: blueprint.music,
+    captionStyle: blueprint.captionStyle,
+    compilerVersion: blueprint.compilerVersion,
+    sourceAssetIds: blueprint.sourceAssetIds,
+    referenceProfileIds: blueprint.referenceProfileIds,
+    modelName: blueprint.modelName,
+    promptVersion: blueprint.promptVersion,
+    generationParameters: blueprint.generationParameters,
+    inputSummary: blueprint.inputSummary,
+    seed,
+    style: {
+      ...blueprint.style,
+      pace: variant === 'B' ? 'very_fast' : blueprint.style.pace,
+      transitionDensity: variant === 'B' ? 'high' : blueprint.style.transitionDensity,
+    },
+    globalRules: [
+      ...blueprint.globalRules.filter(
+        (rule) => rule !== 'CTA_EMPHASIS' && rule !== 'MUSIC_ENABLED',
+      ),
+      ...(variant === 'C' ? ['CTA_EMPHASIS'] : []),
+      'MUSIC_ENABLED',
+    ],
+    beats: blueprint.beats.map((sourceBeat) => {
+      const { id: ignoredBeatId, ...beat } = sourceBeat;
+      void ignoredBeatId;
+      return {
+        ...beat,
+        maximumShotDurationMs:
+          variant === 'B'
+            ? Math.max(
+                beat.minimumShotDurationMs,
+                Math.floor(beat.maximumShotDurationMs * speedMultiplier),
+              )
+            : beat.maximumShotDurationMs,
+      };
+    }),
+  };
+}
+
+function versionScores(
+  variant: VideoVersionVariant,
+  generation: { selectedSlots: number; totalSlots: number; usedAssetIds: string[] },
+  rawProject: Record<string, unknown>,
+): Omit<
+  PersistCreativeVideoVersionInput,
+  'editBlueprintId' | 'videoProjectId' | 'variant' | 'seed' | 'recommendationReason'
+> {
+  const project = rawProject as {
+    output: { durationFrames: number };
+    tracks: Array<{ clips: Array<{ startFrame: number; durationFrames: number; kind: string }> }>;
+  };
+  const visualClips = project.tracks
+    .flatMap((track) => track.clips)
+    .filter((clip) => clip.kind === 'video' || clip.kind === 'image');
+  const averageShotFrames = visualClips.length
+    ? Math.round(
+        visualClips.reduce((sum, clip) => sum + clip.durationFrames, 0) / visualClips.length,
+      )
+    : project.output.durationFrames;
+  const repeatedAssetCount = generation.usedAssetIds.length - new Set(generation.usedAssetIds).size;
+  const coverage = generation.totalSlots
+    ? Math.round((generation.selectedSlots * 10_000) / generation.totalSlots)
+    : 0;
+  const hookCoverage = visualClips.some((clip) => clip.startFrame < 90) ? 10_000 : 0;
+  const pace = Math.max(0, Math.min(10_000, 10_000 - Math.max(0, averageShotFrames - 36) * 80));
+  return {
+    scoreBasisPoints: Math.round((coverage * 5 + hookCoverage * 3 + pace * 2) / 10),
+    hookScoreBasisPoints: hookCoverage,
+    sellingPointCoverageBasisPoints: coverage,
+    paceScoreBasisPoints: variant === 'B' ? Math.max(pace, 8_000) : pace,
+    usedAssetIds: generation.usedAssetIds,
+    repeatedAssetCount,
+  };
+}
 
 function metadataDuration(metadata: Record<string, unknown>): number {
   const probe = metadata['probe'];
@@ -381,6 +472,117 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         status: 'generated',
       });
       return reply.code(201).send({ detail, generation });
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/generate-video-versions',
+    {
+      schema: {
+        body: generateVideoVersionsSchema,
+        params: creativeProjectIdParamsSchema,
+        response: {
+          201: creativeVideoVersionBatchSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Generate and score strict-script, fast-hook and conversion video versions',
+        tags: ['ai-director', 'video-projects'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      if (!options.featureFlags.dynamicBlueprintEnabled) {
+        throw new DomainNotFoundError('Dynamic Blueprint is disabled');
+      }
+      const store = repository();
+      const project = await store.getCreativeProject(request.actorUserId, request.params.projectId);
+      const existing = await store.listCreativeVideoVersions(request.actorUserId, project.id);
+      if (existing.length > 0) {
+        return reply.code(409).send({
+          code: 'VIDEO_VERSIONS_ALREADY_GENERATED',
+          message: '该创作项目已生成 A/B/C 版本；请从版本列表选择进入 Studio。',
+          requestId: request.id,
+        });
+      }
+      const source = (await store.listEditBlueprints(request.actorUserId, project.id)).find(
+        (blueprint) => blueprint.id === (request.body.blueprintId ?? project.selectedBlueprintId),
+      );
+      if (!source) {
+        return reply.code(409).send({
+          code: 'BLUEPRINT_NOT_SELECTED',
+          message: '请先生成并选择一个已校验剪辑蓝图。',
+          requestId: request.id,
+        });
+      }
+      const seed = request.body.seed ?? source.seed;
+      const plans: Array<{ variant: VideoVersionVariant; seed: number; reason: string }> = [
+        { variant: 'A', seed: seed + 101, reason: '严格遵循脚本段落与原始镜头节奏。' },
+        { variant: 'B', seed: seed + 202, reason: '强化前三秒和快切节奏，优先提升 Hook。' },
+        { variant: 'C', seed: seed + 303, reason: '强化卖点呈现、背景音乐与结尾 CTA。' },
+      ];
+      const versions = [];
+      for (const plan of plans) {
+        const derived = await store.createEditBlueprint(
+          request.actorUserId,
+          project.id,
+          deriveVersionBlueprint(source, plan.variant, plan.seed),
+        );
+        const compiled = await app.inject({
+          headers: { 'content-type': 'application/json', 'x-user-id': request.actorUserId },
+          method: 'POST',
+          payload: JSON.stringify({ seed: plan.seed }),
+          url: `/v1/creative-projects/${project.id}/blueprints/${derived.id}/compile`,
+        });
+        if (compiled.statusCode !== 201) {
+          const compilationError = errorResponseSchema.parse(compiled.json());
+          return reply.code(409).send({
+            code: 'VIDEO_VERSION_COMPILATION_FAILED',
+            message: `版本 ${plan.variant} 编译失败：${compilationError.message ?? '未知错误'}`,
+            requestId: request.id,
+          });
+        }
+        const result = generatedVideoProjectSchema.parse(compiled.json());
+        const scores = versionScores(
+          plan.variant,
+          result.generation,
+          result.detail.currentRevision.projectDocument,
+        );
+        versions.push(
+          await store.createCreativeVideoVersion(request.actorUserId, project.id, {
+            ...scores,
+            editBlueprintId: derived.id,
+            videoProjectId: result.detail.project.id,
+            variant: plan.variant,
+            seed: plan.seed,
+            recommendationReason: plan.reason,
+          }),
+        );
+      }
+      const recommended = [...versions].sort(
+        (left, right) =>
+          right.scoreBasisPoints - left.scoreBasisPoints ||
+          left.variant.localeCompare(right.variant),
+      )[0]!;
+      return reply.code(201).send({ versions, recommendedVariant: recommended.variant });
+    },
+  );
+
+  app.get(
+    '/v1/creative-projects/:projectId/video-versions',
+    {
+      schema: {
+        params: creativeProjectIdParamsSchema,
+        response: { 200: z.array(creativeVideoVersionSchema), 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'List generated, scored A/B/C video versions for a creative project',
+        tags: ['ai-director', 'video-projects'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      return repository().listCreativeVideoVersions(request.actorUserId, request.params.projectId);
     },
   );
 

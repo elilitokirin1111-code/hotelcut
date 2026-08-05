@@ -2,7 +2,17 @@ import type { EditBlueprint } from '@hotelcut/schemas';
 
 import { type CompilationTemplate, defineCompilationTemplate } from './template.js';
 
-export function buildDynamicCompilationTemplate(blueprint: EditBlueprint): CompilationTemplate {
+export interface DynamicTemplateOptions {
+  emphasizeCta?: boolean;
+  enableMusic?: boolean;
+}
+
+export function buildDynamicCompilationTemplate(
+  blueprint: EditBlueprint,
+  options: DynamicTemplateOptions = {},
+): CompilationTemplate {
+  const emphasizeCta = options.emphasizeCta || blueprint.globalRules.includes('CTA_EMPHASIS');
+  const enableMusic = options.enableMusic || blueprint.globalRules.includes('MUSIC_ENABLED');
   const durationMs = blueprint.durationSeconds * 1_000;
   return defineCompilationTemplate({
     id: `dynamic.${blueprint.id}.r${blueprint.revision}`,
@@ -33,7 +43,12 @@ export function buildDynamicCompilationTemplate(blueprint: EditBlueprint): Compi
           required: beat.requiredTags.length > 0,
           allowAssetReuse: beat.maximumAssetReuse > 1,
           reuseCandidateRanges: beat.maximumAssetReuse > 1,
-          audioPolicy: beat.audioPolicy === 'dialogue' ? ('keep' as const) : ('mute' as const),
+          audioPolicy:
+            beat.audioPolicy === 'dialogue'
+              ? ('keep' as const)
+              : beat.audioPolicy === 'ambient'
+                ? ('duck' as const)
+                : ('mute' as const),
           transition: beat.transitionOut ?? 'cut',
         };
       });
@@ -48,7 +63,14 @@ export function buildDynamicCompilationTemplate(blueprint: EditBlueprint): Compi
       maxLines: 2,
     },
     title: null,
-    cta: null,
-    music: null,
+    cta: emphasizeCta ? { startBasisPoints: 8_000, endBasisPoints: 10_000 } : null,
+    music: enableMusic
+      ? {
+          requiredTags: ['music'],
+          preferredTags: ['bgm', 'ambient'],
+          volume: 0.32,
+          fadeDurationFrames: 12,
+        }
+      : null,
   });
 }
