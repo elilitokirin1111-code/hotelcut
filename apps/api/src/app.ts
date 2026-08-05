@@ -28,11 +28,13 @@ import {
   updateHotelSchema,
   upsertBrandKitSchema,
   videoBriefSchema,
+  type AiDirectorFeatureFlags,
 } from '@hotelcut/schemas';
 import type { MultipartObjectStorage } from '@hotelcut/storage';
 
 import { assetRoutes } from './asset-routes.js';
 import { configureAuthentication } from './authentication.js';
+import { creativeProjectRoutes } from './creative-project-routes.js';
 import { modelProviderRoutes } from './model-provider-routes.js';
 import { projectRoutes } from './project-routes.js';
 import { renderRoutes } from './render-routes.js';
@@ -40,6 +42,7 @@ import { renderRoutes } from './render-routes.js';
 interface BuildAppOptions {
   allowDevelopmentIdentity?: boolean;
   analysisQueue?: AnalysisQueue;
+  aiDirectorFeatureFlags?: AiDirectorFeatureFlags;
   authRepository?: AuthRepository;
   downloadUrlTtlSeconds?: number;
   guestUserId?: string;
@@ -364,6 +367,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
     fetchProvider: options.modelProviderFetch,
     repository: options.repository,
+  });
+  await app.register(creativeProjectRoutes, {
+    featureFlags: options.aiDirectorFeatureFlags ?? {
+      aiDirectorEnabled: false,
+      referenceAnalysisEnabled: false,
+      dynamicBlueprintEnabled: false,
+      aiReviewEnabled: false,
+    },
+    ...(options.repository ? { repository: options.repository } : {}),
   });
   await app.register(projectRoutes, {
     repository: options.repository,

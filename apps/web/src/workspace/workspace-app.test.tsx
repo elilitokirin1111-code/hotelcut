@@ -262,6 +262,22 @@ function createApi(initialSession: AuthSession | null): {
   uploadVideo: ReturnType<typeof vi.fn<WorkspaceApi['uploadVideo']>>;
 } {
   const getSession = vi.fn<WorkspaceApi['getSession']>().mockResolvedValue(initialSession);
+  const getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
+    aiDirectorEnabled: true,
+    aiReviewEnabled: true,
+    dynamicBlueprintEnabled: true,
+    referenceAnalysisEnabled: true,
+  });
+  const listCreativeProjects = vi.fn<WorkspaceApi['listCreativeProjects']>().mockResolvedValue([]);
+  const createCreativeProject = vi
+    .fn<WorkspaceApi['createCreativeProject']>()
+    .mockRejectedValue(new Error('Creative project creation is not configured in this test'));
+  const getCreativeProject = vi
+    .fn<WorkspaceApi['getCreativeProject']>()
+    .mockRejectedValue(new Error('Creative project lookup is not configured in this test'));
+  const updateCreativeProject = vi
+    .fn<WorkspaceApi['updateCreativeProject']>()
+    .mockRejectedValue(new Error('Creative project updates are not configured in this test'));
   const loadHotelConfiguration = vi
     .fn<WorkspaceApi['loadHotelConfiguration']>()
     .mockImplementation((hotelId) => {
@@ -460,6 +476,7 @@ function createApi(initialSession: AuthSession | null): {
   return {
     api: {
       cancelRenderJob,
+      createCreativeProject,
       createRenderJob,
       createManualSegment,
       createVideoBrief,
@@ -467,12 +484,15 @@ function createApi(initialSession: AuthSession | null): {
       generateVideoProject,
       getAssetDerivativeDownload,
       getAssetDetail,
+      getAiDirectorFeatures,
+      getCreativeProject,
       getRenderArtifactDownload,
       getRenderJob,
       getSession,
       getModelProviderSettings,
       getVideoProject,
       listAssets,
+      listCreativeProjects,
       listProjectTemplates,
       listRenderJobs,
       listVideoProjects,
@@ -486,6 +506,7 @@ function createApi(initialSession: AuthSession | null): {
       saveModelProviderSettings,
       saveProjectRevision,
       testModelProvider,
+      updateCreativeProject,
       updateHotel,
       uploadVideo,
     },

@@ -9,7 +9,7 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build --concurrency=2",
     "db:generate": "pnpm --filter @hotelcut/database db:generate",
     "db:migrate": "pnpm --filter @hotelcut/database db:migrate",
     "db:seed": "pnpm --filter \"@hotelcut/database^...\" build && pnpm --filter @hotelcut/database db:seed",
@@ -21,17 +21,17 @@
     "format:check": "prettier --check . && node infrastructure/scripts/python.mjs -m ruff format --check apps/analysis-worker",
     "healthcheck": "node infrastructure/scripts/check-health.mjs",
     "lint": "pnpm lint:js && pnpm lint:python",
-    "lint:js": "turbo run build && eslint .",
+    "lint:js": "turbo run build --concurrency=2 && eslint .",
     "lint:python": "node infrastructure/scripts/python.mjs -m ruff check apps/analysis-worker",
     "test": "pnpm test:js && pnpm test:python",
     "test:e2e": "playwright test",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "templates:fixtures": "pnpm build && pnpm --filter @hotelcut/templates generate:fixtures",
     "timeline:artifacts": "pnpm --filter @hotelcut/timeline generate:artifacts",
-    "test:js": "turbo run test",
+    "test:js": "turbo run test --concurrency=2",
     "test:python": "node infrastructure/scripts/python.mjs -m pytest apps/analysis-worker/tests",
     "typecheck": "pnpm typecheck:js && pnpm typecheck:python",
-    "typecheck:js": "tsc -p tsconfig.json --noEmit --pretty false && turbo run typecheck",
+    "typecheck:js": "tsc -p tsconfig.json --noEmit --pretty false && turbo run typecheck --concurrency=2",
     "typecheck:python": "node infrastructure/scripts/python.mjs -m mypy --config-file apps/analysis-worker/pyproject.toml apps/analysis-worker/src apps/analysis-worker/tests"
   },
   "devDependencies": {

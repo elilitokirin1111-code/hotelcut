@@ -17,6 +17,12 @@ const objectStorage = new S3MultipartObjectStorage({
   secretAccessKey: environment.S3_SECRET_ACCESS_KEY,
 });
 const app = await buildApp({
+  aiDirectorFeatureFlags: {
+    aiDirectorEnabled: environment.AI_DIRECTOR_ENABLED,
+    referenceAnalysisEnabled: environment.REFERENCE_ANALYSIS_ENABLED,
+    dynamicBlueprintEnabled: environment.DYNAMIC_BLUEPRINT_ENABLED,
+    aiReviewEnabled: environment.AI_REVIEW_ENABLED,
+  },
   allowDevelopmentIdentity:
     environment.NODE_ENV !== 'production' && environment.ALLOW_DEVELOPMENT_IDENTITY,
   analysisQueue,

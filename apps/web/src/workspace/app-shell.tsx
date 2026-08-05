@@ -21,7 +21,15 @@ import {
 import { useState, type ReactNode } from 'react';
 
 export type WorkspaceSection =
-  'assets' | 'audit' | 'brand' | 'dashboard' | 'projects' | 'renders' | 'settings' | 'templates';
+  | 'ai-director'
+  | 'assets'
+  | 'audit'
+  | 'brand'
+  | 'dashboard'
+  | 'projects'
+  | 'renders'
+  | 'settings'
+  | 'templates';
 
 interface AppShellProps {
   activeSection: WorkspaceSection;
@@ -46,6 +54,7 @@ interface NavigationItem {
 
 const creationNavigation: NavigationItem[] = [
   { ariaLabel: '打开工作台', icon: Gauge, label: '工作台', section: 'dashboard' },
+  { ariaLabel: '打开 AI 创作', icon: WandSparkles, label: 'AI 创作', section: 'ai-director' },
   { ariaLabel: '打开视频项目', icon: Film, label: '视频项目', section: 'projects' },
   { ariaLabel: '打开素材库', icon: Boxes, label: '素材库', section: 'assets' },
   { ariaLabel: '打开模板中心', icon: Sparkles, label: '模板中心', section: 'templates' },
@@ -260,7 +269,7 @@ export function AppShell({
           </button>
           <button
             className="shell-create-button"
-            onClick={() => navigate('projects')}
+            onClick={() => navigate('ai-director')}
             type="button"
           >
             <Plus size={15} />

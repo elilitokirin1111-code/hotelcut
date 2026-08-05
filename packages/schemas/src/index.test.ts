@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   assetSegmentSchema,
   createAssetUploadSchema,
+  createCreativeProjectSchema,
+  creativeProjectSchema,
   createHotelSchema,
   createVideoProjectSchema,
   createVideoBriefSchema,
@@ -76,6 +78,33 @@ describe('shared input schemas', () => {
     });
 
     expect(brief).toMatchObject({ aspectRatio: '9:16', language: 'zh-CN' });
+  });
+
+  it('validates the CreativeProject lifecycle without accepting arbitrary modes or states', () => {
+    const project = {
+      id: '91000000-0000-4000-8000-000000000001',
+      hotelId: '30000000-0000-4000-8000-000000000001',
+      title: '酒店前台反差视频',
+      mode: 'idea',
+      status: 'draft',
+      selectedBriefRevisionId: null,
+      selectedScriptRevisionId: null,
+      selectedBlueprintId: null,
+      selectedVideoProjectId: null,
+      createdByUserId: '20000000-0000-4000-8000-000000000001',
+      metadata: {},
+      deletedAt: null,
+      createdAt: '2026-08-05T08:00:00.000Z',
+      updatedAt: '2026-08-05T08:00:00.000Z',
+    };
+
+    expect(createCreativeProjectSchema.parse({ mode: 'idea', title: '  前台反差  ' })).toEqual({
+      mode: 'idea',
+      title: '前台反差',
+    });
+    expect(creativeProjectSchema.parse(project)).toEqual(project);
+    expect(() => createCreativeProjectSchema.parse({ mode: 'unknown', title: '无效' })).toThrow();
+    expect(() => creativeProjectSchema.parse({ ...project, status: 'rendering' })).toThrow();
   });
 
   it('accepts video and audio production uploads while rejecting mismatched media types', () => {

@@ -69,15 +69,19 @@ services:
         APP_FILTER: '@hotelcut/api'
     environment:
       ALLOW_DEVELOPMENT_IDENTITY: ${ALLOW_DEVELOPMENT_IDENTITY:-true}
+      AI_DIRECTOR_ENABLED: ${AI_DIRECTOR_ENABLED:-true}
+      AI_REVIEW_ENABLED: ${AI_REVIEW_ENABLED:-true}
       API_HOST: 0.0.0.0
       API_PORT: 3000
       AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-604800}
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotelcut}:${POSTGRES_PASSWORD:-hotelcut_local}@postgres:5432/${POSTGRES_DB:-hotelcut}
+      DYNAMIC_BLUEPRINT_ENABLED: ${DYNAMIC_BLUEPRINT_ENABLED:-true}
       GUEST_MODE: ${GUEST_MODE:-true}
       GUEST_USER_ID: ${GUEST_USER_ID:-20000000-0000-4000-8000-000000000001}
       MODEL_API_CONFIG_SECRET: ${MODEL_API_CONFIG_SECRET:-hotelcut-local-model-secret}
       NODE_ENV: development
       REDIS_URL: redis://redis:6379
+      REFERENCE_ANALYSIS_ENABLED: ${REFERENCE_ANALYSIS_ENABLED:-true}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-hotelcut}
       S3_BUCKET: ${S3_BUCKET:-hotelcut-local}
       S3_ENDPOINT: http://minio:9000

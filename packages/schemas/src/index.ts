@@ -645,3 +645,5 @@ export type UpsertModelProviderSettingsInput = z.infer<typeof upsertModelProvide
 export type ModelProviderConnectionResult = z.infer<typeof modelProviderConnectionResultSchema>;
 export type AiEditPlanInput = z.infer<typeof aiEditPlanInputSchema>;
 export type AiEditPlan = z.infer<typeof aiEditPlanSchema>;
+
+export * from './ai-director.js';

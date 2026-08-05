@@ -10,7 +10,8 @@ const appProps = {
   assets: editorAssets,
   initialProject: demoProject,
   initialRevision: 1,
-  onSaveRevision: async (_project: HotelVideoProjectV1, baseRevision: number) => baseRevision + 1,
+  onSaveRevision: (_project: HotelVideoProjectV1, baseRevision: number) =>
+    Promise.resolve(baseRevision + 1),
 };
 
 afterEach(() => {

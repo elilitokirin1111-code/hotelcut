@@ -18,6 +18,7 @@
 | `deployment.md`               | Local and future deployment model     | M0+              |
 | `acceptance-tests.md`         | Milestone gates                       | Cross-cutting    |
 | `implementation-decisions.md` | Auditable architectural decisions     | Cross-cutting    |
+| `ai-director/architecture.md` | AI Director boundaries and rollout    | AI Director 0+   |
 
-Documents state their implementation status explicitly; M0 through M6 are implemented and M7 is
-in progress.
+Documents state their implementation status explicitly; M0 through M6 are implemented, M7 is in
+progress, and the additive AI Director Phase 0 foundation is implemented behind feature flags.

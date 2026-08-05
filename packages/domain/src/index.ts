@@ -8,6 +8,8 @@ import type {
   AssetUpload,
   BrandKit,
   CompleteAssetUploadInput,
+  CreativeProject,
+  CreateCreativeProjectInput,
   CreateAssetUploadInput,
   CreateHotelInput,
   CreateManualSegmentInput,
@@ -29,6 +31,7 @@ import type {
   SaveProjectRevisionInput,
   RenderJobStatus,
   UpdateHotelInput,
+  UpdateCreativeProjectInput,
   UpsertBrandKitInput,
   User,
   VideoBrief,
@@ -189,6 +192,18 @@ export interface HotelCutRepository {
     hotelId: string,
     input: PersistModelProviderSettingsInput,
   ): Promise<StoredModelProviderSettings>;
+  listCreativeProjects(actorUserId: string, hotelId: string): Promise<CreativeProject[]>;
+  createCreativeProject(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateCreativeProjectInput,
+  ): Promise<CreativeProject>;
+  getCreativeProject(actorUserId: string, projectId: string): Promise<CreativeProject>;
+  updateCreativeProject(
+    actorUserId: string,
+    projectId: string,
+    input: UpdateCreativeProjectInput,
+  ): Promise<CreativeProject>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

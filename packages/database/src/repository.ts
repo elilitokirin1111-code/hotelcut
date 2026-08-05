@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import { and, asc, desc, eq, gt, inArray, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 import {
@@ -31,6 +31,8 @@ import type {
   AssetUpload,
   BrandKit,
   CompleteAssetUploadInput,
+  CreativeProject,
+  CreateCreativeProjectInput,
   CreateHotelInput,
   CreateManualSegmentInput,
   CreateRenderJobInput,
@@ -45,6 +47,7 @@ import type {
   RenderLogEntry,
   RenderJobStatus,
   UpdateHotelInput,
+  UpdateCreativeProjectInput,
   UpsertBrandKitInput,
   User,
   VideoBrief,
@@ -57,6 +60,7 @@ import {
   assetSchema,
   assetSegmentSchema,
   assetUploadSchema,
+  creativeProjectSchema,
   modelApiModeSchema,
   modelProviderKindSchema,
   modelReasoningEffortSchema,
@@ -111,6 +115,15 @@ function mapModelProviderSettings(
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };
+}
+
+function mapCreativeProject(row: typeof schema.creativeProjects.$inferSelect): CreativeProject {
+  return creativeProjectSchema.parse({
+    ...row,
+    deletedAt: row.deletedAt ? toIso(row.deletedAt) : null,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  });
 }
 
 function mapVideoBrief(row: typeof schema.videoBriefs.$inferSelect): VideoBrief {
@@ -448,6 +461,69 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       throw new Error('Model provider settings upsert did not return a row');
     }
     return mapModelProviderSettings(row);
+  }
+
+  async listCreativeProjects(actorUserId: string, hotelId: string): Promise<CreativeProject[]> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .select()
+      .from(schema.creativeProjects)
+      .where(
+        and(
+          eq(schema.creativeProjects.hotelId, hotelId),
+          isNull(schema.creativeProjects.deletedAt),
+        ),
+      )
+      .orderBy(desc(schema.creativeProjects.updatedAt));
+
+    return rows.map(mapCreativeProject);
+  }
+
+  async createCreativeProject(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateCreativeProjectInput,
+  ): Promise<CreativeProject> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const [row] = await this.db
+      .insert(schema.creativeProjects)
+      .values({
+        id: randomUUID(),
+        hotelId,
+        title: input.title,
+        mode: input.mode,
+        status: 'draft',
+        createdByUserId: actorUserId,
+        metadata: {},
+      })
+      .returning();
+
+    if (!row) {
+      throw new Error('Creative project insert did not return a row');
+    }
+    return mapCreativeProject(row);
+  }
+
+  async getCreativeProject(actorUserId: string, projectId: string): Promise<CreativeProject> {
+    return mapCreativeProject(await this.requireCreativeProjectMember(actorUserId, projectId));
+  }
+
+  async updateCreativeProject(
+    actorUserId: string,
+    projectId: string,
+    input: UpdateCreativeProjectInput,
+  ): Promise<CreativeProject> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const [row] = await this.db
+      .update(schema.creativeProjects)
+      .set({ ...input, updatedAt: new Date() })
+      .where(eq(schema.creativeProjects.id, projectId))
+      .returning();
+
+    if (!row) {
+      throw new DomainNotFoundError('Creative project not found');
+    }
+    return mapCreativeProject(row);
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {
@@ -1496,6 +1572,32 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       throw new DomainNotFoundError('Asset not found');
     }
     return row.asset;
+  }
+
+  private async requireCreativeProjectMember(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<typeof schema.creativeProjects.$inferSelect> {
+    const [row] = await this.db
+      .select({ project: schema.creativeProjects })
+      .from(schema.creativeProjects)
+      .innerJoin(schema.hotels, eq(schema.hotels.id, schema.creativeProjects.hotelId))
+      .innerJoin(
+        schema.memberships,
+        and(
+          eq(schema.memberships.organizationId, schema.hotels.organizationId),
+          eq(schema.memberships.userId, actorUserId),
+        ),
+      )
+      .where(
+        and(eq(schema.creativeProjects.id, projectId), isNull(schema.creativeProjects.deletedAt)),
+      )
+      .limit(1);
+
+    if (!row) {
+      throw new DomainNotFoundError('Creative project not found');
+    }
+    return row.project;
   }
 
   private async requireVideoProjectMember(

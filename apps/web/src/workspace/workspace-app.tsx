@@ -8,6 +8,7 @@ import type {
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { AssetLibrary } from './asset-library';
+import { AiDirectorWorkspace } from './ai-director-workspace';
 import { AppShell, type WorkspaceSection } from './app-shell';
 import { AutomaticEditWorkflow } from './automatic-edit-workflow';
 import { ModelApiSettings } from './model-api-settings';
@@ -513,6 +514,7 @@ function HotelWorkspace({
         </section>
       ) : null}
       {activeModule === 'assets' ? <AssetLibrary api={api} hotelId={hotel.id} /> : null}
+      {activeModule === 'ai-director' ? <AiDirectorWorkspace api={api} hotelId={hotel.id} /> : null}
       {activeModule === 'projects' ? <AutomaticEditWorkflow api={api} hotelId={hotel.id} /> : null}
       {activeModule === 'renders' ? <RenderCenter api={api} hotelId={hotel.id} /> : null}
       {activeModule === 'settings' ? <ModelApiSettings api={api} hotelId={hotel.id} /> : null}

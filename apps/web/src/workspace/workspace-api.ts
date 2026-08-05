@@ -1,11 +1,14 @@
 import {
   analysisRetryResponseSchema,
+  aiDirectorFeatureFlagsSchema,
   assetDetailSchema,
   assetSchema,
   assetSegmentSchema,
   authSessionSchema,
   brandKitSchema,
   completeAssetUploadResponseSchema,
+  createCreativeProjectSchema,
+  creativeProjectSchema,
   createAssetUploadResponseSchema,
   createRenderJobSchema,
   derivativeDownloadSchema,
@@ -23,6 +26,7 @@ import {
   videoProjectDetailSchema,
   videoProjectSchema,
   type Asset,
+  type AiDirectorFeatureFlags,
   type AiEditPlan,
   type AiEditPlanInput,
   type AssetDetail,
@@ -30,6 +34,8 @@ import {
   type AssetSegment,
   type AuthSession,
   type BrandKit,
+  type CreativeProject,
+  type CreateCreativeProjectInput,
   type CreateManualSegmentInput,
   type CreateRenderJobInput,
   type CreateVideoBriefInput,
@@ -45,6 +51,7 @@ import {
   type SaveProjectRevisionInput,
   type UpdateHotelInput,
   type UpsertBrandKitInput,
+  type UpdateCreativeProjectInput,
   type UpsertModelProviderSettingsInput,
   type VideoBrief,
   type VideoProject,
@@ -88,6 +95,17 @@ export interface WorkspaceApi {
   getSession(signal?: AbortSignal): Promise<AuthSession | null>;
   login(email: string, password: string): Promise<AuthSession>;
   logout(): Promise<void>;
+  getAiDirectorFeatures(signal?: AbortSignal): Promise<AiDirectorFeatureFlags>;
+  listCreativeProjects(hotelId: string, signal?: AbortSignal): Promise<CreativeProject[]>;
+  createCreativeProject(
+    hotelId: string,
+    input: CreateCreativeProjectInput,
+  ): Promise<CreativeProject>;
+  getCreativeProject(projectId: string, signal?: AbortSignal): Promise<CreativeProject>;
+  updateCreativeProject(
+    projectId: string,
+    input: UpdateCreativeProjectInput,
+  ): Promise<CreativeProject>;
   loadWorkspace(signal?: AbortSignal): Promise<WorkspaceSnapshot>;
   loadHotelConfiguration(hotelId: string, signal?: AbortSignal): Promise<HotelConfiguration>;
   listAssets(hotelId: string, signal?: AbortSignal): Promise<Asset[]>;
@@ -261,6 +279,54 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
       if (!response.ok) {
         throw await parseError(response);
       }
+    },
+
+    async getAiDirectorFeatures(signal) {
+      return request(
+        '/v1/ai-director/features',
+        aiDirectorFeatureFlagsSchema,
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async listCreativeProjects(hotelId, signal) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/creative-projects`,
+        creativeProjectSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async createCreativeProject(hotelId, input) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/creative-projects`,
+        creativeProjectSchema,
+        {
+          body: JSON.stringify(createCreativeProjectSchema.parse(input)),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async getCreativeProject(projectId, signal) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}`,
+        creativeProjectSchema,
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async updateCreativeProject(projectId, input) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}`,
+        creativeProjectSchema,
+        {
+          body: JSON.stringify(input),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'PATCH',
+        },
+      );
     },
 
     async loadWorkspace(signal) {
