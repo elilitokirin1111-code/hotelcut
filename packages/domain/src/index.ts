@@ -18,6 +18,8 @@ import type {
   CreateHotelInput,
   CreateManualSegmentInput,
   CreateRenderJobInput,
+  EditBlueprint,
+  EditBlueprintGeneration,
   CreateVideoProjectInput,
   CreateVideoBriefInput,
   Hotel,
@@ -219,6 +221,17 @@ export interface CreateAssetRequirementInput {
   filmingInstruction: string | null;
 }
 
+export interface PersistEditBlueprintInput extends EditBlueprintGeneration {
+  seed: number;
+  compilerVersion: string;
+  sourceAssetIds: string[];
+  referenceProfileIds: string[];
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -306,6 +319,12 @@ export interface HotelCutRepository {
     requirementId: string,
     assetId: string,
   ): Promise<AssetRequirement>;
+  createEditBlueprint(
+    actorUserId: string,
+    projectId: string,
+    input: PersistEditBlueprintInput,
+  ): Promise<EditBlueprint>;
+  listEditBlueprints(actorUserId: string, projectId: string): Promise<EditBlueprint[]>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

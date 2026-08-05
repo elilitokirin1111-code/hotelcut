@@ -264,11 +264,13 @@ function createCaptionClips(
   }
   const clips: CaptionClip[] = [];
   selectedSlots
-    .filter((selection) => selection.slot.role === 'a-roll' && selection.clip)
+    .filter(
+      (selection) => selection.clip && (selection.slot.caption || selection.slot.role === 'a-roll'),
+    )
     .sort((left, right) => left.slot.startFrame - right.slot.startFrame)
     .forEach((selection) => {
-      const transcript = selection.source?.transcript;
-      if (!transcript) {
+      const captionText = selection.slot.caption ?? selection.source?.transcript;
+      if (!captionText) {
         warnings.push({
           code: 'CAPTION_SOURCE_MISSING',
           message: `Slot ${selection.slot.id} has no transcript for captions`,
@@ -278,7 +280,7 @@ function createCaptionClips(
         return;
       }
       const pages = paginateCaptionLines(
-        splitCaptionLines(transcript, layout.maxVisualWidth),
+        splitCaptionLines(captionText, layout.maxVisualWidth),
         layout.maxLines,
       );
       pages.forEach((text, pageIndex) => {

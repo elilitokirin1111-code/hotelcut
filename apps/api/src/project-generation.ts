@@ -17,7 +17,7 @@ import type {
 } from '@hotelcut/schemas';
 import { compilationTemplates, getCompilationTemplate } from '@hotelcut/templates';
 
-const outputFrameRate = 30;
+const defaultOutputFrameRate = 30;
 
 const templateDescriptions: Record<string, string> = {
   'hotel.host-broll': '真人口播为主线，自动穿插大堂、客房和服务画面，适合完整讲解。',
@@ -97,19 +97,23 @@ function canonicalTags(values: readonly string[]): string[] {
   return [...tags].sort();
 }
 
-function toFrame(milliseconds: number): number {
-  return Math.floor((milliseconds * outputFrameRate) / 1_000);
+function toFrame(milliseconds: number, frameRate = defaultOutputFrameRate): number {
+  return Math.floor((milliseconds * frameRate) / 1_000);
 }
 
 function segmentToCompiler(
   segment: AssetSegment,
   mediaDurationFrames: number,
+  frameRate: number,
 ): CompilerMediaSegment {
   const metadata = asRecord(segment.metadata);
-  const startFrame = Math.min(Math.max(0, toFrame(segment.startMs)), mediaDurationFrames - 1);
+  const startFrame = Math.min(
+    Math.max(0, toFrame(segment.startMs, frameRate)),
+    mediaDurationFrames - 1,
+  );
   const endFrame = Math.min(
     mediaDurationFrames,
-    Math.max(startFrame + 1, Math.ceil((segment.endMs * outputFrameRate) / 1_000)),
+    Math.max(startFrame + 1, Math.ceil((segment.endMs * frameRate) / 1_000)),
   );
   const transcript =
     segment.kind === 'speech' && typeof metadata['text'] === 'string'
@@ -126,11 +130,8 @@ function segmentToCompiler(
         if (!text || startMs === null || endMs === null || endMs <= startMs) {
           return [];
         }
-        const startOffsetFrame = Math.max(0, toFrame(startMs - segment.startMs));
-        const durationFrames = Math.max(
-          1,
-          Math.ceil(((endMs - startMs) * outputFrameRate) / 1_000),
-        );
+        const startOffsetFrame = Math.max(0, toFrame(startMs - segment.startMs, frameRate));
+        const durationFrames = Math.max(1, Math.ceil(((endMs - startMs) * frameRate) / 1_000));
         if (startOffsetFrame + durationFrames > endFrame - startFrame) {
           return [];
         }
@@ -180,7 +181,10 @@ function qualityBasisPoints(width: number | null, height: number | null): number
   return 6_000;
 }
 
-export function assetDetailToCompilerMedia(detail: AssetDetail): CompilerMediaCandidate {
+export function assetDetailToCompilerMedia(
+  detail: AssetDetail,
+  frameRate = defaultOutputFrameRate,
+): CompilerMediaCandidate {
   if (detail.kind === 'font') {
     throw new Error(`Font asset ${detail.id} cannot be used as automatic-edit media`);
   }
@@ -190,10 +194,11 @@ export function assetDetailToCompilerMedia(detail: AssetDetail): CompilerMediaCa
   if (durationMs === null || durationMs <= 0) {
     throw new Error(`Ready asset ${detail.id} has no valid analyzed duration`);
   }
-  const durationFrames = Math.max(1, Math.round((durationMs * outputFrameRate) / 1_000));
+  const durationFrames = Math.max(1, Math.round((durationMs * frameRate) / 1_000));
   const width = finiteNumber(probe['width']) ?? finiteNumber(detail.metadata['width']);
   const height = finiteNumber(probe['height']) ?? finiteNumber(detail.metadata['height']);
-  const frameRate = finiteNumber(probe['frameRate']) ?? finiteNumber(detail.metadata['frameRate']);
+  const sourceFrameRate =
+    finiteNumber(probe['frameRate']) ?? finiteNumber(detail.metadata['frameRate']);
   const vision = asRecord(detail.metadata['vision']);
   const visionQualityScore = finiteNumber(vision['qualityScore']);
   const visionScoreBasisPoints =
@@ -202,7 +207,9 @@ export function assetDetailToCompilerMedia(detail: AssetDetail): CompilerMediaCa
       : null;
   const audioCodec = probe['audioCodec'];
   const hasAudio = typeof audioCodec === 'string' && audioCodec.length > 0;
-  const segments = detail.segments.map((segment) => segmentToCompiler(segment, durationFrames));
+  const segments = detail.segments.map((segment) =>
+    segmentToCompiler(segment, durationFrames, frameRate),
+  );
   const tagSources = [
     detail.originalFilename,
     ...stringArray(detail.metadata['tags']),
@@ -216,7 +223,7 @@ export function assetDetailToCompilerMedia(detail: AssetDetail): CompilerMediaCa
 
   return {
     analysis: {
-      frameRate,
+      frameRate: sourceFrameRate,
       hasAudio,
       height,
       qualityBasisPoints: qualityBasisPoints(width, height),
@@ -261,6 +268,7 @@ export function buildCompilerInput({
   projectId,
   seed,
   template,
+  frameRate = defaultOutputFrameRate,
 }: {
   assetDetails: readonly AssetDetail[];
   brandKit: BrandKit;
@@ -268,8 +276,9 @@ export function buildCompilerInput({
   projectId: string;
   seed: number;
   template: CompilationTemplate;
+  frameRate?: number;
 }): CompilerInput {
-  const durationFrames = brief.durationSeconds * outputFrameRate;
+  const durationFrames = brief.durationSeconds * frameRate;
   const cta = brief.callToAction
     ? {
         action: brandKit.contactText ? ('contact' as const) : ('booking' as const),
@@ -322,7 +331,7 @@ export function buildCompilerInput({
     cta,
     hotelId: brief.hotelId,
     lockedClipIds: [],
-    media: assetDetails.map(assetDetailToCompilerMedia),
+    media: assetDetails.map((assetDetail) => assetDetailToCompilerMedia(assetDetail, frameRate)),
     metadata: {
       assetCount: assetDetails.length,
       generatedFrom: 'hotelcut-production-workspace',
@@ -331,7 +340,7 @@ export function buildCompilerInput({
       audioSampleRate: 48_000,
       backgroundColor: brandKit.primaryColor,
       durationFrames,
-      frameRate: outputFrameRate,
+      frameRate,
       height: 1_920,
       width: 1_080,
     },

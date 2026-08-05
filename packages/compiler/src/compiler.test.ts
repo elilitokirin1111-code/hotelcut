@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   compilerMediaCandidateSchema,
   buildDynamicCompilationTemplate,
+  compileVideo,
+  compilerInputSchema,
   findDuplicateAssets,
   paginateCaptionLines,
   rankSlotCandidates,
@@ -44,7 +46,7 @@ const blueprint = {
       preferredMotionTypes: ['push_in'],
       minimumShotDurationMs: 800,
       maximumShotDurationMs: 1_200,
-      maximumAssetReuse: 1,
+      maximumAssetReuse: 10,
       audioPolicy: 'dialogue' as const,
       caption: '欢迎',
       transitionIn: null,
@@ -65,7 +67,7 @@ const blueprint = {
       preferredMotionTypes: ['static'],
       minimumShotDurationMs: 800,
       maximumShotDurationMs: 2_000,
-      maximumAssetReuse: 1,
+      maximumAssetReuse: 10,
       audioPolicy: 'music' as const,
       caption: null,
       transitionIn: 'cut' as const,
@@ -94,6 +96,105 @@ describe('compiler primitives', () => {
     expect(template.slots).toHaveLength(6);
     expect(template.slots[0]!.startBasisPoints).toBe(0);
     expect(template.slots.at(-1)!.endBasisPoints).toBe(10_000);
+    expect(template.slots[0]!.caption).toBe('欢迎');
+    expect(template.captions).toMatchObject({
+      safeAreaId: 'safe.caption',
+      fontToken: 'brand.bodyFont',
+    });
+  });
+
+  it('rejects a beat whose min/max shot limits cannot produce legal slots', () => {
+    const invalid = validateEditBlueprint({
+      ...blueprint,
+      beats: [
+        {
+          ...blueprint.beats[0],
+          endMs: 8_000,
+          minimumShotDurationMs: 4_100,
+          maximumShotDurationMs: 5_000,
+        },
+      ],
+    });
+
+    expect(invalid.valid).toBe(false);
+    expect(invalid.errors.map((issue) => issue.code)).toContain('SHOT_DURATION_UNSATISFIABLE');
+  });
+
+  it('compiles a validated dynamic blueprint into non-overlapping editable clips', () => {
+    const template = buildDynamicCompilationTemplate(
+      validateEditBlueprint(blueprint).normalizedBlueprint!,
+    );
+    const input = compilerInputSchema.parse({
+      projectId: '55555555-5555-4555-8555-555555555555',
+      hotelId: blueprint.creativeProjectId,
+      schemaVersion: '1.0.0',
+      seed: blueprint.seed,
+      template: { id: template.id, version: template.version },
+      brief: {
+        id: '66666666-6666-4666-8666-666666666666',
+        title: '动态蓝图测试',
+        platform: 'douyin',
+        durationFrames: 240,
+        tone: 'warm',
+        language: 'zh-CN',
+        objective: null,
+        targetAudience: null,
+      },
+      output: {
+        width: 1080,
+        height: 1920,
+        frameRate: 30,
+        durationFrames: 240,
+        audioSampleRate: 48000,
+        backgroundColor: '#000000',
+      },
+      brandTokens: [
+        { key: 'brand.onPrimary', type: 'color', value: '#ffffff' },
+        { key: 'brand.captionBackground', type: 'color', value: '#000000cc' },
+        { key: 'brand.bodyFont', type: 'font', family: 'sans-serif', weight: 400, style: 'normal' },
+      ],
+      safeAreas: [
+        { id: 'safe.caption', name: 'caption', kind: 'caption', x: 0, y: 0, width: 1, height: 1 },
+      ],
+      media: [
+        {
+          assetId: '77777777-7777-4777-8777-777777777777',
+          kind: 'video',
+          availability: 'ready',
+          durationFrames: 300,
+          tags: ['lobby', 'room'],
+          scoreBasisPoints: 9000,
+          contentFingerprint: null,
+          metadata: {},
+          analysis: {
+            width: 1080,
+            height: 1920,
+            frameRate: 30,
+            hasAudio: true,
+            silenceRatioBasisPoints: 0,
+            qualityBasisPoints: 9000,
+          },
+          segments: [],
+        },
+      ],
+      cta: null,
+      previousProject: null,
+      lockedClipIds: [],
+      metadata: {},
+    });
+    const result = compileVideo(input, template);
+    const clips = result.project.tracks.find((track) => track.name === '主画面')!.clips;
+
+    expect(result.manifest.slots.every((slot) => slot.assetId !== null)).toBe(true);
+    expect(clips).toHaveLength(template.slots.length);
+    expect(
+      clips.every(
+        (clip, index) =>
+          index === 0 ||
+          clip.startFrame >= clips[index - 1]!.startFrame + clips[index - 1]!.durationFrames,
+      ),
+    ).toBe(true);
+    expect(result.project.output.durationFrames).toBe(240);
   });
   it('splits long A-roll ranges without gaps or overlap', () => {
     expect(splitARollRange(90, 650, 240)).toEqual([

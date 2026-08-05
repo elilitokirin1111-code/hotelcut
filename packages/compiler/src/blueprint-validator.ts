@@ -51,6 +51,15 @@ export function validateEditBlueprint(input: unknown): BlueprintValidationResult
         message: 'Beat exceeds the target duration.',
       });
     }
+    const beatDurationMs = beat.endMs - beat.startMs;
+    const shotCount = Math.ceil(beatDurationMs / beat.maximumShotDurationMs);
+    if (beatDurationMs / shotCount < beat.minimumShotDurationMs) {
+      errors.push({
+        code: 'SHOT_DURATION_UNSATISFIABLE',
+        path,
+        message: 'Beat cannot be split while respecting both minimum and maximum shot duration.',
+      });
+    }
     if (beat.caption && beat.caption.length > 80) {
       warnings.push({
         code: 'CAPTION_LONG',

@@ -1,7 +1,14 @@
 import type { FastifyPluginCallback } from 'fastify';
+import { randomUUID } from 'node:crypto';
 import { type ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
+import {
+  buildDynamicCompilationTemplate,
+  COMPILER_VERSION,
+  compileVideo,
+  validateEditBlueprint,
+} from '@hotelcut/compiler';
 import {
   DomainNotFoundError,
   type HotelCutRepository,
@@ -10,6 +17,7 @@ import {
 import {
   aiDirectorFeatureFlagsSchema,
   assignAssetRequirementSchema,
+  compileBlueprintSchema,
   createCreativeBriefRevisionSchema,
   createReferenceProfileSchema,
   createCreativeProjectSchema,
@@ -20,10 +28,14 @@ import {
   expandIdeaOutputSchema,
   hotelIdParamsSchema,
   generateAssetRequirementsSchema,
+  generateBlueprintSchema,
+  generatedVideoProjectSchema,
   reviseScriptSchema,
   referenceVideoProfileGenerationSchema,
   referenceVideoProfileSchema,
   assetRequirementSchema,
+  editBlueprintGenerationSchema,
+  editBlueprintSchema,
   scriptGenerationSchema,
   scriptPackageSchema,
   selectRevisionSchema,
@@ -40,6 +52,11 @@ import {
   type ProviderFetch,
 } from './model-provider-routes.js';
 import { matchShotRequirement } from './asset-matching.js';
+import {
+  buildCompilerInput,
+  missingRequiredSlotLabels,
+  summarizeGeneration,
+} from './project-generation.js';
 
 interface CreativeProjectRouteOptions {
   configSecret: string;
@@ -51,6 +68,7 @@ interface CreativeProjectRouteOptions {
 const promptVersion = 'ai-director-v1';
 const generationParameters = { temperature: 0.2, topP: 0.9 };
 const scriptParamsSchema = z.object({ projectId: z.uuid(), scriptId: z.uuid() });
+const blueprintParamsSchema = creativeProjectIdParamsSchema.extend({ blueprintId: z.uuid() });
 
 function metadataDuration(metadata: Record<string, unknown>): number {
   const probe = metadata['probe'];
@@ -221,6 +239,148 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     async (request) => {
       requireAiDirector();
       return repository().listCreativeProjects(request.actorUserId, request.params.hotelId);
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/blueprints/:blueprintId/compile',
+    {
+      schema: {
+        body: compileBlueprintSchema,
+        params: blueprintParamsSchema,
+        response: {
+          201: generatedVideoProjectSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Compile a validated EditBlueprint into an editable video project',
+        tags: ['ai-director', 'video-projects'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      if (!options.featureFlags.dynamicBlueprintEnabled) {
+        throw new DomainNotFoundError('Dynamic Blueprint is disabled');
+      }
+      const store = repository();
+      const project = await store.getCreativeProject(request.actorUserId, request.params.projectId);
+      const blueprint = (await store.listEditBlueprints(request.actorUserId, project.id)).find(
+        (candidate) => candidate.id === request.params.blueprintId,
+      );
+      if (!blueprint) throw new DomainNotFoundError('Edit blueprint not found');
+      const validation = validateEditBlueprint(blueprint);
+      if (!validation.valid || !validation.normalizedBlueprint) {
+        return reply.code(409).send({
+          code: 'BLUEPRINT_INVALID',
+          message: '剪辑蓝图未通过时长、镜头或边界校验，无法生成项目。',
+          requestId: request.id,
+        });
+      }
+
+      const [briefRevisions, scripts, brandKit, assets] = await Promise.all([
+        store.listCreativeBriefRevisions(request.actorUserId, project.id),
+        store.listScriptPackages(request.actorUserId, project.id),
+        store.getBrandKit(request.actorUserId, project.hotelId),
+        store.listAssets(request.actorUserId, project.hotelId),
+      ]);
+      const creativeBrief =
+        briefRevisions.find((brief) => brief.id === project.selectedBriefRevisionId) ??
+        briefRevisions[0];
+      const script =
+        scripts.find((candidate) => candidate.id === project.selectedScriptRevisionId) ??
+        scripts[0];
+      const readyAssets = assets.filter(
+        (asset) =>
+          asset.kind === 'video' &&
+          asset.status === 'ready' &&
+          (blueprint.sourceAssetIds.length === 0 || blueprint.sourceAssetIds.includes(asset.id)),
+      );
+      if (readyAssets.length === 0) {
+        return reply.code(409).send({
+          code: 'BLUEPRINT_SOURCE_ASSETS_UNAVAILABLE',
+          message: '蓝图没有可用的已分析视频素材。请确认素材匹配后重试。',
+          requestId: request.id,
+        });
+      }
+      const assetDetails = await Promise.all(
+        readyAssets.map((asset) => store.getAssetDetail(request.actorUserId, asset.id)),
+      );
+      const projectId = randomUUID();
+      const transientBrief = {
+        id: randomUUID(),
+        hotelId: project.hotelId,
+        title: script?.title ?? project.title,
+        platform: creativeBrief?.platform ?? ('douyin' as const),
+        durationSeconds: blueprint.durationSeconds,
+        aspectRatio: '9:16' as const,
+        tone: creativeBrief?.tone.join('、') || blueprint.style.visualTone,
+        language: 'zh-CN',
+        objective: creativeBrief?.objective ?? null,
+        targetAudience: creativeBrief?.targetAudience ?? null,
+        callToAction: script?.callToAction ?? null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const template = buildDynamicCompilationTemplate(validation.normalizedBlueprint);
+      let compilation: ReturnType<typeof compileVideo>;
+      try {
+        compilation = compileVideo(
+          buildCompilerInput({
+            assetDetails,
+            brandKit,
+            brief: transientBrief,
+            frameRate: blueprint.frameRate,
+            projectId,
+            seed: request.body.seed ?? blueprint.seed,
+            template,
+          }),
+          template,
+        );
+      } catch (error) {
+        return reply.code(409).send({
+          code: 'BLUEPRINT_COMPILATION_FAILED',
+          message: error instanceof Error ? error.message : '动态剪辑编译失败。',
+          requestId: request.id,
+        });
+      }
+      const generation = summarizeGeneration(compilation);
+      const missingRequiredSlots = missingRequiredSlotLabels(generation);
+      if (missingRequiredSlots.length > 0 || generation.selectedSlots === 0) {
+        return reply.code(409).send({
+          code: 'BLUEPRINT_REQUIRED_ASSETS_MISSING',
+          message:
+            missingRequiredSlots.length > 0
+              ? `缺少蓝图必需画面：${missingRequiredSlots.join('、')}。请补充素材后重试。`
+              : '没有素材满足蓝图要求。请补充或重新匹配素材后重试。',
+          requestId: request.id,
+        });
+      }
+      const persistedBrief = await store.createVideoBrief(request.actorUserId, project.hotelId, {
+        title: transientBrief.title,
+        platform: transientBrief.platform,
+        durationSeconds: transientBrief.durationSeconds,
+        aspectRatio: transientBrief.aspectRatio,
+        tone: transientBrief.tone,
+        language: transientBrief.language,
+        objective: transientBrief.objective,
+        targetAudience: transientBrief.targetAudience,
+        callToAction: transientBrief.callToAction,
+      });
+      const detail = await store.createVideoProject(request.actorUserId, project.hotelId, {
+        id: projectId,
+        name: transientBrief.title,
+        projectDocument: compilation.project,
+        schemaVersion: compilation.project.schemaVersion,
+        templateKey: template.id,
+        videoBriefId: persistedBrief.id,
+      });
+      await store.updateCreativeProject(request.actorUserId, project.id, {
+        selectedBlueprintId: blueprint.id,
+        selectedVideoProjectId: projectId,
+        status: 'generated',
+      });
+      return reply.code(201).send({ detail, generation });
     },
   );
 
@@ -559,6 +719,119 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           requestId: request.id,
         });
       }
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/blueprints/generate',
+    {
+      schema: {
+        body: generateBlueprintSchema,
+        params: creativeProjectIdParamsSchema,
+        response: {
+          201: editBlueprintSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+          502: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Generate a validated versioned dynamic EditBlueprint',
+        tags: ['ai-director'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      if (!options.featureFlags.dynamicBlueprintEnabled)
+        throw new DomainNotFoundError('Dynamic Blueprint is disabled');
+      const store = repository();
+      const project = await store.getCreativeProject(request.actorUserId, request.params.projectId);
+      const scriptId = request.body.scriptId ?? project.selectedScriptRevisionId;
+      if (!scriptId)
+        return reply
+          .code(409)
+          .send({ code: 'SCRIPT_NOT_SELECTED', message: '请先选择脚本。', requestId: request.id });
+      const [script, requirements, profiles] = await Promise.all([
+        store.getScriptPackage(request.actorUserId, scriptId),
+        store.listAssetRequirements(request.actorUserId, project.id),
+        store.listReferenceVideoProfiles(request.actorUserId, project.id),
+      ]);
+      if (script.creativeProjectId !== project.id) throw new DomainNotFoundError();
+      try {
+        const generated = editBlueprintGenerationSchema.parse(
+          await generate(
+            request.actorUserId,
+            project.id,
+            'generate_edit_blueprint',
+            editBlueprintGenerationSchema,
+            {
+              script,
+              assetRequirements: requirements,
+              referenceProfiles: profiles,
+              constraints:
+                '仅使用已确认或候选素材 ID；beats 必须连续覆盖全片；禁止生成不可实现的转场或音频策略。',
+            },
+          ),
+        );
+        const seed = request.body.seed ?? 1;
+        const validation = validateEditBlueprint({
+          ...generated,
+          id: randomUUID(),
+          creativeProjectId: project.id,
+          revision: 1,
+          seed,
+          compilerVersion: COMPILER_VERSION,
+          sourceAssetIds: requirements.flatMap((item) => item.matchedAssetIds),
+          referenceProfileIds: profiles.map((profile) => profile.id),
+          modelName: null,
+          promptVersion: null,
+          generationParameters: {},
+          inputSummary: null,
+          createdAt: new Date().toISOString(),
+          beats: generated.beats.map((beat) => ({ ...beat, id: randomUUID() })),
+        });
+        if (!validation.valid)
+          throw new Error(
+            `BLUEPRINT_INVALID:${validation.errors.map((issue) => issue.code).join(',')}`,
+          );
+        const current = await store.getModelProviderSettings(request.actorUserId, project.hotelId);
+        const blueprint = await store.createEditBlueprint(request.actorUserId, project.id, {
+          ...generated,
+          seed,
+          compilerVersion: COMPILER_VERSION,
+          sourceAssetIds: requirements.flatMap((item) => item.matchedAssetIds),
+          referenceProfileIds: profiles.map((profile) => profile.id),
+          modelName: current?.model ?? null,
+          promptVersion,
+          generationParameters,
+          inputSummary: `Script ${script.id}; ${requirements.length} asset requirements; ${profiles.length} references`,
+        });
+        return reply.code(201).send(blueprint);
+      } catch {
+        return reply.code(502).send({
+          code: 'BLUEPRINT_GENERATION_FAILED',
+          message: '剪辑蓝图生成或校验失败。',
+          requestId: request.id,
+        });
+      }
+    },
+  );
+
+  app.get(
+    '/v1/creative-projects/:projectId/blueprints',
+    {
+      schema: {
+        params: creativeProjectIdParamsSchema,
+        response: { 200: z.array(editBlueprintSchema), 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'List versioned EditBlueprints',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      if (!options.featureFlags.dynamicBlueprintEnabled)
+        throw new DomainNotFoundError('Dynamic Blueprint is disabled');
+      return repository().listEditBlueprints(request.actorUserId, request.params.projectId);
     },
   );
 

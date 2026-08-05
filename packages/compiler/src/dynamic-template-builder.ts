@@ -29,17 +29,20 @@ export function buildDynamicCompilationTemplate(blueprint: EditBlueprint): Compi
             ...beat.preferredShotTypes,
             ...beat.preferredMotionTypes,
           ],
+          caption: index === 0 ? beat.caption : null,
           required: beat.requiredTags.length > 0,
           allowAssetReuse: beat.maximumAssetReuse > 1,
+          reuseCandidateRanges: beat.maximumAssetReuse > 1,
           audioPolicy: beat.audioPolicy === 'dialogue' ? ('keep' as const) : ('mute' as const),
           transition: beat.transitionOut ?? 'cut',
         };
       });
     }),
     captions: {
-      safeAreaId: 'caption-safe',
-      fontToken: 'default-font',
-      colorToken: 'default-text',
+      safeAreaId: 'safe.caption',
+      fontToken: 'brand.bodyFont',
+      colorToken: 'brand.onPrimary',
+      backgroundColorToken: 'brand.captionBackground',
       fontSize: 48,
       maxVisualWidth: 16,
       maxLines: 2,

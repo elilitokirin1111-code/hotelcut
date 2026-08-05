@@ -20,6 +20,7 @@ import {
   type PersistScriptPackageInput,
   type PersistReferenceVideoProfileInput,
   type CreateAssetRequirementInput,
+  type PersistEditBlueprintInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
@@ -33,6 +34,7 @@ import type {
   AssetDerivativeKind,
   AssetDetail,
   AssetRequirement,
+  EditBlueprint,
   AssetSegment,
   AssetUpload,
   BrandKit,
@@ -70,6 +72,7 @@ import {
   assetSegmentSchema,
   assetUploadSchema,
   assetRequirementSchema,
+  editBlueprintSchema,
   creativeProjectSchema,
   creativeBriefRevisionSchema,
   modelApiModeSchema,
@@ -203,6 +206,35 @@ function mapAssetRequirement(row: typeof schema.assetRequirements.$inferSelect):
     filmingInstruction: row.filmingInstruction ?? null,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
+  });
+}
+
+function mapEditBlueprint(
+  row: typeof schema.editBlueprints.$inferSelect,
+  beats: Array<typeof schema.editBlueprintBeats.$inferSelect>,
+): EditBlueprint {
+  return editBlueprintSchema.parse({
+    ...row,
+    style: row.style,
+    music: row.music,
+    captionStyle: row.captionStyle,
+    globalRules: row.globalRules,
+    sourceAssetIds: row.sourceAssetIds,
+    referenceProfileIds: row.referenceProfileIds,
+    modelName: row.modelName ?? null,
+    promptVersion: row.promptVersion ?? null,
+    generationParameters: row.generationParameters,
+    inputSummary: row.inputSummary ?? null,
+    createdAt: toIso(row.createdAt),
+    beats: beats.map((beat) => ({
+      ...beat,
+      narration: beat.narration ?? null,
+      dialogue: beat.dialogue ?? null,
+      transitionIn: beat.transitionIn as 'cut' | 'dissolve' | 'fade' | null,
+      transitionOut: beat.transitionOut as 'cut' | 'dissolve' | 'fade' | null,
+      caption: beat.caption ?? null,
+      createdAt: toIso(beat.createdAt),
+    })),
   });
 }
 
@@ -918,6 +950,70 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       .returning();
     if (!row) throw new DomainNotFoundError('Asset requirement not found');
     return mapAssetRequirement(row);
+  }
+
+  async listEditBlueprints(actorUserId: string, projectId: string): Promise<EditBlueprint[]> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.editBlueprints)
+      .where(eq(schema.editBlueprints.creativeProjectId, projectId))
+      .orderBy(desc(schema.editBlueprints.revision));
+    const blueprints = await Promise.all(
+      rows.map(async (row) => {
+        const beats = await this.db
+          .select()
+          .from(schema.editBlueprintBeats)
+          .where(eq(schema.editBlueprintBeats.editBlueprintId, row.id))
+          .orderBy(asc(schema.editBlueprintBeats.sequence));
+        return mapEditBlueprint(row, beats);
+      }),
+    );
+    return blueprints;
+  }
+
+  async createEditBlueprint(
+    actorUserId: string,
+    projectId: string,
+    input: PersistEditBlueprintInput,
+  ): Promise<EditBlueprint> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const id = randomUUID();
+    await this.db.transaction(async (tx) => {
+      const [latest] = await tx
+        .select({ revision: schema.editBlueprints.revision })
+        .from(schema.editBlueprints)
+        .where(eq(schema.editBlueprints.creativeProjectId, projectId))
+        .orderBy(desc(schema.editBlueprints.revision))
+        .limit(1);
+      await tx.insert(schema.editBlueprints).values({
+        id,
+        creativeProjectId: projectId,
+        revision: (latest?.revision ?? 0) + 1,
+        durationSeconds: input.durationSeconds,
+        frameRate: input.frameRate,
+        aspectRatio: input.aspectRatio,
+        style: input.style,
+        music: input.music,
+        captionStyle: input.captionStyle,
+        globalRules: input.globalRules,
+        seed: input.seed,
+        compilerVersion: input.compilerVersion,
+        sourceAssetIds: input.sourceAssetIds,
+        referenceProfileIds: input.referenceProfileIds,
+        modelName: input.modelName ?? null,
+        promptVersion: input.promptVersion ?? null,
+        generationParameters: input.generationParameters ?? {},
+        inputSummary: input.inputSummary ?? null,
+      });
+      await tx
+        .insert(schema.editBlueprintBeats)
+        .values(input.beats.map((beat) => ({ ...beat, id: randomUUID(), editBlueprintId: id })));
+    });
+    const [created] = await this.listEditBlueprints(actorUserId, projectId);
+    if (!created || created.id !== id)
+      throw new Error('Edit blueprint insert did not return a row');
+    return created;
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {

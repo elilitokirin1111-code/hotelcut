@@ -221,7 +221,7 @@ function scoreSource(
       detail: `Fingerprint duplicates ${source.duplicateOfAssetId}`,
     });
   }
-  if (usage.candidateIds.has(source.candidateId)) {
+  if (!slot.reuseCandidateRanges && usage.candidateIds.has(source.candidateId)) {
     eligible = false;
     reasons.push('Candidate source range is already used');
   }

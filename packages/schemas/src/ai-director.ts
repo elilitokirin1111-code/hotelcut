@@ -349,6 +349,59 @@ export const editBlueprintSchema = z
   })
   .strict();
 
+// This schema is intentionally defined separately instead of using `.omit()` on
+// `blueprintBeatSchema`. Zod does not allow object-shape operations on schemas
+// with refinements, and the generation shape needs the same safety constraints.
+const blueprintBeatGenerationSchema = z
+  .object({
+    sequence: z.number().int().positive(),
+    startMs: z.number().int().nonnegative(),
+    endMs: z.number().int().positive(),
+    purpose: z.string().min(1).max(500),
+    narration: z.string().nullable(),
+    dialogue: z.string().nullable(),
+    requiredTags: z.array(z.string().min(1)).max(20),
+    preferredTags: z.array(z.string().min(1)).max(20),
+    forbiddenTags: z.array(z.string().min(1)).max(20),
+    preferredShotTypes: z.array(z.string().min(1)).max(12),
+    preferredMotionTypes: z.array(z.string().min(1)).max(12),
+    minimumShotDurationMs: z.number().int().positive(),
+    maximumShotDurationMs: z.number().int().positive(),
+    maximumAssetReuse: z.number().int().positive().max(10),
+    audioPolicy: z.enum(['dialogue', 'music', 'ambient', 'mute']),
+    caption: z.string().max(240).nullable(),
+    transitionIn: z.enum(['cut', 'dissolve', 'fade']).nullable(),
+    transitionOut: z.enum(['cut', 'dissolve', 'fade']).nullable(),
+  })
+  .strict()
+  .refine((beat) => beat.endMs > beat.startMs, 'Beat must have positive duration')
+  .refine(
+    (beat) => beat.maximumShotDurationMs >= beat.minimumShotDurationMs,
+    'Maximum shot duration must be at least minimum shot duration',
+  );
+
+export const editBlueprintGenerationSchema = z
+  .object({
+    durationSeconds: z.number().int().min(5).max(180),
+    frameRate: z.number().int().positive().max(120),
+    aspectRatio: z.literal('9:16'),
+    style: blueprintStyleSchema,
+    beats: z.array(blueprintBeatGenerationSchema).min(1).max(60),
+    music: z.record(z.string(), z.unknown()),
+    captionStyle: z.record(z.string(), z.unknown()),
+    globalRules: z.array(z.string().min(1)).max(60),
+  })
+  .strict();
+export const generateBlueprintSchema = z
+  .object({
+    scriptId: directorIdSchema.optional(),
+    seed: z.number().int().min(0).max(4_294_967_295).optional(),
+  })
+  .strict();
+export const compileBlueprintSchema = z
+  .object({ seed: z.number().int().min(0).max(4_294_967_295).optional() })
+  .strict();
+
 export type CreativeProjectMode = z.infer<typeof creativeProjectModeSchema>;
 export type CreativeProjectStatus = z.infer<typeof creativeProjectStatusSchema>;
 export type CreativeProject = z.infer<typeof creativeProjectSchema>;
@@ -368,3 +421,4 @@ export type AssetMatchCandidate = z.infer<typeof assetMatchCandidateSchema>;
 export type AssetRequirement = z.infer<typeof assetRequirementSchema>;
 export type EditBlueprint = z.infer<typeof editBlueprintSchema>;
 export type BlueprintBeat = z.infer<typeof blueprintBeatSchema>;
+export type EditBlueprintGeneration = z.infer<typeof editBlueprintGenerationSchema>;
