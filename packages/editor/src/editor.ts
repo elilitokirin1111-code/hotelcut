@@ -16,6 +16,12 @@ export class EditorCommandError extends Error {
   }
 }
 
+export interface AppliedAiReviewCommand {
+  command: EditorCommand;
+  project: HotelVideoProjectV1;
+  reason: string;
+}
+
 export interface EditorScene {
   clipId: string;
   trackId: string;
@@ -243,6 +249,26 @@ export function applyEditorCommand(
     case 'replace-music':
       return replaceMusic(validatedProject, command);
   }
+}
+
+/**
+ * Converts a review command into the established strict EditorCommand shape.
+ * The review-only `reason` is retained for audit history but never becomes a
+ * timeline field, and command validation remains centralized in the editor.
+ */
+export function applyAiReviewCommand(
+  project: HotelVideoProjectV1,
+  rawCommand: unknown,
+): AppliedAiReviewCommand {
+  if (!rawCommand || typeof rawCommand !== 'object' || Array.isArray(rawCommand)) {
+    throw new EditorCommandError('AI review command must be an object');
+  }
+  const { reason, ...candidate } = rawCommand as Record<string, unknown>;
+  if (typeof reason !== 'string' || !reason.trim()) {
+    throw new EditorCommandError('AI review command requires a non-empty reason');
+  }
+  const command = editorCommandSchema.parse(candidate);
+  return { command, project: applyEditorCommand(project, command), reason: reason.trim() };
 }
 
 export function describeEditorCommand(rawCommand: unknown): string {

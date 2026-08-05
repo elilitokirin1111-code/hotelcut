@@ -787,6 +787,48 @@ export const creativeVideoVersions = pgTable(
   ],
 );
 
+export const aiReviews = pgTable(
+  'ai_reviews',
+  {
+    id: uuid('id').primaryKey(),
+    videoProjectId: uuid('video_project_id')
+      .notNull()
+      .references(() => videoProjects.id, { onDelete: 'cascade' }),
+    baseRevision: integer('base_revision').notNull(),
+    status: varchar('status', { length: 20 }).default('open').notNull(),
+    summary: text('summary').notNull(),
+    scoreBasisPoints: integer('score_basis_points').notNull(),
+    hookScoreBasisPoints: integer('hook_score_basis_points').notNull(),
+    storyScoreBasisPoints: integer('story_score_basis_points').notNull(),
+    sellingPointScoreBasisPoints: integer('selling_point_score_basis_points').notNull(),
+    paceScoreBasisPoints: integer('pace_score_basis_points').notNull(),
+    captionScoreBasisPoints: integer('caption_score_basis_points').notNull(),
+    musicScoreBasisPoints: integer('music_score_basis_points').notNull(),
+    ctaScoreBasisPoints: integer('cta_score_basis_points').notNull(),
+    findings: jsonb('findings')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    modelName: varchar('model_name', { length: 200 }),
+    promptVersion: varchar('prompt_version', { length: 100 }),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary'),
+    appliedRevision: integer('applied_revision'),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('ai_reviews_project_idx').on(table.videoProjectId),
+    check('ai_reviews_status_valid', sql`${table.status} in ('open', 'applied', 'dismissed')`),
+    check('ai_reviews_base_revision_positive', sql`${table.baseRevision} > 0`),
+    check(
+      'ai_reviews_score_ranges',
+      sql`${table.scoreBasisPoints} between 0 and 10000 and ${table.hookScoreBasisPoints} between 0 and 10000 and ${table.storyScoreBasisPoints} between 0 and 10000 and ${table.sellingPointScoreBasisPoints} between 0 and 10000 and ${table.paceScoreBasisPoints} between 0 and 10000 and ${table.captionScoreBasisPoints} between 0 and 10000 and ${table.musicScoreBasisPoints} between 0 and 10000 and ${table.ctaScoreBasisPoints} between 0 and 10000`,
+    ),
+  ],
+);
+
 export const assetRequirements = pgTable(
   'asset_requirements',
   {

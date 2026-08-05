@@ -22,6 +22,7 @@ import {
   type CreateAssetRequirementInput,
   type PersistEditBlueprintInput,
   type PersistCreativeVideoVersionInput,
+  type PersistAiReviewInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
@@ -42,6 +43,7 @@ import type {
   CompleteAssetUploadInput,
   CreativeProject,
   CreativeVideoVersion,
+  AiReview,
   CreativeBriefRevision,
   CreateCreativeProjectInput,
   CreateHotelInput,
@@ -76,6 +78,7 @@ import {
   assetRequirementSchema,
   editBlueprintSchema,
   creativeVideoVersionSchema,
+  aiReviewSchema,
   creativeProjectSchema,
   creativeBriefRevisionSchema,
   modelApiModeSchema,
@@ -248,6 +251,20 @@ function mapCreativeVideoVersion(
     ...row,
     seed: Number(row.seed),
     usedAssetIds: row.usedAssetIds,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function mapAiReview(row: typeof schema.aiReviews.$inferSelect): AiReview {
+  return aiReviewSchema.parse({
+    ...row,
+    findings: row.findings,
+    modelName: row.modelName ?? null,
+    promptVersion: row.promptVersion ?? null,
+    generationParameters: row.generationParameters,
+    inputSummary: row.inputSummary ?? null,
+    appliedRevision: row.appliedRevision ?? null,
+    dismissedAt: row.dismissedAt ? toIso(row.dismissedAt) : null,
     createdAt: toIso(row.createdAt),
   });
 }
@@ -1055,6 +1072,78 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       .returning();
     if (!row) throw new Error('Creative video version insert did not return a row');
     return mapCreativeVideoVersion(row);
+  }
+
+  async listAiReviews(actorUserId: string, videoProjectId: string): Promise<AiReview[]> {
+    await this.requireVideoProjectMember(actorUserId, videoProjectId);
+    const rows = await this.db
+      .select()
+      .from(schema.aiReviews)
+      .where(eq(schema.aiReviews.videoProjectId, videoProjectId))
+      .orderBy(desc(schema.aiReviews.createdAt));
+    return rows.map(mapAiReview);
+  }
+
+  async getAiReview(actorUserId: string, reviewId: string): Promise<AiReview> {
+    const [row] = await this.db
+      .select()
+      .from(schema.aiReviews)
+      .where(eq(schema.aiReviews.id, reviewId))
+      .limit(1);
+    if (!row) throw new DomainNotFoundError('AI review not found');
+    await this.requireVideoProjectMember(actorUserId, row.videoProjectId);
+    return mapAiReview(row);
+  }
+
+  async createAiReview(
+    actorUserId: string,
+    videoProjectId: string,
+    input: PersistAiReviewInput,
+  ): Promise<AiReview> {
+    await this.requireVideoProjectMember(actorUserId, videoProjectId);
+    const [row] = await this.db
+      .insert(schema.aiReviews)
+      .values({
+        id: randomUUID(),
+        videoProjectId,
+        baseRevision: input.baseRevision,
+        summary: input.summary,
+        scoreBasisPoints: input.scoreBasisPoints,
+        hookScoreBasisPoints: input.hookScoreBasisPoints,
+        storyScoreBasisPoints: input.storyScoreBasisPoints,
+        sellingPointScoreBasisPoints: input.sellingPointScoreBasisPoints,
+        paceScoreBasisPoints: input.paceScoreBasisPoints,
+        captionScoreBasisPoints: input.captionScoreBasisPoints,
+        musicScoreBasisPoints: input.musicScoreBasisPoints,
+        ctaScoreBasisPoints: input.ctaScoreBasisPoints,
+        findings: input.findings,
+        modelName: input.modelName ?? null,
+        promptVersion: input.promptVersion ?? null,
+        generationParameters: input.generationParameters ?? {},
+        inputSummary: input.inputSummary ?? null,
+      })
+      .returning();
+    if (!row) throw new Error('AI review insert did not return a row');
+    return mapAiReview(row);
+  }
+
+  async updateAiReviewStatus(
+    actorUserId: string,
+    reviewId: string,
+    update: { status: 'applied'; appliedRevision: number } | { status: 'dismissed' },
+  ): Promise<AiReview> {
+    await this.getAiReview(actorUserId, reviewId);
+    const [row] = await this.db
+      .update(schema.aiReviews)
+      .set(
+        update.status === 'applied'
+          ? { status: 'applied', appliedRevision: update.appliedRevision }
+          : { status: 'dismissed', dismissedAt: new Date() },
+      )
+      .where(eq(schema.aiReviews.id, reviewId))
+      .returning();
+    if (!row) throw new Error('AI review update did not return a row');
+    return mapAiReview(row);
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {

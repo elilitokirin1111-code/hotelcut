@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyEditorCommand,
+  applyAiReviewCommand,
   applyHistoryCommand,
   createEditorHistory,
   EditorCommandError,
@@ -31,6 +32,25 @@ async function fixtureProject() {
 }
 
 describe('M5 editor commands', () => {
+  it('accepts review commands only through the strict editor-command adapter', async () => {
+    const project = await fixtureProject();
+    const scene = getEditorScenes(project)[0];
+    if (!scene) throw new Error('Fixture must include a scene');
+
+    const applied = applyAiReviewCommand(project, {
+      assetId: '10000000-0000-4000-8000-000000000013',
+      clipId: scene.clipId,
+      reason: '首镜头需要更强的人物反应。',
+      type: 'replace-clip-asset',
+    });
+
+    expect(applied.reason).toContain('人物反应');
+    expect(applied.project).not.toBe(project);
+    expect(() => applyAiReviewCommand(project, { type: 'replace-clip-asset' })).toThrow(
+      EditorCommandError,
+    );
+  });
+
   it('replaces and trims one shot while preserving its identity and project duration', async () => {
     const project = await fixtureProject();
     const scene = getEditorScenes(project)[0];

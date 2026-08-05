@@ -62,6 +62,9 @@ importers:
       '@hotelcut/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@hotelcut/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@hotelcut/job-queue':
         specifier: workspace:*
         version: link:../../packages/job-queue

@@ -33,6 +33,7 @@ import {
 import type { MultipartObjectStorage } from '@hotelcut/storage';
 
 import { assetRoutes } from './asset-routes.js';
+import { aiReviewRoutes } from './ai-review-routes.js';
 import { configureAuthentication } from './authentication.js';
 import { creativeProjectRoutes } from './creative-project-routes.js';
 import { modelProviderRoutes } from './model-provider-routes.js';
@@ -381,6 +382,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
   await app.register(projectRoutes, {
     repository: options.repository,
+  });
+  await app.register(aiReviewRoutes, {
+    configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
+    featureFlags: options.aiDirectorFeatureFlags ?? { aiReviewEnabled: false },
+    ...(options.modelProviderFetch ? { fetchProvider: options.modelProviderFetch } : {}),
+    ...(options.repository ? { repository: options.repository } : {}),
   });
   await app.register(renderRoutes, {
     downloadUrlTtlSeconds: options.downloadUrlTtlSeconds ?? 900,

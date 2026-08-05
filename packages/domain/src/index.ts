@@ -1,5 +1,7 @@
 import type {
   AnalysisJob,
+  AiReview,
+  AiReviewGeneration,
   Asset,
   AssetDerivative,
   AssetDerivativeKind,
@@ -247,6 +249,14 @@ export interface PersistCreativeVideoVersionInput {
   recommendationReason: string;
 }
 
+export interface PersistAiReviewInput extends AiReviewGeneration {
+  baseRevision: number;
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -349,6 +359,18 @@ export interface HotelCutRepository {
     actorUserId: string,
     projectId: string,
   ): Promise<CreativeVideoVersion[]>;
+  createAiReview(
+    actorUserId: string,
+    videoProjectId: string,
+    input: PersistAiReviewInput,
+  ): Promise<AiReview>;
+  listAiReviews(actorUserId: string, videoProjectId: string): Promise<AiReview[]>;
+  getAiReview(actorUserId: string, reviewId: string): Promise<AiReview>;
+  updateAiReviewStatus(
+    actorUserId: string,
+    reviewId: string,
+    update: { status: 'applied'; appliedRevision: number } | { status: 'dismissed' },
+  ): Promise<AiReview>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

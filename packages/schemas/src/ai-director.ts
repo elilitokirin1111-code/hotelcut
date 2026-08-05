@@ -434,6 +434,118 @@ export const creativeVideoVersionBatchSchema = z
   })
   .strict();
 
+// AI review output is deliberately command-based: no model output is ever a
+// HotelVideoProject document. Each command is validated again by the editor
+// adapter before it can create an immutable project revision.
+export const aiReviewCommandSchema = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('replace-clip-asset'),
+      clipId: directorIdSchema,
+      assetId: directorIdSchema,
+      reason: z.string().trim().min(1).max(1_000),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('trim-video'),
+      clipId: directorIdSchema,
+      sourceStartFrame: z.number().int().nonnegative(),
+      sourceDurationFrames: z.number().int().positive(),
+      reason: z.string().trim().min(1).max(1_000),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('update-caption'),
+      clipId: directorIdSchema,
+      text: z.string().trim().min(1).max(2_000),
+      reason: z.string().trim().min(1).max(1_000),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('update-title'),
+      clipId: directorIdSchema,
+      text: z.string().trim().min(1).max(2_000),
+      reason: z.string().trim().min(1).max(1_000),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('update-cta'),
+      text: z.string().trim().min(1).max(300),
+      action: z.enum(['booking', 'contact', 'navigate', 'follow', 'custom']),
+      destination: z.string().trim().max(500).nullable(),
+      reason: z.string().trim().min(1).max(1_000),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal('replace-music'),
+      assetId: directorIdSchema,
+      reason: z.string().trim().min(1).max(1_000),
+    })
+    .strict(),
+]);
+
+export const aiReviewFindingSchema = z
+  .object({
+    id: directorIdSchema,
+    category: z.enum([
+      'hook',
+      'story',
+      'selling_point',
+      'pace',
+      'caption',
+      'music',
+      'cta',
+      'quality',
+    ]),
+    severity: z.enum(['info', 'warning', 'error']),
+    startMs: z.number().int().nonnegative(),
+    endMs: z.number().int().positive(),
+    message: z.string().trim().min(1).max(1_000),
+    commands: z.array(aiReviewCommandSchema).max(10),
+  })
+  .strict()
+  .refine((finding) => finding.endMs > finding.startMs, 'Finding must have positive duration');
+
+export const aiReviewGenerationSchema = z
+  .object({
+    summary: z.string().trim().min(1).max(2_000),
+    scoreBasisPoints: z.number().int().min(0).max(10_000),
+    hookScoreBasisPoints: z.number().int().min(0).max(10_000),
+    storyScoreBasisPoints: z.number().int().min(0).max(10_000),
+    sellingPointScoreBasisPoints: z.number().int().min(0).max(10_000),
+    paceScoreBasisPoints: z.number().int().min(0).max(10_000),
+    captionScoreBasisPoints: z.number().int().min(0).max(10_000),
+    musicScoreBasisPoints: z.number().int().min(0).max(10_000),
+    ctaScoreBasisPoints: z.number().int().min(0).max(10_000),
+    findings: z.array(aiReviewFindingSchema).max(30),
+  })
+  .strict();
+
+export const aiReviewStatusSchema = z.enum(['open', 'applied', 'dismissed']);
+export const aiReviewSchema = aiReviewGenerationSchema
+  .extend({
+    id: directorIdSchema,
+    videoProjectId: directorIdSchema,
+    baseRevision: z.number().int().positive(),
+    status: aiReviewStatusSchema,
+    modelName: z.string().nullable(),
+    promptVersion: z.string().nullable(),
+    generationParameters: z.record(z.string(), z.unknown()),
+    inputSummary: z.string().nullable(),
+    appliedRevision: z.number().int().positive().nullable(),
+    dismissedAt: directorDateTimeSchema.nullable(),
+    createdAt: directorDateTimeSchema,
+  })
+  .strict();
+export const applyAiReviewSchema = z
+  .object({ findingId: directorIdSchema, commandIndex: z.number().int().nonnegative() })
+  .strict();
+
 export type CreativeProjectMode = z.infer<typeof creativeProjectModeSchema>;
 export type CreativeProjectStatus = z.infer<typeof creativeProjectStatusSchema>;
 export type CreativeProject = z.infer<typeof creativeProjectSchema>;
@@ -456,3 +568,7 @@ export type BlueprintBeat = z.infer<typeof blueprintBeatSchema>;
 export type EditBlueprintGeneration = z.infer<typeof editBlueprintGenerationSchema>;
 export type VideoVersionVariant = z.infer<typeof videoVersionVariantSchema>;
 export type CreativeVideoVersion = z.infer<typeof creativeVideoVersionSchema>;
+export type AiReviewCommand = z.infer<typeof aiReviewCommandSchema>;
+export type AiReviewFinding = z.infer<typeof aiReviewFindingSchema>;
+export type AiReviewGeneration = z.infer<typeof aiReviewGenerationSchema>;
+export type AiReview = z.infer<typeof aiReviewSchema>;
