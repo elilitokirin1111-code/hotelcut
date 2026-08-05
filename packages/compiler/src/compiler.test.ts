@@ -2,15 +2,99 @@ import { describe, expect, it } from 'vitest';
 
 import {
   compilerMediaCandidateSchema,
+  buildDynamicCompilationTemplate,
   findDuplicateAssets,
   paginateCaptionLines,
   rankSlotCandidates,
   splitARollRange,
   splitCaptionLines,
   templateSlotSchema,
+  validateEditBlueprint,
 } from './index.js';
 
+const blueprint = {
+  id: '11111111-1111-4111-8111-111111111111',
+  creativeProjectId: '22222222-2222-4222-8222-222222222222',
+  revision: 1,
+  durationSeconds: 8,
+  frameRate: 30,
+  aspectRatio: '9:16' as const,
+  style: {
+    pace: 'fast' as const,
+    visualTone: 'warm',
+    transitionDensity: 'low' as const,
+    captionDensity: 'medium' as const,
+    beatSyncStrength: 50,
+    referenceStrength: 0,
+    aiFreedom: 50,
+  },
+  beats: [
+    {
+      id: '33333333-3333-4333-8333-333333333333',
+      sequence: 1,
+      startMs: 0,
+      endMs: 4_000,
+      purpose: 'hook',
+      narration: '欢迎',
+      dialogue: null,
+      requiredTags: ['lobby'],
+      preferredTags: [],
+      forbiddenTags: [],
+      preferredShotTypes: ['medium'],
+      preferredMotionTypes: ['push_in'],
+      minimumShotDurationMs: 800,
+      maximumShotDurationMs: 1_200,
+      maximumAssetReuse: 1,
+      audioPolicy: 'dialogue' as const,
+      caption: '欢迎',
+      transitionIn: null,
+      transitionOut: 'cut' as const,
+    },
+    {
+      id: '44444444-4444-4444-8444-444444444444',
+      sequence: 2,
+      startMs: 4_000,
+      endMs: 8_000,
+      purpose: 'cta',
+      narration: null,
+      dialogue: null,
+      requiredTags: ['room'],
+      preferredTags: [],
+      forbiddenTags: [],
+      preferredShotTypes: ['wide'],
+      preferredMotionTypes: ['static'],
+      minimumShotDurationMs: 800,
+      maximumShotDurationMs: 2_000,
+      maximumAssetReuse: 1,
+      audioPolicy: 'music' as const,
+      caption: null,
+      transitionIn: 'cut' as const,
+      transitionOut: null,
+    },
+  ],
+  music: {},
+  captionStyle: {},
+  globalRules: [],
+  seed: 1,
+  compilerVersion: '1.0.0',
+  sourceAssetIds: [],
+  referenceProfileIds: [],
+  modelName: null,
+  promptVersion: null,
+  generationParameters: {},
+  inputSummary: null,
+  createdAt: '2026-08-05T08:00:00.000Z',
+};
+
 describe('compiler primitives', () => {
+  it('validates a contiguous blueprint and converts it into dynamic slots', () => {
+    const validated = validateEditBlueprint(blueprint);
+    expect(validated.valid).toBe(true);
+    const template = buildDynamicCompilationTemplate(validated.normalizedBlueprint!);
+    expect(template.slots).toHaveLength(6);
+    expect(template.slots[0]!.startBasisPoints).toBe(0);
+    expect(template.slots.at(-1)!.endBasisPoints).toBe(10_000);
+  });
   it('splits long A-roll ranges without gaps or overlap', () => {
     expect(splitARollRange(90, 650, 240)).toEqual([
       { startFrame: 90, durationFrames: 240 },

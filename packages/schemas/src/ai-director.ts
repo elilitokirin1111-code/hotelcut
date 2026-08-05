@@ -285,6 +285,70 @@ export const assignAssetRequirementSchema = z
   .object({ assetId: directorIdSchema, segmentId: directorIdSchema.nullable().optional() })
   .strict();
 
+const blueprintStyleSchema = z
+  .object({
+    pace: z.enum(['slow', 'medium', 'fast', 'very_fast']),
+    visualTone: z.string().min(1).max(160),
+    transitionDensity: z.enum(['none', 'low', 'medium', 'high']),
+    captionDensity: z.enum(['low', 'medium', 'high']),
+    beatSyncStrength: z.number().int().min(0).max(100),
+    referenceStrength: z.number().int().min(0).max(100),
+    aiFreedom: z.number().int().min(0).max(100),
+  })
+  .strict();
+const blueprintBeatSchema = z
+  .object({
+    id: directorIdSchema,
+    sequence: z.number().int().positive(),
+    startMs: z.number().int().nonnegative(),
+    endMs: z.number().int().positive(),
+    purpose: z.string().min(1).max(500),
+    narration: z.string().nullable(),
+    dialogue: z.string().nullable(),
+    requiredTags: z.array(z.string().min(1)).max(20),
+    preferredTags: z.array(z.string().min(1)).max(20),
+    forbiddenTags: z.array(z.string().min(1)).max(20),
+    preferredShotTypes: z.array(z.string().min(1)).max(12),
+    preferredMotionTypes: z.array(z.string().min(1)).max(12),
+    minimumShotDurationMs: z.number().int().positive(),
+    maximumShotDurationMs: z.number().int().positive(),
+    maximumAssetReuse: z.number().int().positive().max(10),
+    audioPolicy: z.enum(['dialogue', 'music', 'ambient', 'mute']),
+    caption: z.string().max(240).nullable(),
+    transitionIn: z.enum(['cut', 'dissolve', 'fade']).nullable(),
+    transitionOut: z.enum(['cut', 'dissolve', 'fade']).nullable(),
+  })
+  .strict()
+  .refine((beat) => beat.endMs > beat.startMs, 'Beat must have positive duration')
+  .refine(
+    (beat) => beat.maximumShotDurationMs >= beat.minimumShotDurationMs,
+    'Maximum shot duration must be at least minimum shot duration',
+  );
+export const editBlueprintSchema = z
+  .object({
+    id: directorIdSchema,
+    creativeProjectId: directorIdSchema,
+    revision: z.number().int().positive(),
+    durationSeconds: z.number().int().min(5).max(180),
+    frameRate: z.number().int().positive().max(120),
+    aspectRatio: z.literal('9:16'),
+    style: blueprintStyleSchema,
+    beats: z.array(blueprintBeatSchema).min(1).max(60),
+    music: z.record(z.string(), z.unknown()),
+    captionStyle: z.record(z.string(), z.unknown()),
+    globalRules: z.array(z.string().min(1)).max(60),
+    seed: z.number().int().min(0).max(4_294_967_295),
+    compilerVersion: z.string().min(1),
+    sourceAssetIds: z.array(directorIdSchema),
+    referenceProfileIds: z.array(directorIdSchema),
+    modelName: z.string().nullable(),
+    promptVersion: z.string().nullable(),
+    generationParameters: z.record(z.string(), z.unknown()),
+    inputSummary: z.string().nullable(),
+    createdAt: directorDateTimeSchema,
+  })
+  .strict();
+
 export type CreativeProjectMode = z.infer<typeof creativeProjectModeSchema>;
 export type CreativeProjectStatus = z.infer<typeof creativeProjectStatusSchema>;
 export type CreativeProject = z.infer<typeof creativeProjectSchema>;
@@ -302,3 +366,5 @@ export type ReferenceVideoProfile = z.infer<typeof referenceVideoProfileSchema>;
 export type ReferenceVideoProfileGeneration = z.infer<typeof referenceVideoProfileGenerationSchema>;
 export type AssetMatchCandidate = z.infer<typeof assetMatchCandidateSchema>;
 export type AssetRequirement = z.infer<typeof assetRequirementSchema>;
+export type EditBlueprint = z.infer<typeof editBlueprintSchema>;
+export type BlueprintBeat = z.infer<typeof blueprintBeatSchema>;
