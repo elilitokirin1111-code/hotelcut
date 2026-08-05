@@ -546,6 +546,35 @@ export const applyAiReviewSchema = z
   .object({ findingId: directorIdSchema, commandIndex: z.number().int().nonnegative() })
   .strict();
 
+export const creativeFeedbackEventTypeSchema = z.enum([
+  'creative_direction_selected',
+  'script_revised',
+  'script_selected',
+  'video_version_selected',
+  'shot_replaced',
+  'ai_review_applied',
+  'ai_review_dismissed',
+  'final_render_requested',
+]);
+export const createCreativeFeedbackEventSchema = z
+  .object({
+    eventType: creativeFeedbackEventTypeSchema,
+    creativeProjectId: directorIdSchema.nullable().optional(),
+    videoProjectId: directorIdSchema.nullable().optional(),
+    subjectId: directorIdSchema.nullable().optional(),
+    metadata: z.record(z.string(), z.unknown()).default({}),
+  })
+  .strict();
+export const creativeFeedbackEventSchema = createCreativeFeedbackEventSchema.extend({
+  id: directorIdSchema,
+  hotelId: directorIdSchema,
+  actorUserId: directorIdSchema,
+  creativeProjectId: directorIdSchema.nullable(),
+  videoProjectId: directorIdSchema.nullable(),
+  subjectId: directorIdSchema.nullable(),
+  createdAt: directorDateTimeSchema,
+});
+
 export type CreativeProjectMode = z.infer<typeof creativeProjectModeSchema>;
 export type CreativeProjectStatus = z.infer<typeof creativeProjectStatusSchema>;
 export type CreativeProject = z.infer<typeof creativeProjectSchema>;
@@ -572,3 +601,5 @@ export type AiReviewCommand = z.infer<typeof aiReviewCommandSchema>;
 export type AiReviewFinding = z.infer<typeof aiReviewFindingSchema>;
 export type AiReviewGeneration = z.infer<typeof aiReviewGenerationSchema>;
 export type AiReview = z.infer<typeof aiReviewSchema>;
+export type CreativeFeedbackEvent = z.infer<typeof creativeFeedbackEventSchema>;
+export type CreateCreativeFeedbackEventInput = z.input<typeof createCreativeFeedbackEventSchema>;

@@ -829,6 +829,39 @@ export const aiReviews = pgTable(
   ],
 );
 
+export const creativeFeedbackEvents = pgTable(
+  'creative_feedback_events',
+  {
+    id: uuid('id').primaryKey(),
+    hotelId: uuid('hotel_id')
+      .notNull()
+      .references(() => hotels.id, { onDelete: 'cascade' }),
+    actorUserId: uuid('actor_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    eventType: varchar('event_type', { length: 80 }).notNull(),
+    creativeProjectId: uuid('creative_project_id').references(() => creativeProjects.id, {
+      onDelete: 'set null',
+    }),
+    videoProjectId: uuid('video_project_id').references(() => videoProjects.id, {
+      onDelete: 'set null',
+    }),
+    subjectId: uuid('subject_id'),
+    metadata: jsonb('metadata')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('creative_feedback_events_hotel_created_idx').on(table.hotelId, table.createdAt),
+    index('creative_feedback_events_project_idx').on(table.creativeProjectId),
+    check(
+      'creative_feedback_events_type_valid',
+      sql`${table.eventType} in ('creative_direction_selected', 'script_revised', 'script_selected', 'video_version_selected', 'shot_replaced', 'ai_review_applied', 'ai_review_dismissed', 'final_render_requested')`,
+    ),
+  ],
+);
+
 export const assetRequirements = pgTable(
   'asset_requirements',
   {
@@ -1016,26 +1049,6 @@ export const aiEditCommands = pgTable(
     uniqueIndex('ai_edit_commands_review_sequence_unique').on(table.aiReviewRunId, table.sequence),
     check('ai_edit_commands_sequence_positive', sql`${table.sequence} > 0`),
   ],
-);
-
-export const creativeFeedbackEvents = pgTable(
-  'creative_feedback_events',
-  {
-    id: uuid('id').primaryKey(),
-    creativeProjectId: uuid('creative_project_id')
-      .notNull()
-      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
-    actorUserId: uuid('actor_user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'restrict' }),
-    eventType: varchar('event_type', { length: 80 }).notNull(),
-    subjectId: uuid('subject_id'),
-    payload: jsonb('payload')
-      .default(sql`'{}'::jsonb`)
-      .notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [index('creative_feedback_events_project_idx').on(table.creativeProjectId)],
 );
 
 export const renderJobs = pgTable(

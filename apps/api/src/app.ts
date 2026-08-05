@@ -36,6 +36,7 @@ import { assetRoutes } from './asset-routes.js';
 import { aiReviewRoutes } from './ai-review-routes.js';
 import { configureAuthentication } from './authentication.js';
 import { creativeProjectRoutes } from './creative-project-routes.js';
+import { feedbackRoutes } from './feedback-routes.js';
 import { modelProviderRoutes } from './model-provider-routes.js';
 import { projectRoutes } from './project-routes.js';
 import { renderRoutes } from './render-routes.js';
@@ -387,6 +388,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
     featureFlags: options.aiDirectorFeatureFlags ?? { aiReviewEnabled: false },
     ...(options.modelProviderFetch ? { fetchProvider: options.modelProviderFetch } : {}),
+    ...(options.repository ? { repository: options.repository } : {}),
+  });
+  await app.register(feedbackRoutes, {
     ...(options.repository ? { repository: options.repository } : {}),
   });
   await app.register(renderRoutes, {

@@ -78,11 +78,9 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
       },
     },
     async (request, reply) => {
-      const job = await repository().createRenderJob(
-        request.actorUserId,
-        request.params.id,
-        request.body,
-      );
+      const store = repository();
+      const project = await store.getVideoProject(request.actorUserId, request.params.id);
+      const job = await store.createRenderJob(request.actorUserId, request.params.id, request.body);
       try {
         await renderQueue().enqueue({
           attempt: job.attempt + 1,
@@ -90,12 +88,18 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
           renderJobId: job.id,
         });
       } catch (error) {
-        await repository().markRenderQueueFailure(
+        await store.markRenderQueueFailure(
           job.id,
           error instanceof Error ? error.message : 'Unknown queue publish error',
         );
         throw error;
       }
+      await store.createCreativeFeedbackEvent(request.actorUserId, project.project.hotelId, {
+        eventType: 'final_render_requested',
+        videoProjectId: project.project.id,
+        subjectId: job.id,
+        metadata: { projectRevisionId: job.projectRevisionId, attempt: job.attempt },
+      });
       return reply.code(201).send(job);
     },
   );

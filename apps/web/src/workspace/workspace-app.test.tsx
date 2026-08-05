@@ -668,7 +668,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       target: { value: '黄山' },
     });
     expect(screen.queryByText('云栖湖畔酒店（虚构）')).not.toBeInTheDocument();
-    expect(screen.getByText('云栖山居酒店（虚构）')).toBeInTheDocument();
+    expect(await screen.findByText('云栖山居酒店（虚构）')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '进入 云栖山居酒店（虚构）' }));
     expect(screen.getByRole('heading', { name: '云栖山居酒店（虚构）' })).toBeInTheDocument();

@@ -13,6 +13,8 @@ import type {
   BrandKit,
   CompleteAssetUploadInput,
   CreativeProject,
+  CreativeFeedbackEvent,
+  CreateCreativeFeedbackEventInput,
   CreativeVideoVersion,
   CreativeBriefRevision,
   CreateCreativeBriefRevisionInput,
@@ -371,6 +373,15 @@ export interface HotelCutRepository {
     reviewId: string,
     update: { status: 'applied'; appliedRevision: number } | { status: 'dismissed' },
   ): Promise<AiReview>;
+  createCreativeFeedbackEvent(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateCreativeFeedbackEventInput,
+  ): Promise<CreativeFeedbackEvent>;
+  listCreativeFeedbackEvents(
+    actorUserId: string,
+    hotelId: string,
+  ): Promise<CreativeFeedbackEvent[]>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

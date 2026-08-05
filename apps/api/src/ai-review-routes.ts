@@ -174,6 +174,18 @@ export const aiReviewRoutes: FastifyPluginCallback<AiReviewRouteOptions> = (fast
         status: 'applied',
         appliedRevision: saved.currentRevision.revision,
       });
+      await store.createCreativeFeedbackEvent(request.actorUserId, saved.project.hotelId, {
+        eventType: command.type === 'replace-clip-asset' ? 'shot_replaced' : 'ai_review_applied',
+        videoProjectId: review.videoProjectId,
+        subjectId: review.id,
+        metadata: {
+          findingId: finding.id,
+          commandIndex: request.body.commandIndex,
+          commandType: command.type,
+          baseRevision: review.baseRevision,
+          appliedRevision: saved.currentRevision.revision,
+        },
+      });
       return reply.code(201).send(saved);
     },
   );
@@ -188,9 +200,19 @@ export const aiReviewRoutes: FastifyPluginCallback<AiReviewRouteOptions> = (fast
     },
     async (request) => {
       requireReview();
-      return repository().updateAiReviewStatus(request.actorUserId, request.params.id, {
+      const store = repository();
+      const review = await store.getAiReview(request.actorUserId, request.params.id);
+      const project = await store.getVideoProject(request.actorUserId, review.videoProjectId);
+      const dismissed = await store.updateAiReviewStatus(request.actorUserId, request.params.id, {
         status: 'dismissed',
       });
+      await store.createCreativeFeedbackEvent(request.actorUserId, project.project.hotelId, {
+        eventType: 'ai_review_dismissed',
+        videoProjectId: review.videoProjectId,
+        subjectId: review.id,
+        metadata: { baseRevision: review.baseRevision },
+      });
+      return dismissed;
     },
   );
 };

@@ -586,6 +586,42 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     },
   );
 
+  app.post(
+    '/v1/creative-projects/:projectId/select-video-version',
+    {
+      schema: {
+        body: selectRevisionSchema,
+        params: creativeProjectIdParamsSchema,
+        response: { 200: creativeProjectSchema, 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Select the AI video version used for Studio and final rendering',
+        tags: ['ai-director', 'feedback'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      const store = repository();
+      const project = await store.getCreativeProject(request.actorUserId, request.params.projectId);
+      const version = (await store.listCreativeVideoVersions(request.actorUserId, project.id)).find(
+        (candidate) => candidate.id === request.body.id,
+      );
+      if (!version) throw new DomainNotFoundError('Creative video version not found');
+      const updated = await store.updateCreativeProject(request.actorUserId, project.id, {
+        selectedBlueprintId: version.editBlueprintId,
+        selectedVideoProjectId: version.videoProjectId,
+        status: 'generated',
+      });
+      await store.createCreativeFeedbackEvent(request.actorUserId, project.hotelId, {
+        eventType: 'video_version_selected',
+        creativeProjectId: project.id,
+        videoProjectId: version.videoProjectId,
+        subjectId: version.id,
+        metadata: { variant: version.variant, scoreBasisPoints: version.scoreBasisPoints },
+      });
+      return updated;
+    },
+  );
+
   app.get(
     '/v1/creative-projects/:projectId',
     {
@@ -773,10 +809,22 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     },
     async (request) => {
       requireAiDirector();
-      return repository().updateCreativeProject(request.actorUserId, request.params.projectId, {
-        selectedBriefRevisionId: request.body.id,
-        status: 'planning',
+      const store = repository();
+      const project = await store.updateCreativeProject(
+        request.actorUserId,
+        request.params.projectId,
+        {
+          selectedBriefRevisionId: request.body.id,
+          status: 'planning',
+        },
+      );
+      await store.createCreativeFeedbackEvent(request.actorUserId, project.hotelId, {
+        eventType: 'creative_direction_selected',
+        creativeProjectId: project.id,
+        subjectId: request.body.id,
+        metadata: {},
       });
+      return project;
     },
   );
 
@@ -912,6 +960,21 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           undefined,
           `${request.body.instruction}\n原脚本：${JSON.stringify(source)}`,
         );
+        const project = await repository().getCreativeProject(
+          request.actorUserId,
+          request.params.projectId,
+        );
+        await repository().createCreativeFeedbackEvent(request.actorUserId, project.hotelId, {
+          eventType: 'script_revised',
+          creativeProjectId: project.id,
+          subjectId: script.id,
+          metadata: {
+            sourceScriptId: source.id,
+            sourceRevision: source.revision,
+            resultRevision: script.revision,
+            instruction: request.body.instruction,
+          },
+        });
         return reply.code(201).send(script);
       } catch (error) {
         if (error instanceof DomainNotFoundError) throw error;
@@ -1247,12 +1310,24 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     },
     async (request) => {
       requireAiDirector();
-      const script = await repository().getScriptPackage(request.actorUserId, request.body.id);
+      const store = repository();
+      const script = await store.getScriptPackage(request.actorUserId, request.body.id);
       if (script.creativeProjectId !== request.params.projectId) throw new DomainNotFoundError();
-      return repository().updateCreativeProject(request.actorUserId, request.params.projectId, {
-        selectedScriptRevisionId: script.id,
-        status: 'script_ready',
+      const project = await store.updateCreativeProject(
+        request.actorUserId,
+        request.params.projectId,
+        {
+          selectedScriptRevisionId: script.id,
+          status: 'script_ready',
+        },
+      );
+      await store.createCreativeFeedbackEvent(request.actorUserId, project.hotelId, {
+        eventType: 'script_selected',
+        creativeProjectId: project.id,
+        subjectId: script.id,
+        metadata: { revision: script.revision },
       });
+      return project;
     },
   );
 };

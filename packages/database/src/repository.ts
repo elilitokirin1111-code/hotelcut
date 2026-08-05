@@ -42,6 +42,8 @@ import type {
   BrandKit,
   CompleteAssetUploadInput,
   CreativeProject,
+  CreativeFeedbackEvent,
+  CreateCreativeFeedbackEventInput,
   CreativeVideoVersion,
   AiReview,
   CreativeBriefRevision,
@@ -80,6 +82,7 @@ import {
   creativeVideoVersionSchema,
   aiReviewSchema,
   creativeProjectSchema,
+  creativeFeedbackEventSchema,
   creativeBriefRevisionSchema,
   modelApiModeSchema,
   modelProviderKindSchema,
@@ -265,6 +268,19 @@ function mapAiReview(row: typeof schema.aiReviews.$inferSelect): AiReview {
     inputSummary: row.inputSummary ?? null,
     appliedRevision: row.appliedRevision ?? null,
     dismissedAt: row.dismissedAt ? toIso(row.dismissedAt) : null,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function mapCreativeFeedbackEvent(
+  row: typeof schema.creativeFeedbackEvents.$inferSelect,
+): CreativeFeedbackEvent {
+  return creativeFeedbackEventSchema.parse({
+    ...row,
+    creativeProjectId: row.creativeProjectId ?? null,
+    videoProjectId: row.videoProjectId ?? null,
+    subjectId: row.subjectId ?? null,
+    metadata: row.metadata,
     createdAt: toIso(row.createdAt),
   });
 }
@@ -1144,6 +1160,50 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       .returning();
     if (!row) throw new Error('AI review update did not return a row');
     return mapAiReview(row);
+  }
+
+  async createCreativeFeedbackEvent(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateCreativeFeedbackEventInput,
+  ): Promise<CreativeFeedbackEvent> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    if (input.creativeProjectId) {
+      const project = await this.requireCreativeProjectMember(actorUserId, input.creativeProjectId);
+      if (project.hotelId !== hotelId) throw new DomainNotFoundError('Creative project not found');
+    }
+    if (input.videoProjectId) {
+      const project = await this.requireVideoProjectMember(actorUserId, input.videoProjectId);
+      if (project.hotelId !== hotelId) throw new DomainNotFoundError('Video project not found');
+    }
+    const [row] = await this.db
+      .insert(schema.creativeFeedbackEvents)
+      .values({
+        id: randomUUID(),
+        hotelId,
+        actorUserId,
+        eventType: input.eventType,
+        creativeProjectId: input.creativeProjectId ?? null,
+        videoProjectId: input.videoProjectId ?? null,
+        subjectId: input.subjectId ?? null,
+        metadata: input.metadata ?? {},
+      })
+      .returning();
+    if (!row) throw new Error('Creative feedback event insert did not return a row');
+    return mapCreativeFeedbackEvent(row);
+  }
+
+  async listCreativeFeedbackEvents(
+    actorUserId: string,
+    hotelId: string,
+  ): Promise<CreativeFeedbackEvent[]> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .select()
+      .from(schema.creativeFeedbackEvents)
+      .where(eq(schema.creativeFeedbackEvents.hotelId, hotelId))
+      .orderBy(desc(schema.creativeFeedbackEvents.createdAt));
+    return rows.map(mapCreativeFeedbackEvent);
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {
