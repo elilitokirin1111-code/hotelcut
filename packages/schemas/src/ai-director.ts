@@ -147,7 +147,10 @@ export const shotRequirementSchema = z.object({
 
 const scriptSceneDraftSchema = scriptSceneSchema
   .omit({ id: true, scriptPackageId: true, createdAt: true })
-  .strict();
+  .strict()
+  .refine((scene) => Boolean(scene.narration?.trim() || scene.dialogue?.trim()), {
+    message: 'Every scene requires narration or dialogue.',
+  });
 const shotRequirementDraftSchema = shotRequirementSchema
   .omit({ id: true, scriptPackageId: true, scriptSceneId: true, createdAt: true })
   .extend({ sceneSequence: z.number().int().positive().nullable() })
