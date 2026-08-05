@@ -32,6 +32,8 @@ import type {
   RenderLogEntry,
   SaveProjectRevisionInput,
   RenderJobStatus,
+  ReferenceVideoProfile,
+  ReferenceVideoProfileGeneration,
   ScriptGeneration,
   ScriptPackage,
   UpdateHotelInput,
@@ -191,6 +193,17 @@ export interface CreateAiGenerationRunInput {
   inputSummary: string;
 }
 
+export interface PersistReferenceVideoProfileInput extends ReferenceVideoProfileGeneration {
+  assetId: string;
+  durationMs: number;
+  averageShotDurationMs: number;
+  shotCount: number;
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -257,6 +270,15 @@ export interface HotelCutRepository {
     runId: string,
     outcome: { failureReason?: string; outputSummary?: string },
   ): Promise<void>;
+  listReferenceVideoProfiles(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<ReferenceVideoProfile[]>;
+  createReferenceVideoProfile(
+    actorUserId: string,
+    projectId: string,
+    input: PersistReferenceVideoProfileInput,
+  ): Promise<ReferenceVideoProfile>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

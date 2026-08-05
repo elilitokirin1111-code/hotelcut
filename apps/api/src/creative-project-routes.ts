@@ -10,6 +10,7 @@ import {
 import {
   aiDirectorFeatureFlagsSchema,
   createCreativeBriefRevisionSchema,
+  createReferenceProfileSchema,
   createCreativeProjectSchema,
   creativeBriefRevisionSchema,
   creativeProjectIdParamsSchema,
@@ -18,6 +19,8 @@ import {
   expandIdeaOutputSchema,
   hotelIdParamsSchema,
   reviseScriptSchema,
+  referenceVideoProfileGenerationSchema,
+  referenceVideoProfileSchema,
   scriptGenerationSchema,
   scriptPackageSchema,
   selectRevisionSchema,
@@ -539,6 +542,105 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           requestId: request.id,
         });
       }
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/reference-profiles',
+    {
+      schema: {
+        body: createReferenceProfileSchema,
+        params: creativeProjectIdParamsSchema,
+        response: {
+          201: referenceVideoProfileSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+          502: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Generate a versioned reference-video editing-language profile',
+        tags: ['ai-director'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      const store = repository();
+      const asset = await store.getAssetDetail(request.actorUserId, request.body.assetId);
+      const durationMs = Number(asset.metadata['durationMs'] ?? 0);
+      const scenes = Array.isArray(asset.segments) ? asset.segments : [];
+      if (asset.kind !== 'video' || asset.status !== 'ready' || durationMs <= 0) {
+        return reply.code(409).send({
+          code: 'REFERENCE_VIDEO_NOT_READY',
+          message: '参考视频必须是已完成分析的视频素材。',
+          requestId: request.id,
+        });
+      }
+      try {
+        const generated = referenceVideoProfileGenerationSchema.parse(
+          await generate(
+            request.actorUserId,
+            request.params.projectId,
+            'analyze_reference_video',
+            referenceVideoProfileGenerationSchema,
+            {
+              asset: {
+                filename: asset.originalFilename,
+                metadata: asset.metadata,
+                transcript: asset.metadata['transcript'] ?? null,
+                scenes,
+              },
+              constraints:
+                '只学习叙事、节奏、字幕和镜头语言；禁止复用具体人物、台词、品牌或营销事实。',
+            },
+          ),
+        );
+        const project = await store.getCreativeProject(
+          request.actorUserId,
+          request.params.projectId,
+        );
+        const settings = await store.getModelProviderSettings(request.actorUserId, project.hotelId);
+        const profile = await store.createReferenceVideoProfile(
+          request.actorUserId,
+          request.params.projectId,
+          {
+            ...generated,
+            assetId: asset.id,
+            durationMs,
+            averageShotDurationMs: Math.max(1, Math.round(durationMs / Math.max(1, scenes.length))),
+            shotCount: scenes.length,
+            modelName: settings?.model ?? null,
+            promptVersion,
+            generationParameters,
+            inputSummary: `Reference asset ${asset.id}; ${scenes.length} detected scenes`,
+          },
+        );
+        return reply.code(201).send(profile);
+      } catch (error) {
+        const configured =
+          error instanceof Error && error.message === 'MODEL_PROVIDER_NOT_CONFIGURED';
+        return reply.code(configured ? 409 : 502).send({
+          code: configured ? 'MODEL_PROVIDER_NOT_CONFIGURED' : 'REFERENCE_PROFILE_FAILED',
+          message: configured ? '请先配置并启用百炼模型服务。' : '参考视频画像生成失败。',
+          requestId: request.id,
+        });
+      }
+    },
+  );
+
+  app.get(
+    '/v1/creative-projects/:projectId/reference-profiles',
+    {
+      schema: {
+        params: creativeProjectIdParamsSchema,
+        response: { 200: z.array(referenceVideoProfileSchema), 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'List versioned reference-video profiles',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      return repository().listReferenceVideoProfiles(request.actorUserId, request.params.projectId);
     },
   );
 

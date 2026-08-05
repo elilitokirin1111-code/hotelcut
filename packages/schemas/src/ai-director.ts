@@ -201,6 +201,51 @@ export const reviseScriptSchema = z
   .strict();
 export const selectRevisionSchema = z.object({ id: directorIdSchema }).strict();
 
+const profileSectionSchema = z
+  .object({
+    startMs: z.number().int().nonnegative(),
+    endMs: z.number().int().positive(),
+    label: z.string(),
+  })
+  .strict()
+  .refine(
+    (section) => section.endMs > section.startMs,
+    'Profile section must have positive duration',
+  );
+
+export const referenceVideoProfileGenerationSchema = z
+  .object({
+    narrativePattern: z.string().min(1).max(200),
+    hookDurationMs: z.number().int().positive(),
+    paceCurve: z.array(profileSectionSchema).min(1).max(12),
+    shotTypeDistribution: z.record(z.string(), z.number().int().nonnegative()),
+    transitionProfile: z.record(z.string(), z.unknown()),
+    captionProfile: z.record(z.string(), z.unknown()),
+    audioProfile: z.record(z.string(), z.unknown()),
+    emotionalCurve: z.array(profileSectionSchema).min(1).max(12),
+    reusableStyleRules: z.array(z.string().min(1)).min(1).max(20),
+    analysisSummary: z.string().min(1).max(4_000),
+  })
+  .strict();
+
+export const referenceVideoProfileSchema = z.object({
+  id: directorIdSchema,
+  creativeProjectId: directorIdSchema,
+  assetId: directorIdSchema,
+  revision: z.number().int().positive(),
+  durationMs: z.number().int().positive(),
+  averageShotDurationMs: z.number().int().positive(),
+  shotCount: z.number().int().nonnegative(),
+  modelName: z.string().nullable(),
+  promptVersion: z.string().nullable(),
+  generationParameters: z.record(z.string(), z.unknown()),
+  inputSummary: z.string().nullable(),
+  createdAt: directorDateTimeSchema,
+  ...referenceVideoProfileGenerationSchema.shape,
+});
+
+export const createReferenceProfileSchema = z.object({ assetId: directorIdSchema }).strict();
+
 export type CreativeProjectMode = z.infer<typeof creativeProjectModeSchema>;
 export type CreativeProjectStatus = z.infer<typeof creativeProjectStatusSchema>;
 export type CreativeProject = z.infer<typeof creativeProjectSchema>;
@@ -214,3 +259,5 @@ export type ScriptScene = z.infer<typeof scriptSceneSchema>;
 export type ShotRequirement = z.infer<typeof shotRequirementSchema>;
 export type ScriptGeneration = z.infer<typeof scriptGenerationSchema>;
 export type ScriptPackage = z.infer<typeof scriptPackageSchema>;
+export type ReferenceVideoProfile = z.infer<typeof referenceVideoProfileSchema>;
+export type ReferenceVideoProfileGeneration = z.infer<typeof referenceVideoProfileGenerationSchema>;

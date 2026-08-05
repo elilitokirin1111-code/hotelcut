@@ -597,6 +597,7 @@ export const referenceVideoProfiles = pgTable(
     assetId: uuid('asset_id')
       .notNull()
       .references(() => assets.id, { onDelete: 'restrict' }),
+    revision: integer('revision').notNull(),
     durationMs: integer('duration_ms').notNull(),
     narrativePattern: varchar('narrative_pattern', { length: 200 }).notNull(),
     hookDurationMs: integer('hook_duration_ms').notNull(),
@@ -633,9 +634,10 @@ export const referenceVideoProfiles = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex('reference_video_profiles_project_asset_unique').on(
+    uniqueIndex('reference_video_profiles_project_asset_revision_unique').on(
       table.creativeProjectId,
       table.assetId,
+      table.revision,
     ),
     check('reference_video_profiles_duration_positive', sql`${table.durationMs} > 0`),
     check('reference_video_profiles_shot_count_nonnegative', sql`${table.shotCount} >= 0`),

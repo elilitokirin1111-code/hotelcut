@@ -18,6 +18,7 @@ import {
   type PersistModelProviderSettingsInput,
   type PersistCreativeBriefRevisionInput,
   type PersistScriptPackageInput,
+  type PersistReferenceVideoProfileInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
@@ -50,6 +51,7 @@ import type {
   RenderJobDetail,
   RenderLogEntry,
   RenderJobStatus,
+  ReferenceVideoProfile,
   ScriptPackage,
   UpdateHotelInput,
   UpdateCreativeProjectInput,
@@ -74,6 +76,7 @@ import {
   qualityReportSchema,
   renderArtifactSchema,
   renderJobSchema,
+  referenceVideoProfileSchema,
   scriptPackageSchema,
   scriptSceneSchema,
   shotRequirementSchema,
@@ -144,6 +147,18 @@ function mapCreativeBriefRevision(
     objective: row.objective ?? null,
     targetAudience: row.targetAudience ?? null,
     userPrompt: row.userPrompt ?? null,
+    modelName: row.modelName ?? null,
+    promptVersion: row.promptVersion ?? null,
+    inputSummary: row.inputSummary ?? null,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function mapReferenceVideoProfile(
+  row: typeof schema.referenceVideoProfiles.$inferSelect,
+): ReferenceVideoProfile {
+  return referenceVideoProfileSchema.parse({
+    ...row,
     modelName: row.modelName ?? null,
     promptVersion: row.promptVersion ?? null,
     inputSummary: row.inputSummary ?? null,
@@ -755,6 +770,67 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
         finishedAt: new Date(),
       })
       .where(eq(schema.aiGenerationRuns.id, runId));
+  }
+
+  async listReferenceVideoProfiles(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<ReferenceVideoProfile[]> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.referenceVideoProfiles)
+      .where(eq(schema.referenceVideoProfiles.creativeProjectId, projectId))
+      .orderBy(desc(schema.referenceVideoProfiles.createdAt));
+    return rows.map(mapReferenceVideoProfile);
+  }
+
+  async createReferenceVideoProfile(
+    actorUserId: string,
+    projectId: string,
+    input: PersistReferenceVideoProfileInput,
+  ): Promise<ReferenceVideoProfile> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    await this.requireAssetMember(actorUserId, input.assetId);
+    const [latest] = await this.db
+      .select({ revision: schema.referenceVideoProfiles.revision })
+      .from(schema.referenceVideoProfiles)
+      .where(
+        and(
+          eq(schema.referenceVideoProfiles.creativeProjectId, projectId),
+          eq(schema.referenceVideoProfiles.assetId, input.assetId),
+        ),
+      )
+      .orderBy(desc(schema.referenceVideoProfiles.revision))
+      .limit(1);
+    const [row] = await this.db
+      .insert(schema.referenceVideoProfiles)
+      .values({
+        id: randomUUID(),
+        creativeProjectId: projectId,
+        assetId: input.assetId,
+        revision: (latest?.revision ?? 0) + 1,
+        durationMs: input.durationMs,
+        narrativePattern: input.narrativePattern,
+        hookDurationMs: input.hookDurationMs,
+        averageShotDurationMs: input.averageShotDurationMs,
+        shotCount: input.shotCount,
+        paceCurve: input.paceCurve,
+        shotTypeDistribution: input.shotTypeDistribution,
+        transitionProfile: input.transitionProfile,
+        captionProfile: input.captionProfile,
+        audioProfile: input.audioProfile,
+        emotionalCurve: input.emotionalCurve,
+        reusableStyleRules: input.reusableStyleRules,
+        analysisSummary: input.analysisSummary,
+        modelName: input.modelName ?? null,
+        promptVersion: input.promptVersion ?? null,
+        generationParameters: input.generationParameters ?? {},
+        inputSummary: input.inputSummary ?? null,
+      })
+      .returning();
+    if (!row) throw new Error('Reference profile insert did not return a row');
+    return mapReferenceVideoProfile(row);
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {
