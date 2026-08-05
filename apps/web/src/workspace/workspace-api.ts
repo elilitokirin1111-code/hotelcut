@@ -8,6 +8,8 @@ import {
   brandKitSchema,
   completeAssetUploadResponseSchema,
   createCreativeProjectSchema,
+  createCreativeBriefRevisionSchema,
+  creativeBriefRevisionSchema,
   creativeProjectSchema,
   createAssetUploadResponseSchema,
   createRenderJobSchema,
@@ -22,6 +24,7 @@ import {
   renderArtifactDownloadSchema,
   renderJobDetailSchema,
   renderJobSchema,
+  scriptPackageSchema,
   videoBriefSchema,
   videoProjectDetailSchema,
   videoProjectSchema,
@@ -35,7 +38,9 @@ import {
   type AuthSession,
   type BrandKit,
   type CreativeProject,
+  type CreativeBriefRevision,
   type CreateCreativeProjectInput,
+  type CreateCreativeBriefRevisionInput,
   type CreateManualSegmentInput,
   type CreateRenderJobInput,
   type CreateVideoBriefInput,
@@ -49,6 +54,7 @@ import {
   type RenderJob,
   type RenderJobDetail,
   type SaveProjectRevisionInput,
+  type ScriptPackage,
   type UpdateHotelInput,
   type UpsertBrandKitInput,
   type UpdateCreativeProjectInput,
@@ -106,6 +112,18 @@ export interface WorkspaceApi {
     projectId: string,
     input: UpdateCreativeProjectInput,
   ): Promise<CreativeProject>;
+  createCreativeBriefRevision(
+    projectId: string,
+    input: CreateCreativeBriefRevisionInput,
+  ): Promise<CreativeBriefRevision>;
+  listCreativeBriefRevisions(
+    projectId: string,
+    signal?: AbortSignal,
+  ): Promise<CreativeBriefRevision[]>;
+  expandIdea(projectId: string): Promise<CreativeBriefRevision[]>;
+  generateScript(projectId: string, briefRevisionId?: string): Promise<ScriptPackage>;
+  listScriptPackages(projectId: string, signal?: AbortSignal): Promise<ScriptPackage[]>;
+  selectScript(projectId: string, scriptId: string): Promise<CreativeProject>;
   loadWorkspace(signal?: AbortSignal): Promise<WorkspaceSnapshot>;
   loadHotelConfiguration(hotelId: string, signal?: AbortSignal): Promise<HotelConfiguration>;
   listAssets(hotelId: string, signal?: AbortSignal): Promise<Asset[]>;
@@ -325,6 +343,66 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
           body: JSON.stringify(input),
           headers: { 'Content-Type': 'application/json' },
           method: 'PATCH',
+        },
+      );
+    },
+
+    async createCreativeBriefRevision(projectId, input) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/brief-revisions`,
+        creativeBriefRevisionSchema,
+        {
+          body: JSON.stringify(createCreativeBriefRevisionSchema.parse(input)),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async listCreativeBriefRevisions(projectId, signal) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/brief-revisions`,
+        creativeBriefRevisionSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async expandIdea(projectId) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/expand-idea`,
+        creativeBriefRevisionSchema.array(),
+        { method: 'POST' },
+      );
+    },
+
+    async generateScript(projectId, briefRevisionId) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/generate-script`,
+        scriptPackageSchema,
+        {
+          body: JSON.stringify(briefRevisionId ? { briefRevisionId } : {}),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async listScriptPackages(projectId, signal) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/scripts`,
+        scriptPackageSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async selectScript(projectId, scriptId) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/select-script`,
+        creativeProjectSchema,
+        {
+          body: JSON.stringify({ id: scriptId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
         },
       );
     },

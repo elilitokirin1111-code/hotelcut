@@ -9,6 +9,8 @@ import type {
   BrandKit,
   CompleteAssetUploadInput,
   CreativeProject,
+  CreativeBriefRevision,
+  CreateCreativeBriefRevisionInput,
   CreateCreativeProjectInput,
   CreateAssetUploadInput,
   CreateHotelInput,
@@ -30,6 +32,8 @@ import type {
   RenderLogEntry,
   SaveProjectRevisionInput,
   RenderJobStatus,
+  ScriptGeneration,
+  ScriptPackage,
   UpdateHotelInput,
   UpdateCreativeProjectInput,
   UpsertBrandKitInput,
@@ -163,6 +167,30 @@ export interface PersistModelProviderSettingsInput {
   enabled: boolean;
 }
 
+export interface PersistCreativeBriefRevisionInput extends CreateCreativeBriefRevisionInput {
+  createdBy: 'user' | 'ai';
+  direction?: string | null;
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
+export interface PersistScriptPackageInput extends ScriptGeneration {
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
+export interface CreateAiGenerationRunInput {
+  operation: string;
+  modelName: string;
+  promptVersion: string;
+  generationParameters: Record<string, unknown>;
+  inputSummary: string;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -204,6 +232,31 @@ export interface HotelCutRepository {
     projectId: string,
     input: UpdateCreativeProjectInput,
   ): Promise<CreativeProject>;
+  listCreativeBriefRevisions(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<CreativeBriefRevision[]>;
+  createCreativeBriefRevision(
+    actorUserId: string,
+    projectId: string,
+    input: PersistCreativeBriefRevisionInput,
+  ): Promise<CreativeBriefRevision>;
+  listScriptPackages(actorUserId: string, projectId: string): Promise<ScriptPackage[]>;
+  getScriptPackage(actorUserId: string, scriptId: string): Promise<ScriptPackage>;
+  createScriptPackage(
+    actorUserId: string,
+    projectId: string,
+    input: PersistScriptPackageInput,
+  ): Promise<ScriptPackage>;
+  createAiGenerationRun(
+    actorUserId: string,
+    projectId: string,
+    input: CreateAiGenerationRunInput,
+  ): Promise<string>;
+  finishAiGenerationRun(
+    runId: string,
+    outcome: { failureReason?: string; outputSummary?: string },
+  ): Promise<void>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

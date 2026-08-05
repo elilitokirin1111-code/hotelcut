@@ -9,12 +9,15 @@ import {
   assertRenderJobTransition,
   type AuthRepository,
   type AssetUploadContext,
+  type CreateAiGenerationRunInput,
   type CreateUserSessionInput,
   type HotelCutRepository,
   type PersistQualityReportInput,
   type PersistRenderArtifactInput,
   type PersistProjectRevisionInput,
   type PersistModelProviderSettingsInput,
+  type PersistCreativeBriefRevisionInput,
+  type PersistScriptPackageInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
@@ -32,6 +35,7 @@ import type {
   BrandKit,
   CompleteAssetUploadInput,
   CreativeProject,
+  CreativeBriefRevision,
   CreateCreativeProjectInput,
   CreateHotelInput,
   CreateManualSegmentInput,
@@ -46,6 +50,7 @@ import type {
   RenderJobDetail,
   RenderLogEntry,
   RenderJobStatus,
+  ScriptPackage,
   UpdateHotelInput,
   UpdateCreativeProjectInput,
   UpsertBrandKitInput,
@@ -61,6 +66,7 @@ import {
   assetSegmentSchema,
   assetUploadSchema,
   creativeProjectSchema,
+  creativeBriefRevisionSchema,
   modelApiModeSchema,
   modelProviderKindSchema,
   modelReasoningEffortSchema,
@@ -68,6 +74,9 @@ import {
   qualityReportSchema,
   renderArtifactSchema,
   renderJobSchema,
+  scriptPackageSchema,
+  scriptSceneSchema,
+  shotRequirementSchema,
   videoBriefSchema,
   videoProjectSchema,
 } from '@hotelcut/schemas';
@@ -123,6 +132,45 @@ function mapCreativeProject(row: typeof schema.creativeProjects.$inferSelect): C
     deletedAt: row.deletedAt ? toIso(row.deletedAt) : null,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
+  });
+}
+
+function mapCreativeBriefRevision(
+  row: typeof schema.creativeBriefRevisions.$inferSelect,
+): CreativeBriefRevision {
+  return creativeBriefRevisionSchema.parse({
+    ...row,
+    direction: row.direction ?? null,
+    objective: row.objective ?? null,
+    targetAudience: row.targetAudience ?? null,
+    userPrompt: row.userPrompt ?? null,
+    modelName: row.modelName ?? null,
+    promptVersion: row.promptVersion ?? null,
+    inputSummary: row.inputSummary ?? null,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function mapScriptScene(row: typeof schema.scriptScenes.$inferSelect) {
+  return scriptSceneSchema.parse({
+    ...row,
+    narration: row.narration ?? null,
+    dialogue: row.dialogue ?? null,
+    shotType: row.shotType ?? null,
+    motionType: row.motionType ?? null,
+    filmingInstruction: row.filmingInstruction ?? null,
+    createdAt: toIso(row.createdAt),
+  });
+}
+
+function mapShotRequirement(row: typeof schema.shotRequirements.$inferSelect) {
+  return shotRequirementSchema.parse({
+    ...row,
+    scriptSceneId: row.scriptSceneId ?? null,
+    preferredShotType: row.preferredShotType ?? null,
+    preferredMotionType: row.preferredMotionType ?? null,
+    filmingInstruction: row.filmingInstruction ?? null,
+    createdAt: toIso(row.createdAt),
   });
 }
 
@@ -524,6 +572,189 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       throw new DomainNotFoundError('Creative project not found');
     }
     return mapCreativeProject(row);
+  }
+
+  async listCreativeBriefRevisions(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<CreativeBriefRevision[]> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.creativeBriefRevisions)
+      .where(eq(schema.creativeBriefRevisions.creativeProjectId, projectId))
+      .orderBy(desc(schema.creativeBriefRevisions.revision));
+    return rows.map(mapCreativeBriefRevision);
+  }
+
+  async createCreativeBriefRevision(
+    actorUserId: string,
+    projectId: string,
+    input: PersistCreativeBriefRevisionInput,
+  ): Promise<CreativeBriefRevision> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const [latest] = await this.db
+      .select({ revision: schema.creativeBriefRevisions.revision })
+      .from(schema.creativeBriefRevisions)
+      .where(eq(schema.creativeBriefRevisions.creativeProjectId, projectId))
+      .orderBy(desc(schema.creativeBriefRevisions.revision))
+      .limit(1);
+    const [row] = await this.db
+      .insert(schema.creativeBriefRevisions)
+      .values({
+        id: randomUUID(),
+        creativeProjectId: projectId,
+        revision: (latest?.revision ?? 0) + 1,
+        direction: input.direction ?? null,
+        rawIdea: input.rawIdea,
+        objective: input.objective ?? null,
+        platform: input.platform ?? 'douyin',
+        durationSeconds: input.durationSeconds ?? 16,
+        targetAudience: input.targetAudience ?? null,
+        tone: input.tone ?? [],
+        hotelSellingPoints: input.hotelSellingPoints ?? [],
+        hardConstraints: input.hardConstraints ?? [],
+        userPrompt: input.userPrompt ?? null,
+        createdBy: input.createdBy,
+        modelName: input.modelName ?? null,
+        promptVersion: input.promptVersion ?? null,
+        generationParameters: input.generationParameters ?? {},
+        inputSummary: input.inputSummary ?? null,
+      })
+      .returning();
+    if (!row) throw new Error('Creative brief revision insert did not return a row');
+    return mapCreativeBriefRevision(row);
+  }
+
+  async listScriptPackages(actorUserId: string, projectId: string): Promise<ScriptPackage[]> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.scriptPackages)
+      .where(eq(schema.scriptPackages.creativeProjectId, projectId))
+      .orderBy(desc(schema.scriptPackages.revision));
+    return Promise.all(rows.map((row) => this.loadScriptPackage(row)));
+  }
+
+  async getScriptPackage(actorUserId: string, scriptId: string): Promise<ScriptPackage> {
+    const [row] = await this.db
+      .select()
+      .from(schema.scriptPackages)
+      .where(eq(schema.scriptPackages.id, scriptId))
+      .limit(1);
+    if (!row) throw new DomainNotFoundError('Script package not found');
+    await this.requireCreativeProjectMember(actorUserId, row.creativeProjectId);
+    return this.loadScriptPackage(row);
+  }
+
+  async createScriptPackage(
+    actorUserId: string,
+    projectId: string,
+    input: PersistScriptPackageInput,
+  ): Promise<ScriptPackage> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const scriptId = randomUUID();
+    await this.db.transaction(async (tx) => {
+      const [latest] = await tx
+        .select({ revision: schema.scriptPackages.revision })
+        .from(schema.scriptPackages)
+        .where(eq(schema.scriptPackages.creativeProjectId, projectId))
+        .orderBy(desc(schema.scriptPackages.revision))
+        .limit(1);
+      await tx.insert(schema.scriptPackages).values({
+        id: scriptId,
+        creativeProjectId: projectId,
+        revision: (latest?.revision ?? 0) + 1,
+        title: input.title,
+        hook: input.hook,
+        storySummary: input.storySummary,
+        narrativePattern: input.narrativePattern,
+        voiceoverScript: input.voiceoverScript,
+        dialogue: input.dialogue,
+        captions: input.captions,
+        callToAction: input.callToAction,
+        filmingTips: input.filmingTips,
+        requiredAssets: input.requiredAssets,
+        totalDurationMs: input.totalDurationMs,
+        modelName: input.modelName ?? null,
+        promptVersion: input.promptVersion ?? null,
+        generationParameters: input.generationParameters ?? {},
+        inputSummary: input.inputSummary ?? null,
+      });
+      const sceneRows = await tx
+        .insert(schema.scriptScenes)
+        .values(
+          input.scenes.map((scene) => ({
+            id: randomUUID(),
+            scriptPackageId: scriptId,
+            sequence: scene.sequence,
+            title: scene.title,
+            purpose: scene.purpose,
+            visual: scene.visual,
+            action: scene.action,
+            narration: scene.narration,
+            dialogue: scene.dialogue,
+            durationMs: scene.durationMs,
+            shotType: scene.shotType,
+            motionType: scene.motionType,
+            filmingInstruction: scene.filmingInstruction,
+          })),
+        )
+        .returning();
+      const sceneIds = new Map(sceneRows.map((scene) => [scene.sequence, scene.id]));
+      await tx.insert(schema.shotRequirements).values(
+        input.shotList.map((shot) => ({
+          id: randomUUID(),
+          scriptPackageId: scriptId,
+          scriptSceneId:
+            shot.sceneSequence === null ? null : (sceneIds.get(shot.sceneSequence) ?? null),
+          sequence: shot.sequence,
+          description: shot.description,
+          requiredTags: shot.requiredTags,
+          preferredShotType: shot.preferredShotType,
+          preferredMotionType: shot.preferredMotionType,
+          preferredDurationMs: shot.preferredDurationMs,
+          required: shot.required,
+          filmingInstruction: shot.filmingInstruction,
+        })),
+      );
+    });
+    return this.getScriptPackage(actorUserId, scriptId);
+  }
+
+  async createAiGenerationRun(
+    actorUserId: string,
+    projectId: string,
+    input: CreateAiGenerationRunInput,
+  ): Promise<string> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const id = randomUUID();
+    await this.db.insert(schema.aiGenerationRuns).values({
+      id,
+      creativeProjectId: projectId,
+      operation: input.operation,
+      modelName: input.modelName,
+      promptVersion: input.promptVersion,
+      generationParameters: input.generationParameters,
+      inputSummary: input.inputSummary,
+      createdByUserId: actorUserId,
+    });
+    return id;
+  }
+
+  async finishAiGenerationRun(
+    runId: string,
+    outcome: { failureReason?: string; outputSummary?: string },
+  ): Promise<void> {
+    await this.db
+      .update(schema.aiGenerationRuns)
+      .set({
+        status: outcome.failureReason ? 'failed' : 'succeeded',
+        failureReason: outcome.failureReason ?? null,
+        outputSummary: outcome.outputSummary ?? null,
+        finishedAt: new Date(),
+      })
+      .where(eq(schema.aiGenerationRuns.id, runId));
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {
@@ -1598,6 +1829,34 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       throw new DomainNotFoundError('Creative project not found');
     }
     return row.project;
+  }
+
+  private async loadScriptPackage(
+    row: typeof schema.scriptPackages.$inferSelect,
+  ): Promise<ScriptPackage> {
+    const [scenes, shotList] = await Promise.all([
+      this.db
+        .select()
+        .from(schema.scriptScenes)
+        .where(eq(schema.scriptScenes.scriptPackageId, row.id))
+        .orderBy(asc(schema.scriptScenes.sequence)),
+      this.db
+        .select()
+        .from(schema.shotRequirements)
+        .where(eq(schema.shotRequirements.scriptPackageId, row.id))
+        .orderBy(asc(schema.shotRequirements.sequence)),
+    ]);
+    return scriptPackageSchema.parse({
+      ...row,
+      voiceoverScript: row.voiceoverScript ?? null,
+      callToAction: row.callToAction ?? null,
+      modelName: row.modelName ?? null,
+      promptVersion: row.promptVersion ?? null,
+      inputSummary: row.inputSummary ?? null,
+      createdAt: toIso(row.createdAt),
+      scenes: scenes.map(mapScriptScene),
+      shotList: shotList.map(mapShotRequirement),
+    });
   }
 
   private async requireVideoProjectMember(

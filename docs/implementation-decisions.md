@@ -427,3 +427,15 @@
   validation.
 - Impact: fixed templates remain backward compatible; every model operation is schema validated,
   auditable and retryable, and a dynamic project cannot bypass Compiler or timeline invariants.
+
+## ID-042: Creative and script generation are immutable audited revisions
+
+- Date: 2026-08-05
+- Status: accepted
+- Decision: retain user briefs, three AI creative directions and every script change as new rows;
+  selected IDs on `CreativeProject` are the only mutable pointers.
+- Reason: creative evaluation needs comparison and manual recovery, while a natural-language
+  revision must never overwrite an accepted storyboard or filming list.
+- Impact: generation calls reuse the saved encrypted provider configuration and write model/prompt
+  audit data, strict output validation precedes persistence, and duration tolerance is enforced
+  before downstream matching or Blueprint creation.

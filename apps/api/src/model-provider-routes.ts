@@ -16,7 +16,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 
 import { projectTemplates } from './project-generation.js';
 
-type ProviderFetch = typeof fetch;
+export type ProviderFetch = typeof fetch;
 
 interface ModelProviderRouteOptions {
   configSecret: string;
@@ -143,7 +143,7 @@ function providerEndpoint(settings: StoredModelProviderSettings): string {
   return settings.apiMode === 'responses' ? `${base}/responses` : `${base}/chat/completions`;
 }
 
-function providerErrorMessage(value: unknown, apiKey: string): string {
+export function providerErrorMessage(value: unknown, apiKey: string): string {
   const raw =
     typeof value === 'string'
       ? value
@@ -156,7 +156,7 @@ function providerErrorMessage(value: unknown, apiKey: string): string {
     .slice(0, 400);
 }
 
-function responseOutputText(
+export function responseOutputText(
   payload: unknown,
   apiMode: StoredModelProviderSettings['apiMode'],
 ): string {
@@ -201,7 +201,7 @@ function responseModel(payload: unknown, fallback: string): string {
   return typeof model === 'string' && model ? model : fallback;
 }
 
-async function callProvider(
+export async function callProvider(
   settings: StoredModelProviderSettings,
   apiKey: string,
   body: Record<string, unknown>,

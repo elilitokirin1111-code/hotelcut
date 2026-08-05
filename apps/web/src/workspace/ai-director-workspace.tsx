@@ -3,8 +3,10 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import type {
   AiDirectorFeatureFlags,
+  CreativeBriefRevision,
   CreativeProject,
   CreativeProjectMode,
+  ScriptPackage,
 } from '@hotelcut/schemas';
 
 import type { WorkspaceApi } from './workspace-api';
@@ -61,6 +63,11 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
   const [title, setTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [idea, setIdea] = useState('');
+  const [briefs, setBriefs] = useState<CreativeBriefRevision[]>([]);
+  const [scripts, setScripts] = useState<ScriptPackage[]>([]);
+  const [directing, setDirecting] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,10 +97,35 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
           : current,
       );
       setTitle('');
+      setSelectedProjectId(project.id);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
       setCreating(false);
+    }
+  };
+
+  const generateCreativePlan = async () => {
+    if (!selectedProjectId || !idea.trim()) return;
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      const brief = await api.createCreativeBriefRevision(selectedProjectId, {
+        durationSeconds: 16,
+        platform: 'douyin',
+        rawIdea: idea.trim(),
+      });
+      const directions = await api.expandIdea(selectedProjectId);
+      const generatedScript = await api.generateScript(
+        selectedProjectId,
+        directions[0]?.id ?? brief.id,
+      );
+      setBriefs([brief, ...directions]);
+      setScripts((current) => [generatedScript, ...current]);
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
     }
   };
 
@@ -192,6 +224,7 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
               <article
                 className="rounded-2xl border border-slate-200 bg-white p-5"
                 key={project.id}
+                onClick={() => setSelectedProjectId(project.id)}
               >
                 <div className="flex items-center justify-between gap-3">
                   <strong className="text-sm">{project.title}</strong>
@@ -205,6 +238,62 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
           </div>
         )}
       </section>
+
+      {selectedProjectId ? (
+        <section className="surface-card p-7" aria-label="创意助手">
+          <h3 className="text-lg font-black">创意助手与脚本</h3>
+          <p className="mt-2 text-sm text-slate-500">
+            输入创意后，百炼将返回三套方向、可编辑分镜与拍摄清单；每次结果均保存为独立版本。
+          </p>
+          <textarea
+            aria-label="创意输入"
+            className="mt-4 min-h-28 w-full rounded-xl border border-slate-200 p-4 text-sm outline-none focus:border-[#d09a59]"
+            onChange={(event) => setIdea(event.target.value)}
+            placeholder="例如：制作一条 16 秒的酒店前台反差视频…"
+            value={idea}
+          />
+          <button
+            className="mt-3 rounded-xl bg-[#9a6b3c] px-5 py-3 text-sm font-black text-white disabled:opacity-60"
+            disabled={directing || !idea.trim()}
+            onClick={() => void generateCreativePlan()}
+            type="button"
+          >
+            {directing ? '正在生成三套方向和脚本…' : '生成三套创意与完整脚本'}
+          </button>
+          {briefs.length > 0 ? (
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              {briefs
+                .filter((brief) => brief.createdBy === 'ai')
+                .map((brief) => (
+                  <article className="rounded-xl border border-slate-200 p-4" key={brief.id}>
+                    <p className="text-xs font-black text-[#9a6b3c]">{brief.direction}</p>
+                    <strong className="mt-2 block text-sm">{brief.objective}</strong>
+                    <p className="mt-2 text-xs text-slate-500">{brief.tone.join(' · ')}</p>
+                  </article>
+                ))}
+            </div>
+          ) : null}
+          {scripts.map((script) => (
+            <article className="mt-5 rounded-xl border border-slate-200 p-5" key={script.id}>
+              <div className="flex items-center justify-between gap-3">
+                <strong>{script.title}</strong>
+                <button
+                  className="text-xs font-black text-[#9a6b3c]"
+                  onClick={() => void api.selectScript(selectedProjectId, script.id)}
+                  type="button"
+                >
+                  选为后续蓝图脚本
+                </button>
+              </div>
+              <p className="mt-2 text-sm">钩子：{script.hook}</p>
+              <p className="mt-2 text-xs text-slate-500">
+                {script.scenes.length} 个分镜 · {script.shotList.length} 条拍摄要求 ·{' '}
+                {Math.round(script.totalDurationMs / 1_000)} 秒
+              </p>
+            </article>
+          ))}
+        </section>
+      ) : null}
     </section>
   );
 }

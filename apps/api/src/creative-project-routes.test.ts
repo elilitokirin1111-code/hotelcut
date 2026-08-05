@@ -1,16 +1,38 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { HotelCutRepository } from '@hotelcut/domain';
+import type { HotelCutRepository, PersistCreativeBriefRevisionInput } from '@hotelcut/domain';
 import type { CreativeProject } from '@hotelcut/schemas';
 
 import { buildApp } from './app.js';
+import { encryptModelApiKey } from './model-provider-routes.js';
 
 const actorUserId = '20000000-0000-4000-8000-000000000001';
 const hotelId = '30000000-0000-4000-8000-000000000001';
 const projectId = '91000000-0000-4000-8000-000000000001';
 const now = '2026-08-05T08:00:00.000Z';
 const apps: FastifyInstance[] = [];
+const baseBrief = {
+  id: '92000000-0000-4000-8000-000000000001',
+  creativeProjectId: projectId,
+  revision: 1,
+  direction: null,
+  rawIdea: '制作一条 16 秒酒店前台反差视频',
+  objective: null,
+  platform: 'douyin' as const,
+  durationSeconds: 16,
+  targetAudience: null,
+  tone: ['轻喜剧'],
+  hotelSellingPoints: ['英语接待'],
+  hardConstraints: [],
+  userPrompt: null,
+  createdBy: 'user' as const,
+  modelName: null,
+  promptVersion: null,
+  generationParameters: {},
+  inputSummary: null,
+  createdAt: now,
+};
 
 afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
@@ -144,5 +166,111 @@ describe('AI Director creative project routes', () => {
     expect(response.statusCode).toBe(404);
     expect(response.json()).toMatchObject({ code: 'NOT_FOUND' });
     expect(createCreativeProject).not.toHaveBeenCalled();
+  });
+
+  it('calls the configured Bailian-compatible provider and persists only Zod-validated directions', async () => {
+    const generatedDirections = ['稳妥转化版', '强钩子爆点版', '高级品牌版'].map((direction) => ({
+      direction,
+      title: `${direction}前台反差`,
+      objective: '展示前台服务能力',
+      hook: '她只是普通前台吗？',
+      storyStructure: ['误解', '反转', 'CTA'],
+      tone: ['轻喜剧', '快速'],
+      hotelSellingPoints: ['英语接待', '投诉处理'],
+      hardConstraints: ['CTA 为查看酒店团购'],
+      callToAction: '查看酒店团购',
+    }));
+    const createCreativeBriefRevision = vi.fn(
+      (_actor: string, _project: string, input: PersistCreativeBriefRevisionInput) =>
+        Promise.resolve({
+          ...baseBrief,
+          ...input,
+          id: `92000000-0000-4000-8000-00000000000${input.direction?.length ?? 2}`,
+          revision: 2,
+          direction: input.direction ?? null,
+          modelName: input.modelName ?? null,
+          promptVersion: input.promptVersion ?? null,
+          inputSummary: input.inputSummary ?? null,
+          generationParameters: input.generationParameters ?? {},
+        }),
+    );
+    const createAiGenerationRun = vi.fn(() =>
+      Promise.resolve('93000000-0000-4000-8000-000000000001'),
+    );
+    const finishAiGenerationRun = vi.fn(() => Promise.resolve());
+    const repository = {
+      createAiGenerationRun,
+      createCreativeBriefRevision,
+      finishAiGenerationRun,
+      getCreativeProject: vi.fn(() =>
+        Promise.resolve({
+          id: projectId,
+          hotelId,
+          title: '前台反差视频',
+          mode: 'idea' as const,
+          status: 'draft' as const,
+          selectedBriefRevisionId: baseBrief.id,
+          selectedScriptRevisionId: null,
+          selectedBlueprintId: null,
+          selectedVideoProjectId: null,
+          createdByUserId: actorUserId,
+          metadata: {},
+          deletedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ),
+      getModelProviderSettings: vi.fn(() =>
+        Promise.resolve({
+          id: '94000000-0000-4000-8000-000000000001',
+          hotelId,
+          provider: 'aliyun-bailian' as const,
+          baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+          apiMode: 'chat_completions' as const,
+          model: 'qwen3.7-plus',
+          reasoningEffort: 'none' as const,
+          encryptedApiKey: encryptModelApiKey('bailian-test-key', 'test-secret'),
+          apiKeyHint: 'bai••••-key',
+          enabled: true,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ),
+      listCreativeBriefRevisions: vi.fn(() => Promise.resolve([baseBrief])),
+    } as unknown as HotelCutRepository;
+    const fetchProvider = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            choices: [
+              { message: { content: JSON.stringify({ directions: generatedDirections }) } },
+            ],
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const app = await buildApp({
+      aiDirectorFeatureFlags: enabledFlags,
+      modelApiConfigSecret: 'test-secret',
+      modelProviderFetch: fetchProvider,
+      repository,
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { 'x-user-id': actorUserId },
+      method: 'POST',
+      url: `/v1/creative-projects/${projectId}/expand-idea`,
+    });
+
+    expect(response.statusCode, response.body).toBe(200);
+    expect(response.json()).toHaveLength(3);
+    expect(createAiGenerationRun).toHaveBeenCalledWith(
+      actorUserId,
+      projectId,
+      expect.objectContaining({ modelName: 'qwen3.7-plus', operation: 'expand_idea' }),
+    );
+    expect(finishAiGenerationRun).toHaveBeenCalledTimes(1);
   });
 });

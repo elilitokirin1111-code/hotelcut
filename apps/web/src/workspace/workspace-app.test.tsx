@@ -278,6 +278,22 @@ function createApi(initialSession: AuthSession | null): {
   const updateCreativeProject = vi
     .fn<WorkspaceApi['updateCreativeProject']>()
     .mockRejectedValue(new Error('Creative project updates are not configured in this test'));
+  const createCreativeBriefRevision = vi
+    .fn<WorkspaceApi['createCreativeBriefRevision']>()
+    .mockRejectedValue(new Error('Creative brief creation is not configured in this test'));
+  const listCreativeBriefRevisions = vi
+    .fn<WorkspaceApi['listCreativeBriefRevisions']>()
+    .mockResolvedValue([]);
+  const expandIdea = vi
+    .fn<WorkspaceApi['expandIdea']>()
+    .mockRejectedValue(new Error('Creative expansion is not configured in this test'));
+  const generateScript = vi
+    .fn<WorkspaceApi['generateScript']>()
+    .mockRejectedValue(new Error('Script generation is not configured in this test'));
+  const listScriptPackages = vi.fn<WorkspaceApi['listScriptPackages']>().mockResolvedValue([]);
+  const selectScript = vi
+    .fn<WorkspaceApi['selectScript']>()
+    .mockRejectedValue(new Error('Script selection is not configured in this test'));
   const loadHotelConfiguration = vi
     .fn<WorkspaceApi['loadHotelConfiguration']>()
     .mockImplementation((hotelId) => {
@@ -476,11 +492,13 @@ function createApi(initialSession: AuthSession | null): {
   return {
     api: {
       cancelRenderJob,
+      createCreativeBriefRevision,
       createCreativeProject,
       createRenderJob,
       createManualSegment,
       createVideoBrief,
       generateAiEditPlan,
+      generateScript,
       generateVideoProject,
       getAssetDerivativeDownload,
       getAssetDetail,
@@ -492,9 +510,11 @@ function createApi(initialSession: AuthSession | null): {
       getModelProviderSettings,
       getVideoProject,
       listAssets,
+      listCreativeBriefRevisions,
       listCreativeProjects,
       listProjectTemplates,
       listRenderJobs,
+      listScriptPackages,
       listVideoProjects,
       loadHotelConfiguration,
       loadWorkspace,
@@ -505,8 +525,10 @@ function createApi(initialSession: AuthSession | null): {
       saveBrandKit,
       saveModelProviderSettings,
       saveProjectRevision,
+      selectScript,
       testModelProvider,
       updateCreativeProject,
+      expandIdea,
       updateHotel,
       uploadVideo,
     },

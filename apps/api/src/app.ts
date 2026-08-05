@@ -375,6 +375,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       dynamicBlueprintEnabled: false,
       aiReviewEnabled: false,
     },
+    configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
+    ...(options.modelProviderFetch ? { fetchProvider: options.modelProviderFetch } : {}),
     ...(options.repository ? { repository: options.repository } : {}),
   });
   await app.register(projectRoutes, {

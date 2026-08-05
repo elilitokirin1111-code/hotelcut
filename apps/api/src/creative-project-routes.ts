@@ -2,21 +2,86 @@ import type { FastifyPluginCallback } from 'fastify';
 import { type ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 
-import { DomainNotFoundError, type HotelCutRepository } from '@hotelcut/domain';
+import {
+  DomainNotFoundError,
+  type HotelCutRepository,
+  type StoredModelProviderSettings,
+} from '@hotelcut/domain';
 import {
   aiDirectorFeatureFlagsSchema,
+  createCreativeBriefRevisionSchema,
   createCreativeProjectSchema,
+  creativeBriefRevisionSchema,
   creativeProjectIdParamsSchema,
   creativeProjectSchema,
   errorResponseSchema,
+  expandIdeaOutputSchema,
   hotelIdParamsSchema,
+  reviseScriptSchema,
+  scriptGenerationSchema,
+  scriptPackageSchema,
+  selectRevisionSchema,
   updateCreativeProjectSchema,
   type AiDirectorFeatureFlags,
+  type ScriptPackage,
 } from '@hotelcut/schemas';
 
+import {
+  callProvider,
+  decryptModelApiKey,
+  providerErrorMessage,
+  responseOutputText,
+  type ProviderFetch,
+} from './model-provider-routes.js';
+
 interface CreativeProjectRouteOptions {
+  configSecret: string;
   featureFlags: AiDirectorFeatureFlags;
+  fetchProvider?: ProviderFetch | undefined;
   repository?: HotelCutRepository;
+}
+
+const promptVersion = 'ai-director-v1';
+const generationParameters = { temperature: 0.2, topP: 0.9 };
+const scriptParamsSchema = z.object({ projectId: z.uuid(), scriptId: z.uuid() });
+
+function modelBody(
+  settings: StoredModelProviderSettings,
+  name: string,
+  outputSchema: z.ZodType,
+  input: Record<string, unknown>,
+): Record<string, unknown> {
+  const jsonSchema = z.toJSONSchema(outputSchema, { target: 'draft-7' });
+  const instructions =
+    '你是酒店短视频 AI 导演。只使用输入中确认的事实；不得编造价格、地址、权益、人物或品牌。严格返回给定 JSON Schema 的 JSON，不输出 Markdown。';
+  if (settings.apiMode === 'responses') {
+    return {
+      model: settings.model,
+      instructions,
+      input: JSON.stringify(input),
+      max_output_tokens: 8_000,
+      reasoning: { effort: settings.reasoningEffort },
+      store: false,
+      text: { format: { type: 'json_schema', name, strict: true, schema: jsonSchema } },
+    };
+  }
+  return {
+    model: settings.model,
+    messages: [
+      {
+        role: 'system',
+        content: `${instructions}\nJSON Schema: ${JSON.stringify(jsonSchema)}`,
+      },
+      { role: 'user', content: JSON.stringify(input) },
+    ],
+    temperature: generationParameters.temperature,
+    top_p: generationParameters.topP,
+    enable_thinking: settings.provider === 'aliyun-bailian' ? false : undefined,
+    response_format:
+      settings.provider === 'aliyun-bailian'
+        ? { type: 'json_object' }
+        : { type: 'json_schema', json_schema: { name, strict: true, schema: jsonSchema } },
+  };
 }
 
 export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOptions> = (
@@ -33,6 +98,49 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
   const requireAiDirector = (): void => {
     if (!options.featureFlags.aiDirectorEnabled) {
       throw new DomainNotFoundError('AI Director is disabled');
+    }
+  };
+  const generate = async (
+    actorUserId: string,
+    projectId: string,
+    operation: string,
+    outputSchema: z.ZodType,
+    input: Record<string, unknown>,
+  ): Promise<unknown> => {
+    const store = repository();
+    const project = await store.getCreativeProject(actorUserId, projectId);
+    const settings = await store.getModelProviderSettings(actorUserId, project.hotelId);
+    if (!settings?.enabled || !settings.encryptedApiKey) {
+      throw new Error('MODEL_PROVIDER_NOT_CONFIGURED');
+    }
+    const inputSummary = JSON.stringify(input).slice(0, 4_000);
+    const runId = await store.createAiGenerationRun(actorUserId, projectId, {
+      operation,
+      modelName: settings.model,
+      promptVersion,
+      generationParameters,
+      inputSummary,
+    });
+    const apiKey = decryptModelApiKey(settings.encryptedApiKey, options.configSecret);
+    try {
+      const result = await callProvider(
+        settings,
+        apiKey,
+        modelBody(settings, operation, outputSchema, input),
+        options.fetchProvider ?? fetch,
+      );
+      const parsed = outputSchema.parse(
+        JSON.parse(responseOutputText(result.payload, settings.apiMode)),
+      );
+      await store.finishAiGenerationRun(runId, {
+        outputSummary: JSON.stringify(parsed).slice(0, 4_000),
+      });
+      return parsed;
+    } catch (error) {
+      await store.finishAiGenerationRun(runId, {
+        failureReason: providerErrorMessage(error, apiKey),
+      });
+      throw error;
     }
   };
 
@@ -136,6 +244,324 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         request.params.projectId,
         request.body,
       );
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/brief-revisions',
+    {
+      schema: {
+        body: createCreativeBriefRevisionSchema,
+        params: creativeProjectIdParamsSchema,
+        response: {
+          201: creativeBriefRevisionSchema,
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Save a user-authored creative brief revision',
+        tags: ['ai-director'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      const brief = await repository().createCreativeBriefRevision(
+        request.actorUserId,
+        request.params.projectId,
+        { ...request.body, createdBy: 'user' },
+      );
+      return reply.code(201).send(brief);
+    },
+  );
+
+  app.get(
+    '/v1/creative-projects/:projectId/brief-revisions',
+    {
+      schema: {
+        params: creativeProjectIdParamsSchema,
+        response: { 200: z.array(creativeBriefRevisionSchema), 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'List immutable creative brief revisions',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      return repository().listCreativeBriefRevisions(request.actorUserId, request.params.projectId);
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/expand-idea',
+    {
+      schema: {
+        params: creativeProjectIdParamsSchema,
+        response: {
+          200: z.array(creativeBriefRevisionSchema),
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+          502: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Generate three structured creative directions from the latest brief',
+        tags: ['ai-director'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      const store = repository();
+      const [brief] = await store.listCreativeBriefRevisions(
+        request.actorUserId,
+        request.params.projectId,
+      );
+      if (!brief) {
+        return reply.code(409).send({
+          code: 'CREATIVE_BRIEF_REQUIRED',
+          message: '请先保存创意输入。',
+          requestId: request.id,
+        });
+      }
+      try {
+        const result = expandIdeaOutputSchema.parse(
+          await generate(
+            request.actorUserId,
+            request.params.projectId,
+            'expand_idea',
+            expandIdeaOutputSchema,
+            {
+              brief,
+            },
+          ),
+        );
+        const project = await store.getCreativeProject(
+          request.actorUserId,
+          request.params.projectId,
+        );
+        const settings = await store.getModelProviderSettings(request.actorUserId, project.hotelId);
+        const rows = await Promise.all(
+          result.directions.map((direction) =>
+            store.createCreativeBriefRevision(request.actorUserId, request.params.projectId, {
+              createdBy: 'ai',
+              direction: direction.direction,
+              rawIdea: brief.rawIdea,
+              objective: direction.objective,
+              platform: brief.platform,
+              durationSeconds: brief.durationSeconds,
+              targetAudience: brief.targetAudience,
+              tone: direction.tone,
+              hotelSellingPoints: direction.hotelSellingPoints,
+              hardConstraints: direction.hardConstraints,
+              userPrompt: JSON.stringify({
+                callToAction: direction.callToAction,
+                hook: direction.hook,
+                storyStructure: direction.storyStructure,
+                title: direction.title,
+              }),
+              modelName: settings?.model ?? null,
+              promptVersion,
+              generationParameters,
+              inputSummary: `Expanded brief ${brief.id}`,
+            }),
+          ),
+        );
+        return rows;
+      } catch (error) {
+        const configured =
+          error instanceof Error && error.message === 'MODEL_PROVIDER_NOT_CONFIGURED';
+        return reply.code(configured ? 409 : 502).send({
+          code: configured ? 'MODEL_PROVIDER_NOT_CONFIGURED' : 'MODEL_PROVIDER_REQUEST_FAILED',
+          message: configured ? '请先配置并启用百炼模型服务。' : '创意方向生成失败。',
+          requestId: request.id,
+        });
+      }
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/select-brief',
+    {
+      schema: {
+        body: selectRevisionSchema,
+        params: creativeProjectIdParamsSchema,
+        response: { 200: creativeProjectSchema, 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Select one immutable brief revision for downstream generation',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      return repository().updateCreativeProject(request.actorUserId, request.params.projectId, {
+        selectedBriefRevisionId: request.body.id,
+        status: 'planning',
+      });
+    },
+  );
+
+  app.get(
+    '/v1/creative-projects/:projectId/scripts',
+    {
+      schema: {
+        params: creativeProjectIdParamsSchema,
+        response: { 200: z.array(scriptPackageSchema), 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'List generated script, storyboard and shot-list revisions',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      return repository().listScriptPackages(request.actorUserId, request.params.projectId);
+    },
+  );
+
+  const generateScript = async (
+    actorUserId: string,
+    projectId: string,
+    briefId: string | undefined,
+    instruction: string | undefined,
+  ): Promise<ScriptPackage> => {
+    const store = repository();
+    const project = await store.getCreativeProject(actorUserId, projectId);
+    const briefs = await store.listCreativeBriefRevisions(actorUserId, projectId);
+    const brief =
+      briefs.find((candidate) => candidate.id === (briefId ?? project.selectedBriefRevisionId)) ??
+      briefs[0];
+    if (!brief) throw new Error('CREATIVE_BRIEF_REQUIRED');
+    const result = scriptGenerationSchema.parse(
+      await generate(
+        actorUserId,
+        projectId,
+        instruction ? 'revise_script' : 'generate_script',
+        scriptGenerationSchema,
+        {
+          brief,
+          instruction: instruction ?? null,
+          targetDurationMs: brief.durationSeconds * 1_000,
+        },
+      ),
+    );
+    const target = brief.durationSeconds * 1_000;
+    if (Math.abs(result.totalDurationMs - target) > target * 0.1) {
+      throw new Error('SCRIPT_DURATION_OUT_OF_RANGE');
+    }
+    const settings = await store.getModelProviderSettings(actorUserId, project.hotelId);
+    return store.createScriptPackage(actorUserId, projectId, {
+      ...result,
+      modelName: settings?.model ?? null,
+      promptVersion,
+      generationParameters,
+      inputSummary: `Brief ${brief.id}${instruction ? `; revise: ${instruction}` : ''}`,
+    });
+  };
+
+  app.post(
+    '/v1/creative-projects/:projectId/generate-script',
+    {
+      schema: {
+        body: z.object({ briefRevisionId: z.uuid().optional() }).strict(),
+        params: creativeProjectIdParamsSchema,
+        response: {
+          201: scriptPackageSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+          502: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Generate a schema-validated script, storyboard and shot list',
+        tags: ['ai-director'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      try {
+        const script = await generateScript(
+          request.actorUserId,
+          request.params.projectId,
+          request.body.briefRevisionId,
+          undefined,
+        );
+        return reply.code(201).send(script);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : '';
+        return reply
+          .code(
+            reason === 'CREATIVE_BRIEF_REQUIRED' || reason === 'MODEL_PROVIDER_NOT_CONFIGURED'
+              ? 409
+              : 502,
+          )
+          .send({
+            code: reason || 'MODEL_PROVIDER_REQUEST_FAILED',
+            message: '脚本生成失败，请检查创意输入和模型配置。',
+            requestId: request.id,
+          });
+      }
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/scripts/:scriptId/revise',
+    {
+      schema: {
+        body: reviseScriptSchema,
+        params: scriptParamsSchema,
+        response: {
+          201: scriptPackageSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+          502: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Apply a natural-language edit instruction as a new script revision',
+        tags: ['ai-director'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      try {
+        const source = await repository().getScriptPackage(
+          request.actorUserId,
+          request.params.scriptId,
+        );
+        if (source.creativeProjectId !== request.params.projectId) throw new DomainNotFoundError();
+        const script = await generateScript(
+          request.actorUserId,
+          request.params.projectId,
+          undefined,
+          `${request.body.instruction}\n原脚本：${JSON.stringify(source)}`,
+        );
+        return reply.code(201).send(script);
+      } catch (error) {
+        if (error instanceof DomainNotFoundError) throw error;
+        return reply.code(502).send({
+          code: 'MODEL_PROVIDER_REQUEST_FAILED',
+          message: '脚本修改生成失败。',
+          requestId: request.id,
+        });
+      }
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/select-script',
+    {
+      schema: {
+        body: selectRevisionSchema,
+        params: creativeProjectIdParamsSchema,
+        response: { 200: creativeProjectSchema, 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Select the script revision used by downstream Blueprint generation',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      const script = await repository().getScriptPackage(request.actorUserId, request.body.id);
+      if (script.creativeProjectId !== request.params.projectId) throw new DomainNotFoundError();
+      return repository().updateCreativeProject(request.actorUserId, request.params.projectId, {
+        selectedScriptRevisionId: script.id,
+        status: 'script_ready',
+      });
     },
   );
 };

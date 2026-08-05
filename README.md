@@ -65,6 +65,8 @@ Phase 0 is implemented as an additive, feature-flagged foundation. The repositor
 - four AI creation entry modes gated independently from reference analysis, dynamic blueprint and
   AI review rollout
 - an additive AI Director data model that preserves the existing Compiler and fixed templates
+- versioned AI creative directions, scripts, storyboards and filming shot lists backed by the
+  configured model provider and strict Zod/JSON-Schema validation
 
 ## Prerequisites
 
