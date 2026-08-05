@@ -35,5 +35,18 @@ failure reason in `ai_generation_runs`. Domain result tables remain immutable by
 - Migration `0005_swift_ben_grimm.sql` establishes additive AI Director tables and adds an asset
   purpose without changing existing production-asset behavior.
 
+## Phase 2 reference profiles
+
+Migration `0006_youthful_tarot.sql` makes `reference_video_profiles` revisioned per
+CreativeProject/asset pair. The existing analysis worker adds a `referenceFeatures` metadata object
+to every successfully analyzed video: scene count, average shot duration, opening-cut count,
+per-shot pace curve, VAD ranges and speech coverage. This is deterministic pipeline output, not a
+model guess.
+
+The API combines those signals with the existing transcript, vision and segment analysis, calls the
+hotel-configured model, validates the result with the reference-profile Zod schema, then persists the
+immutable profile. `REFERENCE_ANALYSIS_ENABLED` is checked server-side on both profile endpoints;
+the Web workspace hides the controls when it is unavailable.
+
 All flags are server-owned. A disabled capability returns a not-found response so partially rolled
 out functionality cannot be discovered or invoked by an unauthorized browser client.

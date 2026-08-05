@@ -38,6 +38,10 @@ function createApi(aiDirectorEnabled = true) {
       referenceAnalysisEnabled: false,
     }),
     listCreativeProjects: vi.fn<WorkspaceApi['listCreativeProjects']>().mockResolvedValue([]),
+    listAssets: vi.fn<WorkspaceApi['listAssets']>().mockResolvedValue([]),
+    listReferenceVideoProfiles: vi
+      .fn<WorkspaceApi['listReferenceVideoProfiles']>()
+      .mockResolvedValue([]),
   } as unknown as WorkspaceApi;
   return { api, createCreativeProject };
 }

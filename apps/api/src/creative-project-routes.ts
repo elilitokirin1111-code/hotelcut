@@ -48,6 +48,13 @@ const promptVersion = 'ai-director-v1';
 const generationParameters = { temperature: 0.2, topP: 0.9 };
 const scriptParamsSchema = z.object({ projectId: z.uuid(), scriptId: z.uuid() });
 
+function metadataDuration(metadata: Record<string, unknown>): number {
+  const probe = metadata['probe'];
+  if (!probe || typeof probe !== 'object') return 0;
+  const durationMs = (probe as Record<string, unknown>)['durationMs'];
+  return typeof durationMs === 'number' && Number.isFinite(durationMs) ? durationMs : 0;
+}
+
 function modelBody(
   settings: StoredModelProviderSettings,
   name: string,
@@ -101,6 +108,12 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
   const requireAiDirector = (): void => {
     if (!options.featureFlags.aiDirectorEnabled) {
       throw new DomainNotFoundError('AI Director is disabled');
+    }
+  };
+  const requireReferenceAnalysis = (): void => {
+    requireAiDirector();
+    if (!options.featureFlags.referenceAnalysisEnabled) {
+      throw new DomainNotFoundError('Reference-video analysis is disabled');
     }
   };
   const generate = async (
@@ -563,10 +576,10 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
       },
     },
     async (request, reply) => {
-      requireAiDirector();
+      requireReferenceAnalysis();
       const store = repository();
       const asset = await store.getAssetDetail(request.actorUserId, request.body.assetId);
-      const durationMs = Number(asset.metadata['durationMs'] ?? 0);
+      const durationMs = metadataDuration(asset.metadata);
       const scenes = Array.isArray(asset.segments) ? asset.segments : [];
       if (asset.kind !== 'video' || asset.status !== 'ready' || durationMs <= 0) {
         return reply.code(409).send({
@@ -639,7 +652,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
       },
     },
     async (request) => {
-      requireAiDirector();
+      requireReferenceAnalysis();
       return repository().listReferenceVideoProfiles(request.actorUserId, request.params.projectId);
     },
   );

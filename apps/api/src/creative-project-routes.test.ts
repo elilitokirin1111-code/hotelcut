@@ -273,4 +273,127 @@ describe('AI Director creative project routes', () => {
     );
     expect(finishAiGenerationRun).toHaveBeenCalledTimes(1);
   });
+
+  it('creates a versioned profile from a ready analyzed reference video', async () => {
+    const assetId = '95000000-0000-4000-8000-000000000001';
+    const generatedProfile = {
+      narrativePattern: '前三秒快速钩子，中段用服务细节完成反转，结尾行动号召。',
+      hookDurationMs: 3_000,
+      paceCurve: [
+        { label: 'hook', startMs: 0, endMs: 3_000 },
+        { label: 'proof', startMs: 3_000, endMs: 12_000 },
+      ],
+      shotTypeDistribution: { wide: 2, close: 3 },
+      transitionProfile: { dominant: 'hard_cut' },
+      captionProfile: { placement: 'lower_third' },
+      audioProfile: { speechCoverageBasisPoints: 4_000 },
+      emotionalCurve: [{ label: 'surprise', startMs: 0, endMs: 12_000 }],
+      reusableStyleRules: ['开场三秒内给出冲突', '服务细节使用近景'],
+      analysisSummary: '适合迁移快节奏服务反转结构，不迁移具体话术。',
+    };
+    const createReferenceVideoProfile = vi.fn((_actor: string, _project: string, input: object) =>
+      Promise.resolve({
+        ...generatedProfile,
+        ...input,
+        id: '96000000-0000-4000-8000-000000000001',
+        creativeProjectId: projectId,
+        assetId,
+        revision: 1,
+        durationMs: 12_000,
+        averageShotDurationMs: 6_000,
+        shotCount: 2,
+        modelName: 'qwen3.7-plus',
+        promptVersion: 'ai-director-v1',
+        generationParameters: { temperature: 0.2, topP: 0.9 },
+        inputSummary: `Reference asset ${assetId}; 2 detected scenes`,
+        createdAt: now,
+      }),
+    );
+    const repository = {
+      createAiGenerationRun: vi.fn(() => Promise.resolve('93000000-0000-4000-8000-000000000001')),
+      createReferenceVideoProfile,
+      finishAiGenerationRun: vi.fn(() => Promise.resolve()),
+      getAssetDetail: vi.fn(() =>
+        Promise.resolve({
+          id: assetId,
+          kind: 'video',
+          status: 'ready',
+          originalFilename: 'reference.mp4',
+          metadata: {
+            probe: { durationMs: 12_000 },
+            transcript: { text: '欢迎入住' },
+            referenceFeatures: { sceneCount: 2 },
+          },
+          segments: [
+            { id: 'segment-1', startMs: 0, endMs: 6_000 },
+            { id: 'segment-2', startMs: 6_000, endMs: 12_000 },
+          ],
+        }),
+      ),
+      getCreativeProject: vi.fn(() =>
+        Promise.resolve({
+          id: projectId,
+          hotelId,
+          title: '前台反差视频',
+          mode: 'reference',
+          status: 'draft',
+          selectedBriefRevisionId: null,
+          selectedScriptRevisionId: null,
+          selectedBlueprintId: null,
+          selectedVideoProjectId: null,
+          createdByUserId: actorUserId,
+          metadata: {},
+          deletedAt: null,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ),
+      getModelProviderSettings: vi.fn(() =>
+        Promise.resolve({
+          id: '94000000-0000-4000-8000-000000000001',
+          hotelId,
+          provider: 'aliyun-bailian' as const,
+          baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+          apiMode: 'chat_completions' as const,
+          model: 'qwen3.7-plus',
+          reasoningEffort: 'none' as const,
+          encryptedApiKey: encryptModelApiKey('bailian-test-key', 'test-secret'),
+          apiKeyHint: 'bai••••-key',
+          enabled: true,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ),
+    } as unknown as HotelCutRepository;
+    const fetchProvider = vi.fn<typeof fetch>(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ choices: [{ message: { content: JSON.stringify(generatedProfile) } }] }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const app = await buildApp({
+      aiDirectorFeatureFlags: enabledFlags,
+      modelApiConfigSecret: 'test-secret',
+      modelProviderFetch: fetchProvider,
+      repository,
+    });
+    apps.push(app);
+
+    const response = await app.inject({
+      headers: { 'x-user-id': actorUserId },
+      method: 'POST',
+      payload: { assetId },
+      url: `/v1/creative-projects/${projectId}/reference-profiles`,
+    });
+
+    expect(response.statusCode, response.body).toBe(201);
+    expect(response.json()).toMatchObject({ assetId, revision: 1, shotCount: 2 });
+    expect(createReferenceVideoProfile).toHaveBeenCalledWith(
+      actorUserId,
+      projectId,
+      expect.objectContaining({ assetId, averageShotDurationMs: 6_000, shotCount: 2 }),
+    );
+  });
 });

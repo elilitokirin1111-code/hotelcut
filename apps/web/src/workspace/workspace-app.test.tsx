@@ -294,6 +294,12 @@ function createApi(initialSession: AuthSession | null): {
   const selectScript = vi
     .fn<WorkspaceApi['selectScript']>()
     .mockRejectedValue(new Error('Script selection is not configured in this test'));
+  const createReferenceVideoProfile = vi
+    .fn<WorkspaceApi['createReferenceVideoProfile']>()
+    .mockRejectedValue(new Error('Reference profiling is not configured in this test'));
+  const listReferenceVideoProfiles = vi
+    .fn<WorkspaceApi['listReferenceVideoProfiles']>()
+    .mockResolvedValue([]);
   const loadHotelConfiguration = vi
     .fn<WorkspaceApi['loadHotelConfiguration']>()
     .mockImplementation((hotelId) => {
@@ -494,6 +500,7 @@ function createApi(initialSession: AuthSession | null): {
       cancelRenderJob,
       createCreativeBriefRevision,
       createCreativeProject,
+      createReferenceVideoProfile,
       createRenderJob,
       createManualSegment,
       createVideoBrief,
@@ -514,6 +521,7 @@ function createApi(initialSession: AuthSession | null): {
       listCreativeProjects,
       listProjectTemplates,
       listRenderJobs,
+      listReferenceVideoProfiles,
       listScriptPackages,
       listVideoProjects,
       loadHotelConfiguration,

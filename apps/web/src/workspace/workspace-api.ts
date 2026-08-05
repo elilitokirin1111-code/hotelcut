@@ -24,6 +24,7 @@ import {
   renderArtifactDownloadSchema,
   renderJobDetailSchema,
   renderJobSchema,
+  referenceVideoProfileSchema,
   scriptPackageSchema,
   videoBriefSchema,
   videoProjectDetailSchema,
@@ -52,6 +53,7 @@ import {
   type Organization,
   type ProjectTemplate,
   type RenderJob,
+  type ReferenceVideoProfile,
   type RenderJobDetail,
   type SaveProjectRevisionInput,
   type ScriptPackage,
@@ -124,6 +126,11 @@ export interface WorkspaceApi {
   generateScript(projectId: string, briefRevisionId?: string): Promise<ScriptPackage>;
   listScriptPackages(projectId: string, signal?: AbortSignal): Promise<ScriptPackage[]>;
   selectScript(projectId: string, scriptId: string): Promise<CreativeProject>;
+  createReferenceVideoProfile(projectId: string, assetId: string): Promise<ReferenceVideoProfile>;
+  listReferenceVideoProfiles(
+    projectId: string,
+    signal?: AbortSignal,
+  ): Promise<ReferenceVideoProfile[]>;
   loadWorkspace(signal?: AbortSignal): Promise<WorkspaceSnapshot>;
   loadHotelConfiguration(hotelId: string, signal?: AbortSignal): Promise<HotelConfiguration>;
   listAssets(hotelId: string, signal?: AbortSignal): Promise<Asset[]>;
@@ -404,6 +411,26 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
         },
+      );
+    },
+
+    async createReferenceVideoProfile(projectId, assetId) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/reference-profiles`,
+        referenceVideoProfileSchema,
+        {
+          body: JSON.stringify({ assetId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async listReferenceVideoProfiles(projectId, signal) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/reference-profiles`,
+        referenceVideoProfileSchema.array(),
+        signal ? { signal } : undefined,
       );
     },
 

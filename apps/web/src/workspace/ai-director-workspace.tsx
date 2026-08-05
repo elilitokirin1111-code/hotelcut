@@ -3,10 +3,12 @@ import { useEffect, useState, type FormEvent } from 'react';
 
 import type {
   AiDirectorFeatureFlags,
+  Asset,
   CreativeBriefRevision,
   CreativeProject,
   CreativeProjectMode,
   ScriptPackage,
+  ReferenceVideoProfile,
 } from '@hotelcut/schemas';
 
 import type { WorkspaceApi } from './workspace-api';
@@ -68,6 +70,8 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
   const [briefs, setBriefs] = useState<CreativeBriefRevision[]>([]);
   const [scripts, setScripts] = useState<ScriptPackage[]>([]);
   const [directing, setDirecting] = useState(false);
+  const [referenceAssets, setReferenceAssets] = useState<Asset[]>([]);
+  const [referenceProfiles, setReferenceProfiles] = useState<ReferenceVideoProfile[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -84,6 +88,23 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
       });
     return () => controller.abort();
   }, [api, hotelId]);
+
+  useEffect(() => {
+    if (
+      !selectedProjectId ||
+      loadState.status !== 'ready' ||
+      !loadState.flags.referenceAnalysisEnabled
+    )
+      return;
+    void Promise.all([api.listAssets(hotelId), api.listReferenceVideoProfiles(selectedProjectId)])
+      .then(([assets, profiles]) => {
+        setReferenceAssets(
+          assets.filter((asset) => asset.kind === 'video' && asset.status === 'ready'),
+        );
+        setReferenceProfiles(profiles);
+      })
+      .catch((error: unknown) => setCreateError(errorMessage(error)));
+  }, [api, hotelId, loadState, selectedProjectId]);
 
   const createProject = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -122,6 +143,20 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
       );
       setBriefs([brief, ...directions]);
       setScripts((current) => [generatedScript, ...current]);
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
+  const createReferenceProfile = async (assetId: string) => {
+    if (!selectedProjectId) return;
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      const profile = await api.createReferenceVideoProfile(selectedProjectId, assetId);
+      setReferenceProfiles((current) => [profile, ...current]);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -292,6 +327,37 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
               </p>
             </article>
           ))}
+
+          {loadState.status === 'ready' && loadState.flags.referenceAnalysisEnabled ? (
+            <div className="mt-6 border-t border-slate-200 pt-6">
+              <h4 className="font-black">参考视频风格画像</h4>
+              <p className="mt-2 text-xs text-slate-500">
+                仅学习节奏、镜头语言、字幕与声音结构；不会复制参考片人物、台词或品牌内容。
+              </p>
+              <div className="mt-3 grid gap-2 md:grid-cols-2">
+                {referenceAssets.map((asset) => (
+                  <button
+                    className="rounded-xl border border-slate-200 p-3 text-left text-xs hover:border-[#d09a59]"
+                    disabled={directing}
+                    key={asset.id}
+                    onClick={() => void createReferenceProfile(asset.id)}
+                    type="button"
+                  >
+                    分析参考：{asset.originalFilename}
+                  </button>
+                ))}
+              </div>
+              {referenceProfiles.map((profile) => (
+                <article className="mt-3 rounded-xl bg-slate-50 p-4 text-xs" key={profile.id}>
+                  <strong>{profile.narrativePattern}</strong>
+                  <p className="mt-1">
+                    {profile.shotCount} 镜头 · 平均 {profile.averageShotDurationMs}ms ·{' '}
+                    {profile.reusableStyleRules.join('；')}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : null}
         </section>
       ) : null}
     </section>
