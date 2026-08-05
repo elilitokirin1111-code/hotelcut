@@ -4,6 +4,8 @@ import type {
   AssetDerivative,
   AssetDerivativeKind,
   AssetDetail,
+  AssetMatchCandidate,
+  AssetRequirement,
   AssetSegment,
   AssetUpload,
   BrandKit,
@@ -204,6 +206,19 @@ export interface PersistReferenceVideoProfileInput extends ReferenceVideoProfile
   inputSummary?: string | null;
 }
 
+export interface CreateAssetRequirementInput {
+  scriptSceneId: string | null;
+  description: string;
+  requiredTags: string[];
+  preferredShotType: string | null;
+  preferredMotionType: string | null;
+  preferredDurationMs: number;
+  required: boolean;
+  candidateMatches: AssetMatchCandidate[];
+  status: AssetRequirement['status'];
+  filmingInstruction: string | null;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -279,6 +294,18 @@ export interface HotelCutRepository {
     projectId: string,
     input: PersistReferenceVideoProfileInput,
   ): Promise<ReferenceVideoProfile>;
+  replaceAssetRequirements(
+    actorUserId: string,
+    projectId: string,
+    input: CreateAssetRequirementInput[],
+  ): Promise<AssetRequirement[]>;
+  listAssetRequirements(actorUserId: string, projectId: string): Promise<AssetRequirement[]>;
+  assignAssetRequirement(
+    actorUserId: string,
+    projectId: string,
+    requirementId: string,
+    assetId: string,
+  ): Promise<AssetRequirement>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

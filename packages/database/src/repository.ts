@@ -19,6 +19,7 @@ import {
   type PersistCreativeBriefRevisionInput,
   type PersistScriptPackageInput,
   type PersistReferenceVideoProfileInput,
+  type CreateAssetRequirementInput,
   type PersistVideoProjectInput,
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
@@ -31,6 +32,7 @@ import type {
   AssetDerivative,
   AssetDerivativeKind,
   AssetDetail,
+  AssetRequirement,
   AssetSegment,
   AssetUpload,
   BrandKit,
@@ -67,6 +69,7 @@ import {
   assetSchema,
   assetSegmentSchema,
   assetUploadSchema,
+  assetRequirementSchema,
   creativeProjectSchema,
   creativeBriefRevisionSchema,
   modelApiModeSchema,
@@ -186,6 +189,20 @@ function mapShotRequirement(row: typeof schema.shotRequirements.$inferSelect) {
     preferredMotionType: row.preferredMotionType ?? null,
     filmingInstruction: row.filmingInstruction ?? null,
     createdAt: toIso(row.createdAt),
+  });
+}
+
+function mapAssetRequirement(row: typeof schema.assetRequirements.$inferSelect): AssetRequirement {
+  return assetRequirementSchema.parse({
+    ...row,
+    scriptSceneId: row.scriptSceneId ?? null,
+    preferredShotType: row.preferredShotType ?? null,
+    preferredMotionType: row.preferredMotionType ?? null,
+    matchedAssetIds: row.matchedAssetIds,
+    candidateMatches: row.candidateMatches,
+    filmingInstruction: row.filmingInstruction ?? null,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
   });
 }
 
@@ -831,6 +848,76 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       .returning();
     if (!row) throw new Error('Reference profile insert did not return a row');
     return mapReferenceVideoProfile(row);
+  }
+
+  async replaceAssetRequirements(
+    actorUserId: string,
+    projectId: string,
+    input: CreateAssetRequirementInput[],
+  ): Promise<AssetRequirement[]> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const rows = await this.db.transaction(async (tx) => {
+      await tx
+        .delete(schema.assetRequirements)
+        .where(eq(schema.assetRequirements.creativeProjectId, projectId));
+      if (input.length === 0) return [];
+      return tx
+        .insert(schema.assetRequirements)
+        .values(
+          input.map((requirement) => ({
+            id: randomUUID(),
+            creativeProjectId: projectId,
+            scriptSceneId: requirement.scriptSceneId,
+            description: requirement.description,
+            requiredTags: requirement.requiredTags,
+            preferredShotType: requirement.preferredShotType,
+            preferredMotionType: requirement.preferredMotionType,
+            preferredDurationMs: requirement.preferredDurationMs,
+            required: requirement.required,
+            matchedAssetIds:
+              requirement.status === 'matched'
+                ? requirement.candidateMatches.slice(0, 1).map((match) => match.assetId)
+                : [],
+            candidateMatches: requirement.candidateMatches,
+            status: requirement.status,
+            filmingInstruction: requirement.filmingInstruction,
+          })),
+        )
+        .returning();
+    });
+    return rows.map(mapAssetRequirement);
+  }
+
+  async listAssetRequirements(actorUserId: string, projectId: string): Promise<AssetRequirement[]> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.assetRequirements)
+      .where(eq(schema.assetRequirements.creativeProjectId, projectId))
+      .orderBy(asc(schema.assetRequirements.createdAt));
+    return rows.map(mapAssetRequirement);
+  }
+
+  async assignAssetRequirement(
+    actorUserId: string,
+    projectId: string,
+    requirementId: string,
+    assetId: string,
+  ): Promise<AssetRequirement> {
+    await this.requireCreativeProjectMember(actorUserId, projectId);
+    await this.requireAssetMember(actorUserId, assetId);
+    const [row] = await this.db
+      .update(schema.assetRequirements)
+      .set({ matchedAssetIds: [assetId], status: 'matched', updatedAt: new Date() })
+      .where(
+        and(
+          eq(schema.assetRequirements.id, requirementId),
+          eq(schema.assetRequirements.creativeProjectId, projectId),
+        ),
+      )
+      .returning();
+    if (!row) throw new DomainNotFoundError('Asset requirement not found');
+    return mapAssetRequirement(row);
   }
 
   async listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]> {

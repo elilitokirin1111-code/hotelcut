@@ -2,6 +2,7 @@ import {
   analysisRetryResponseSchema,
   aiDirectorFeatureFlagsSchema,
   assetDetailSchema,
+  assetRequirementSchema,
   assetSchema,
   assetSegmentSchema,
   authSessionSchema,
@@ -35,6 +36,7 @@ import {
   type AiEditPlanInput,
   type AssetDetail,
   type AssetDerivativeKind,
+  type AssetRequirement,
   type AssetSegment,
   type AuthSession,
   type BrandKit,
@@ -131,6 +133,13 @@ export interface WorkspaceApi {
     projectId: string,
     signal?: AbortSignal,
   ): Promise<ReferenceVideoProfile[]>;
+  generateAssetRequirements(projectId: string, scriptId?: string): Promise<AssetRequirement[]>;
+  listAssetRequirements(projectId: string, signal?: AbortSignal): Promise<AssetRequirement[]>;
+  assignAssetRequirement(
+    projectId: string,
+    requirementId: string,
+    assetId: string,
+  ): Promise<AssetRequirement>;
   loadWorkspace(signal?: AbortSignal): Promise<WorkspaceSnapshot>;
   loadHotelConfiguration(hotelId: string, signal?: AbortSignal): Promise<HotelConfiguration>;
   listAssets(hotelId: string, signal?: AbortSignal): Promise<Asset[]>;
@@ -431,6 +440,38 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
         `/v1/creative-projects/${encodeURIComponent(projectId)}/reference-profiles`,
         referenceVideoProfileSchema.array(),
         signal ? { signal } : undefined,
+      );
+    },
+
+    async generateAssetRequirements(projectId, scriptId) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/asset-requirements/generate`,
+        assetRequirementSchema.array(),
+        {
+          body: JSON.stringify(scriptId ? { scriptId } : {}),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async listAssetRequirements(projectId, signal) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/asset-requirements`,
+        assetRequirementSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async assignAssetRequirement(projectId, requirementId, assetId) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/asset-requirements/${encodeURIComponent(requirementId)}/assignment`,
+        assetRequirementSchema,
+        {
+          body: JSON.stringify({ assetId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'PUT',
+        },
       );
     },
 

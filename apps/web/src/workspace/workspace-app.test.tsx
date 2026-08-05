@@ -300,6 +300,15 @@ function createApi(initialSession: AuthSession | null): {
   const listReferenceVideoProfiles = vi
     .fn<WorkspaceApi['listReferenceVideoProfiles']>()
     .mockResolvedValue([]);
+  const listAssetRequirements = vi
+    .fn<WorkspaceApi['listAssetRequirements']>()
+    .mockResolvedValue([]);
+  const generateAssetRequirements = vi
+    .fn<WorkspaceApi['generateAssetRequirements']>()
+    .mockRejectedValue(new Error('Asset matching is not configured in this test'));
+  const assignAssetRequirement = vi
+    .fn<WorkspaceApi['assignAssetRequirement']>()
+    .mockRejectedValue(new Error('Asset assignment is not configured in this test'));
   const loadHotelConfiguration = vi
     .fn<WorkspaceApi['loadHotelConfiguration']>()
     .mockImplementation((hotelId) => {
@@ -497,10 +506,12 @@ function createApi(initialSession: AuthSession | null): {
   });
   return {
     api: {
+      assignAssetRequirement,
       cancelRenderJob,
       createCreativeBriefRevision,
       createCreativeProject,
       createReferenceVideoProfile,
+      generateAssetRequirements,
       createRenderJob,
       createManualSegment,
       createVideoBrief,
@@ -522,6 +533,7 @@ function createApi(initialSession: AuthSession | null): {
       listProjectTemplates,
       listRenderJobs,
       listReferenceVideoProfiles,
+      listAssetRequirements,
       listScriptPackages,
       listVideoProjects,
       loadHotelConfiguration,

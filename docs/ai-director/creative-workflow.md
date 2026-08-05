@@ -60,3 +60,20 @@ validated semantic outputs: hook duration, pace/emotion ranges, shot distributio
 caption and audio profiles, a narrative pattern and reusable style rules. The original analysis
 metadata remains the source of truth; an AI failure creates an audited failed generation run but does
 not alter the asset or any selected production project.
+
+## Phase 3 asset requirements and matching
+
+Selecting a ScriptPackage now converts every persisted `ShotRequirement` into a current
+`AssetRequirement`. Matching is deterministic and runs only over tenant-scoped, ready video assets
+and their existing analyzed scene segments. It scores semantic tag/category/description hits, usable
+duration and the existing quality score; each requirement returns no more than three ranked
+candidates with reasons and quality issues.
+
+- `POST /v1/creative-projects/:projectId/asset-requirements/generate`
+- `GET /v1/creative-projects/:projectId/asset-requirements`
+- `PUT /v1/creative-projects/:projectId/asset-requirements/:requirementId/assignment`
+
+Status is `matched`, `weak_match` or `missing`. A missing requirement carries a specific filming
+instruction derived from the desired framing, motion, duration and semantic tags. A user can replace
+the automated choice with any authorized hotel asset; this changes only the requirement confirmation,
+never the original media or ScriptPackage.

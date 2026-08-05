@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import type {
   AiDirectorFeatureFlags,
   Asset,
+  AssetRequirement,
   CreativeBriefRevision,
   CreativeProject,
   CreativeProjectMode,
@@ -72,6 +73,7 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
   const [directing, setDirecting] = useState(false);
   const [referenceAssets, setReferenceAssets] = useState<Asset[]>([]);
   const [referenceProfiles, setReferenceProfiles] = useState<ReferenceVideoProfile[]>([]);
+  const [assetRequirements, setAssetRequirements] = useState<AssetRequirement[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,17 +92,19 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
   }, [api, hotelId]);
 
   useEffect(() => {
-    if (
-      !selectedProjectId ||
-      loadState.status !== 'ready' ||
-      !loadState.flags.referenceAnalysisEnabled
-    )
-      return;
-    void Promise.all([api.listAssets(hotelId), api.listReferenceVideoProfiles(selectedProjectId)])
-      .then(([assets, profiles]) => {
+    if (!selectedProjectId || loadState.status !== 'ready') return;
+    void Promise.all([
+      api.listAssets(hotelId),
+      api.listAssetRequirements(selectedProjectId),
+      loadState.flags.referenceAnalysisEnabled
+        ? api.listReferenceVideoProfiles(selectedProjectId)
+        : Promise.resolve([]),
+    ])
+      .then(([assets, requirements, profiles]) => {
         setReferenceAssets(
           assets.filter((asset) => asset.kind === 'video' && asset.status === 'ready'),
         );
+        setAssetRequirements(requirements);
         setReferenceProfiles(profiles);
       })
       .catch((error: unknown) => setCreateError(errorMessage(error)));
@@ -157,6 +161,36 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
     try {
       const profile = await api.createReferenceVideoProfile(selectedProjectId, assetId);
       setReferenceProfiles((current) => [profile, ...current]);
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
+  const selectScriptAndMatch = async (scriptId: string) => {
+    if (!selectedProjectId) return;
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      await api.selectScript(selectedProjectId, scriptId);
+      setAssetRequirements(await api.generateAssetRequirements(selectedProjectId, scriptId));
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
+  const assignRequirement = async (requirementId: string, assetId: string) => {
+    if (!selectedProjectId) return;
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      const updated = await api.assignAssetRequirement(selectedProjectId, requirementId, assetId);
+      setAssetRequirements((current) =>
+        current.map((requirement) => (requirement.id === updated.id ? updated : requirement)),
+      );
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -314,7 +348,8 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
                 <strong>{script.title}</strong>
                 <button
                   className="text-xs font-black text-[#9a6b3c]"
-                  onClick={() => void api.selectScript(selectedProjectId, script.id)}
+                  disabled={directing}
+                  onClick={() => void selectScriptAndMatch(script.id)}
                   type="button"
                 >
                   选为后续蓝图脚本
@@ -327,6 +362,55 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
               </p>
             </article>
           ))}
+
+          <div className="mt-6 border-t border-slate-200 pt-6">
+            <h4 className="font-black">素材匹配与补拍清单</h4>
+            <p className="mt-2 text-xs text-slate-500">
+              每条拍摄需求会基于已有视频片段的标签、画面说明与质量分析给出前三个候选；你可以手动确认。
+            </p>
+            {assetRequirements.map((requirement) => (
+              <article
+                className="mt-3 rounded-xl border border-slate-200 p-4 text-xs"
+                key={requirement.id}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <strong>{requirement.description}</strong>
+                  <span className="rounded-full bg-slate-100 px-2 py-1 font-black text-slate-600">
+                    {requirement.status === 'matched'
+                      ? '已匹配'
+                      : requirement.status === 'weak_match'
+                        ? '弱匹配'
+                        : '缺失'}
+                  </span>
+                </div>
+                <p className="mt-2 text-slate-500">
+                  {requirement.candidateMatches.length > 0
+                    ? `候选：${requirement.candidateMatches
+                        .map(
+                          (candidate) => `${candidate.reasons[0]}（${candidate.scoreBasisPoints}）`,
+                        )
+                        .join('；')}`
+                    : '没有可用候选素材。'}
+                </p>
+                {requirement.filmingInstruction ? (
+                  <p className="mt-2 text-[#9a6b3c]">{requirement.filmingInstruction}</p>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {requirement.candidateMatches.map((candidate) => (
+                    <button
+                      className="rounded-lg border border-slate-200 px-2 py-1 hover:border-[#d09a59]"
+                      disabled={directing}
+                      key={`${candidate.assetId}-${candidate.segmentId ?? 'asset'}`}
+                      onClick={() => void assignRequirement(requirement.id, candidate.assetId)}
+                      type="button"
+                    >
+                      采用候选素材
+                    </button>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
 
           {loadState.status === 'ready' && loadState.flags.referenceAnalysisEnabled ? (
             <div className="mt-6 border-t border-slate-200 pt-6">

@@ -246,6 +246,45 @@ export const referenceVideoProfileSchema = z.object({
 
 export const createReferenceProfileSchema = z.object({ assetId: directorIdSchema }).strict();
 
+export const assetMatchCandidateSchema = z
+  .object({
+    assetId: directorIdSchema,
+    segmentId: directorIdSchema.nullable(),
+    scoreBasisPoints: z.number().int().min(0).max(10_000),
+    reasons: z.array(z.string().min(1)).min(1).max(12),
+    qualityIssues: z.array(z.string()).max(12),
+  })
+  .strict();
+
+export const assetRequirementStatusSchema = z.enum(['missing', 'weak_match', 'matched']);
+
+export const assetRequirementSchema = z
+  .object({
+    id: directorIdSchema,
+    creativeProjectId: directorIdSchema,
+    scriptSceneId: directorIdSchema.nullable(),
+    description: z.string().min(1),
+    requiredTags: z.array(z.string()),
+    preferredShotType: z.string().nullable(),
+    preferredMotionType: z.string().nullable(),
+    preferredDurationMs: z.number().int().positive(),
+    required: z.boolean(),
+    matchedAssetIds: z.array(directorIdSchema),
+    candidateMatches: z.array(assetMatchCandidateSchema).max(3),
+    status: assetRequirementStatusSchema,
+    filmingInstruction: z.string().nullable(),
+    createdAt: directorDateTimeSchema,
+    updatedAt: directorDateTimeSchema,
+  })
+  .strict();
+
+export const generateAssetRequirementsSchema = z
+  .object({ scriptId: directorIdSchema.optional() })
+  .strict();
+export const assignAssetRequirementSchema = z
+  .object({ assetId: directorIdSchema, segmentId: directorIdSchema.nullable().optional() })
+  .strict();
+
 export type CreativeProjectMode = z.infer<typeof creativeProjectModeSchema>;
 export type CreativeProjectStatus = z.infer<typeof creativeProjectStatusSchema>;
 export type CreativeProject = z.infer<typeof creativeProjectSchema>;
@@ -261,3 +300,5 @@ export type ScriptGeneration = z.infer<typeof scriptGenerationSchema>;
 export type ScriptPackage = z.infer<typeof scriptPackageSchema>;
 export type ReferenceVideoProfile = z.infer<typeof referenceVideoProfileSchema>;
 export type ReferenceVideoProfileGeneration = z.infer<typeof referenceVideoProfileGenerationSchema>;
+export type AssetMatchCandidate = z.infer<typeof assetMatchCandidateSchema>;
+export type AssetRequirement = z.infer<typeof assetRequirementSchema>;

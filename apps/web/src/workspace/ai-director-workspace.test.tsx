@@ -39,6 +39,7 @@ function createApi(aiDirectorEnabled = true) {
     }),
     listCreativeProjects: vi.fn<WorkspaceApi['listCreativeProjects']>().mockResolvedValue([]),
     listAssets: vi.fn<WorkspaceApi['listAssets']>().mockResolvedValue([]),
+    listAssetRequirements: vi.fn<WorkspaceApi['listAssetRequirements']>().mockResolvedValue([]),
     listReferenceVideoProfiles: vi
       .fn<WorkspaceApi['listReferenceVideoProfiles']>()
       .mockResolvedValue([]),

@@ -9,6 +9,7 @@ import {
 } from '@hotelcut/domain';
 import {
   aiDirectorFeatureFlagsSchema,
+  assignAssetRequirementSchema,
   createCreativeBriefRevisionSchema,
   createReferenceProfileSchema,
   createCreativeProjectSchema,
@@ -18,9 +19,11 @@ import {
   errorResponseSchema,
   expandIdeaOutputSchema,
   hotelIdParamsSchema,
+  generateAssetRequirementsSchema,
   reviseScriptSchema,
   referenceVideoProfileGenerationSchema,
   referenceVideoProfileSchema,
+  assetRequirementSchema,
   scriptGenerationSchema,
   scriptPackageSchema,
   selectRevisionSchema,
@@ -36,6 +39,7 @@ import {
   responseOutputText,
   type ProviderFetch,
 } from './model-provider-routes.js';
+import { matchShotRequirement } from './asset-matching.js';
 
 interface CreativeProjectRouteOptions {
   configSecret: string;
@@ -555,6 +559,103 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           requestId: request.id,
         });
       }
+    },
+  );
+
+  app.post(
+    '/v1/creative-projects/:projectId/asset-requirements/generate',
+    {
+      schema: {
+        body: generateAssetRequirementsSchema,
+        params: creativeProjectIdParamsSchema,
+        response: {
+          201: z.array(assetRequirementSchema),
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Generate and semantically match script asset requirements',
+        tags: ['ai-director'],
+      },
+    },
+    async (request, reply) => {
+      requireAiDirector();
+      const store = repository();
+      const project = await store.getCreativeProject(request.actorUserId, request.params.projectId);
+      const scriptId = request.body.scriptId ?? project.selectedScriptRevisionId;
+      if (!scriptId) {
+        return reply.code(409).send({
+          code: 'SCRIPT_NOT_SELECTED',
+          message: '请先选择脚本，再匹配素材。',
+          requestId: request.id,
+        });
+      }
+      const script = await store.getScriptPackage(request.actorUserId, scriptId);
+      if (script.creativeProjectId !== project.id) throw new DomainNotFoundError();
+      const assets = await store.listAssets(request.actorUserId, project.hotelId);
+      const details = await Promise.all(
+        assets
+          .filter((asset) => asset.kind === 'video' && asset.status === 'ready')
+          .map((asset) => store.getAssetDetail(request.actorUserId, asset.id)),
+      );
+      const requirements = await store.replaceAssetRequirements(
+        request.actorUserId,
+        project.id,
+        script.shotList.map((shot) => {
+          const match = matchShotRequirement(shot, details);
+          return {
+            scriptSceneId: shot.scriptSceneId,
+            description: shot.description,
+            requiredTags: shot.requiredTags,
+            preferredShotType: shot.preferredShotType,
+            preferredMotionType: shot.preferredMotionType,
+            preferredDurationMs: shot.preferredDurationMs,
+            required: shot.required,
+            ...match,
+          };
+        }),
+      );
+      return reply.code(201).send(requirements);
+    },
+  );
+
+  app.get(
+    '/v1/creative-projects/:projectId/asset-requirements',
+    {
+      schema: {
+        params: creativeProjectIdParamsSchema,
+        response: { 200: z.array(assetRequirementSchema), 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'List current asset requirements and their top three candidates',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      return repository().listAssetRequirements(request.actorUserId, request.params.projectId);
+    },
+  );
+
+  app.put(
+    '/v1/creative-projects/:projectId/asset-requirements/:requirementId/assignment',
+    {
+      schema: {
+        body: assignAssetRequirementSchema,
+        params: creativeProjectIdParamsSchema.extend({ requirementId: z.uuid() }),
+        response: { 200: assetRequirementSchema, 404: errorResponseSchema },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Manually confirm an asset for a requirement',
+        tags: ['ai-director'],
+      },
+    },
+    async (request) => {
+      requireAiDirector();
+      return repository().assignAssetRequirement(
+        request.actorUserId,
+        request.params.projectId,
+        request.params.requirementId,
+        request.body.assetId,
+      );
     },
   );
 
