@@ -560,6 +560,7 @@ function createApi(initialSession: AuthSession | null): {
       loadWorkspace,
       login,
       logout,
+      organizeAssets: vi.fn<WorkspaceApi['organizeAssets']>().mockResolvedValue([]),
       retryAssetAnalysis,
       retryRenderJob,
       saveBrandKit,

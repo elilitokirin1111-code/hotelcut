@@ -8,6 +8,7 @@ import type {
   AssetDerivativeKind,
   AssetDetail,
   AssetMatchCandidate,
+  AssetPurpose,
   AssetRequirement,
   AssetSegment,
   AssetUpload,
@@ -63,6 +64,11 @@ export interface RegisterAssetUploadInput extends CreateAssetUploadInput {
   providerUploadId: string;
   partCount: number;
   expiresAt: string;
+}
+
+export interface UpdateAssetOrganizationInput {
+  purpose?: AssetPurpose;
+  folder?: string | null;
 }
 
 export interface RegisteredAssetUpload {
@@ -306,6 +312,12 @@ export interface HotelCutRepository {
   deleteAiTemplate(actorUserId: string, hotelId: string, aiTemplateId: string): Promise<void>;
   deleteAiTemplates(actorUserId: string, hotelId: string, aiTemplateIds: string[]): Promise<void>;
   deleteAssets(actorUserId: string, hotelId: string, assetIds: string[]): Promise<void>;
+  updateAssetOrganization(
+    actorUserId: string,
+    hotelId: string,
+    assetIds: string[],
+    input: UpdateAssetOrganizationInput,
+  ): Promise<Asset[]>;
   listAssetStorageReferences(
     actorUserId: string,
     hotelId: string,

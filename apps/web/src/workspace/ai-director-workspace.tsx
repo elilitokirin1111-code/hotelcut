@@ -64,6 +64,20 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'AI 创作工作台加载失败';
 }
 
+function firstIncompleteStep(
+  requirements: AssetRequirement[],
+  blueprints: EditBlueprint[],
+  versions: CreativeVideoVersion[],
+): number {
+  if (versions.length === 0) {
+    if (blueprints.length === 0) {
+      return requirements.length === 0 ? 1 : 4;
+    }
+    return 5;
+  }
+  return 6;
+}
+
 export function AiDirectorWorkspace({
   api,
   hotelId,
@@ -81,11 +95,15 @@ export function AiDirectorWorkspace({
   const [scripts, setScripts] = useState<ScriptPackage[]>([]);
   const [directing, setDirecting] = useState(false);
   const [referenceAssets, setReferenceAssets] = useState<Asset[]>([]);
+  const [productionAssets, setProductionAssets] = useState<Asset[]>([]);
   const [referenceProfiles, setReferenceProfiles] = useState<ReferenceVideoProfile[]>([]);
   const [assetRequirements, setAssetRequirements] = useState<AssetRequirement[]>([]);
   const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
   const [blueprints, setBlueprints] = useState<EditBlueprint[]>([]);
   const [videoVersions, setVideoVersions] = useState<CreativeVideoVersion[]>([]);
+  const [referenceAssetId, setReferenceAssetId] = useState<string | null>(null);
+  const [assetVersion, setAssetVersion] = useState(0);
+  const [stepIndex, setStepIndex] = useState(1);
   const assistantRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -117,15 +135,45 @@ export function AiDirectorWorkspace({
     ])
       .then(([assets, requirements, blueprints, versions, profiles]) => {
         setReferenceAssets(
-          assets.filter((asset) => asset.kind === 'video' && asset.status === 'ready'),
+          assets.filter(
+            (asset) =>
+              asset.kind === 'video' &&
+              asset.status === 'ready' &&
+              asset.purpose === 'reference_video',
+          ),
+        );
+        const productionAssets = assets.filter(
+          (asset) =>
+            asset.kind === 'video' &&
+            asset.status === 'ready' &&
+            asset.purpose !== 'reference_video',
+        );
+        setProductionAssets(productionAssets);
+        setReferenceAssetId((current) =>
+          current && productionAssets.some((asset) => asset.id === current)
+            ? current
+            : (productionAssets[0]?.id ?? null),
         );
         setAssetRequirements(requirements);
         setBlueprints(blueprints);
         setVideoVersions(versions);
         setReferenceProfiles(profiles);
+        setStepIndex(firstIncompleteStep(requirements, blueprints, versions));
       })
       .catch((error: unknown) => setCreateError(errorMessage(error)));
-  }, [api, hotelId, loadState, selectedProjectId]);
+  }, [api, assetVersion, hotelId, loadState, selectedProjectId]);
+
+  const selectedProject =
+    loadState.status === 'ready'
+      ? (loadState.projects.find((project) => project.id === selectedProjectId) ?? null)
+      : null;
+
+  const goToStep = (next: number) => {
+    setStepIndex(next);
+    window.setTimeout(() => {
+      assistantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
 
   const createProject = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -140,6 +188,7 @@ export function AiDirectorWorkspace({
       );
       setTitle('');
       setSelectedProjectId(project.id);
+      setStepIndex(1);
       window.setTimeout(() => {
         assistantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
@@ -167,6 +216,7 @@ export function AiDirectorWorkspace({
       );
       setBriefs([brief, ...directions]);
       setScripts((current) => [generatedScript, ...current]);
+      goToStep(2);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -210,6 +260,7 @@ export function AiDirectorWorkspace({
       await api.selectScript(selectedProjectId, script.id);
       setSelectedScriptId(script.id);
       setAssetRequirements(await api.generateAssetRequirements(selectedProjectId, script.id));
+      goToStep(4);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -225,6 +276,7 @@ export function AiDirectorWorkspace({
       await api.selectScript(selectedProjectId, scriptId);
       setSelectedScriptId(scriptId);
       setAssetRequirements(await api.generateAssetRequirements(selectedProjectId, scriptId));
+      goToStep(4);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -255,6 +307,7 @@ export function AiDirectorWorkspace({
     try {
       const blueprint = await api.generateEditBlueprint(selectedProjectId);
       setBlueprints((current) => [blueprint, ...current]);
+      goToStep(5);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -269,6 +322,25 @@ export function AiDirectorWorkspace({
     try {
       const batch = await api.generateVideoVersions(selectedProjectId, { blueprintId });
       setVideoVersions(batch.versions);
+      goToStep(6);
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
+  const markAsReference = async (assetId: string) => {
+    if (!selectedProject) {
+      return;
+    }
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      await api.organizeAssets(selectedProject.hotelId, [assetId], {
+        purpose: 'reference_video',
+      });
+      setAssetVersion((version) => version + 1);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -425,12 +497,8 @@ export function AiDirectorWorkspace({
       </section>
 
       {selectedProjectId ? (
-        <section aria-label="创意助手" className="surface-card p-7" ref={assistantRef}>
-          <h3 className="text-lg font-black">创意助手与脚本</h3>
-          <p className="mt-2 text-sm text-slate-500">
-            输入创意后，百炼将返回三套方向、可编辑分镜与拍摄清单；每次结果均保存为独立版本。
-          </p>
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <section aria-label="创作流程向导" className="surface-card p-7" ref={assistantRef}>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-black">
               {creationSteps.map((step, index) => (
                 <li
@@ -462,57 +530,158 @@ export function AiDirectorWorkspace({
               下一步：{stepHints[currentStep.key] ?? ''}
             </p>
           </div>
-          <textarea
-            aria-label="创意输入"
-            className="mt-4 min-h-28 w-full rounded-xl border border-slate-200 p-4 text-sm outline-none focus:border-[#d09a59]"
-            onChange={(event) => setIdea(event.target.value)}
-            placeholder="例如：制作一条 16 秒的酒店前台反差视频…"
-            value={idea}
-          />
-          <button
-            className="mt-3 rounded-xl bg-[#9a6b3c] px-5 py-3 text-sm font-black text-white disabled:opacity-60"
-            disabled={directing || !idea.trim()}
-            onClick={() => void generateCreativePlan()}
-            type="button"
-          >
-            {directing ? '正在生成三套方向和脚本…' : '生成三套创意与完整脚本'}
-          </button>
-          {briefs.length > 0 ? (
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-              {briefs
-                .filter((brief) => brief.createdBy === 'ai')
-                .map((brief) => (
-                  <article className="rounded-xl border border-slate-200 p-4" key={brief.id}>
-                    <p className="text-xs font-black text-[#9a6b3c]">{brief.direction}</p>
-                    <strong className="mt-2 block text-sm">{brief.objective}</strong>
-                    <p className="mt-2 text-xs text-slate-500">{brief.tone.join(' · ')}</p>
+
+          <div style={{ display: stepIndex === 1 ? undefined : 'none' }}>
+            <h3 className="mt-6 text-lg font-black">
+              {selectedProject?.mode === 'reference'
+                ? '第 1 步：参考视频与脚本'
+                : '第 1 步：生成脚本'}
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              {selectedProject?.mode === 'reference'
+                ? '先选择参考视频生成风格画像，再基于它生成脚本；参考视频不会用于正片选材。'
+                : '输入一句创意，AI 会生成三套方向与完整脚本。'}
+            </p>
+            {selectedProject?.mode === 'reference' ? (
+              <div className="mt-4 space-y-3">
+                {productionAssets.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+                    <label className="min-w-44 flex-1">
+                      <span className="sr-only">选择要设为参考的视频</span>
+                      <select
+                        aria-label="选择要设为参考的视频"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#d09a59]"
+                        onChange={(event) => setReferenceAssetId(event.target.value)}
+                        value={referenceAssetId ?? ''}
+                      >
+                        {productionAssets.map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.originalFilename}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      className="rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                      disabled={directing || !referenceAssetId}
+                      onClick={() =>
+                        void (referenceAssetId ? markAsReference(referenceAssetId) : undefined)
+                      }
+                      type="button"
+                    >
+                      {directing ? '处理中…' : '设为参考视频'}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-xs text-slate-500">
+                    没有可用的正片素材可设为参考视频，请先到素材库上传并完成分析。
+                  </p>
+                )}
+                {referenceAssets.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-slate-300 p-4 text-xs text-slate-500">
+                    还没有参考视频。从上方选择一个素材「设为参考视频」。
+                  </p>
+                ) : (
+                  referenceAssets.map((asset) => (
+                    <button
+                      className="w-full rounded-xl border border-slate-200 p-3 text-left text-xs hover:border-[#d09a59]"
+                      disabled={directing}
+                      key={asset.id}
+                      onClick={() => void createReferenceProfile(asset.id)}
+                      type="button"
+                    >
+                      分析参考：{asset.originalFilename}
+                    </button>
+                  ))
+                )}
+                {referenceProfiles.map((profile) => (
+                  <article className="rounded-xl bg-slate-50 p-4 text-xs" key={profile.id}>
+                    <strong>{profile.narrativePattern}</strong>
+                    <p className="mt-1">
+                      {profile.shotCount} 镜头 · 平均 {profile.averageShotDurationMs}ms ·{' '}
+                      {profile.reusableStyleRules.join('；')}
+                    </p>
+                    <button
+                      className="mt-3 rounded-lg bg-[#263138] px-3 py-2 text-xs font-black text-white disabled:opacity-60"
+                      disabled={directing}
+                      onClick={() => void generateReferenceScript(profile.id)}
+                      type="button"
+                    >
+                      {directing ? '正在生成脚本…' : '基于该参考生成脚本'}
+                    </button>
                   </article>
                 ))}
-            </div>
-          ) : null}
-          {scripts.map((script) => (
-            <article className="mt-5 rounded-xl border border-slate-200 p-5" key={script.id}>
-              <div className="flex items-center justify-between gap-3">
-                <strong>{script.title}</strong>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  aria-label="创意输入"
+                  className="mt-4 min-h-28 w-full rounded-xl border border-slate-200 p-4 text-sm outline-none focus:border-[#d09a59]"
+                  onChange={(event) => setIdea(event.target.value)}
+                  placeholder="例如：制作一条 16 秒的酒店前台反差视频…"
+                  value={idea}
+                />
                 <button
-                  className="text-xs font-black text-[#9a6b3c]"
-                  disabled={directing}
-                  onClick={() => void selectScriptAndMatch(script.id)}
+                  className="mt-3 rounded-xl bg-[#9a6b3c] px-5 py-3 text-sm font-black text-white disabled:opacity-60"
+                  disabled={directing || !idea.trim()}
+                  onClick={() => void generateCreativePlan()}
                   type="button"
                 >
-                  选为后续蓝图脚本
+                  {directing ? '正在生成三套方向和脚本…' : '生成三套创意与完整脚本'}
                 </button>
-              </div>
-              <p className="mt-2 text-sm">钩子：{script.hook}</p>
-              <p className="mt-2 text-xs text-slate-500">
-                {script.scenes.length} 个分镜 · {script.shotList.length} 条拍摄要求 ·{' '}
-                {Math.round(script.totalDurationMs / 1_000)} 秒
+                {briefs.length > 0 ? (
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    {briefs
+                      .filter((brief) => brief.createdBy === 'ai')
+                      .map((brief) => (
+                        <article className="rounded-xl border border-slate-200 p-4" key={brief.id}>
+                          <p className="text-xs font-black text-[#9a6b3c]">{brief.direction}</p>
+                          <strong className="mt-2 block text-sm">{brief.objective}</strong>
+                          <p className="mt-2 text-xs text-slate-500">{brief.tone.join(' · ')}</p>
+                        </article>
+                      ))}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+          <div style={{ display: stepIndex === 2 ? undefined : 'none' }}>
+            <h3 className="mt-6 text-lg font-black">第 2 步：选择脚本</h3>
+            <p className="mt-2 text-sm text-slate-500">
+              从生成的脚本里选一个作为成片蓝图的基础；选择后会同时完成素材匹配。
+            </p>
+            {scripts.map((script) => (
+              <article className="mt-5 rounded-xl border border-slate-200 p-5" key={script.id}>
+                <div className="flex items-center justify-between gap-3">
+                  <strong>{script.title}</strong>
+                  <button
+                    className="text-xs font-black text-[#9a6b3c]"
+                    disabled={directing}
+                    onClick={() => void selectScriptAndMatch(script.id)}
+                    type="button"
+                  >
+                    选为后续蓝图脚本
+                  </button>
+                </div>
+                <p className="mt-2 text-sm">钩子：{script.hook}</p>
+                <p className="mt-2 text-xs text-slate-500">
+                  {script.scenes.length} 个分镜 · {script.shotList.length} 条拍摄要求 ·{' '}
+                  {Math.round(script.totalDurationMs / 1_000)} 秒
+                </p>
+              </article>
+            ))}
+            {scripts.length === 0 ? (
+              <p className="mt-4 rounded-2xl border border-dashed border-slate-300 p-5 text-center text-xs text-slate-500">
+                还没有脚本，请先完成第 1 步。
               </p>
-            </article>
-          ))}
+            ) : null}
+          </div>
 
-          <div className="mt-6 border-t border-slate-200 pt-6">
-            <h4 className="font-black">素材匹配与补拍清单</h4>
+          <div
+            className="mt-6 border-t border-slate-200 pt-6"
+            style={{ display: stepIndex === 3 ? undefined : 'none' }}
+          >
+            <h4 className="font-black">第 3 步：素材匹配与补拍清单</h4>
             <p className="mt-2 text-xs text-slate-500">
               每条拍摄需求会基于已有视频片段的标签、画面说明与质量分析给出前三个候选；你可以手动确认。
             </p>
@@ -561,8 +730,13 @@ export function AiDirectorWorkspace({
           </div>
 
           {loadState.flags.dynamicBlueprintEnabled ? (
-            <div className="mt-6 border-t border-slate-200 pt-6">
-              <h4 className="font-black">动态蓝图与 A/B/C 成片版本</h4>
+            <div
+              className="mt-6 border-t border-slate-200 pt-6"
+              style={{ display: stepIndex === 4 || stepIndex === 5 ? undefined : 'none' }}
+            >
+              <h4 className="font-black">
+                {stepIndex === 4 ? '第 4 步：生成剪辑蓝图' : '第 5 步：A/B/C 成片'}
+              </h4>
               <p className="mt-2 text-xs text-slate-500">
                 蓝图先经过时长、镜头和素材边界校验，再编译为可在 Studio 继续修改的时间线。
               </p>
@@ -605,7 +779,7 @@ export function AiDirectorWorkspace({
                 </article>
               ))}
               {videoVersions.length > 0 ? (
-                <>
+                <div style={{ display: stepIndex === 5 ? undefined : 'none' }}>
                   <div className="mt-3 grid gap-3 md:grid-cols-3">
                     {videoVersions.map((version) => (
                       <article className="rounded-xl bg-slate-50 p-4 text-xs" key={version.id}>
@@ -642,56 +816,51 @@ export function AiDirectorWorkspace({
                     ))}
                   </div>
                   <p className="mt-3 text-xs font-black text-[#9a6b3c]">
-                    下一步：点击成片卡片上的「在 Studio 中打开成片」进入精剪。
+                    A/B/C 成片已生成，点击卡片上的「在 Studio 中打开成片」进入精剪。
                   </p>
-                </>
+                </div>
               ) : null}
             </div>
           ) : null}
 
-          {loadState.status === 'ready' && loadState.flags.referenceAnalysisEnabled ? (
-            <div className="mt-6 border-t border-slate-200 pt-6">
-              <h4 className="font-black">参考视频风格画像</h4>
-              <p className="mt-2 text-xs text-slate-500">
-                仅学习节奏、镜头语言、字幕与声音结构；不会复制参考片人物、台词或品牌内容。
-              </p>
-              <div className="mt-3 grid gap-2 md:grid-cols-2">
-                {referenceAssets.map((asset) => (
-                  <button
-                    className="rounded-xl border border-slate-200 p-3 text-left text-xs hover:border-[#d09a59]"
-                    disabled={directing}
-                    key={asset.id}
-                    onClick={() => void createReferenceProfile(asset.id)}
-                    type="button"
-                  >
-                    分析参考：{asset.originalFilename}
-                  </button>
-                ))}
-              </div>
-              {referenceProfiles.map((profile) => (
-                <article className="mt-3 rounded-xl bg-slate-50 p-4 text-xs" key={profile.id}>
-                  <strong>{profile.narrativePattern}</strong>
-                  <p className="mt-1">
-                    {profile.shotCount} 镜头 · 平均 {profile.averageShotDurationMs}ms ·{' '}
-                    {profile.reusableStyleRules.join('；')}
-                  </p>
-                  <button
-                    className="mt-3 rounded-lg bg-[#263138] px-3 py-2 text-xs font-black text-white disabled:opacity-60"
-                    disabled={directing}
-                    onClick={() => void generateReferenceScript(profile.id)}
-                    type="button"
-                  >
-                    {directing ? '正在生成脚本…' : '基于该参考生成脚本'}
-                  </button>
-                </article>
-              ))}
-              {referenceProfiles.length > 0 ? (
-                <p className="mt-3 text-[10px] leading-4 text-slate-500">
-                  生成脚本后会沿用参考片的节奏、字幕与转场风格，并用你上传的素材自动匹配与成片。
-                </p>
-              ) : null}
-            </div>
-          ) : null}
+          <div
+            className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5"
+            style={{ display: stepIndex === 6 ? undefined : 'none' }}
+          >
+            <p className="text-sm font-black text-emerald-800">A/B/C 成片已生成</p>
+            <p className="mt-1 text-xs leading-5 text-emerald-700">
+              下一步：在 Studio 中精剪（镜头、字幕、CTA），然后到渲染中心提交出片。
+            </p>
+          </div>
+
+          <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-5">
+            <button
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black text-slate-600 disabled:opacity-40"
+              disabled={stepIndex <= 1}
+              onClick={() => goToStep(stepIndex - 1)}
+              type="button"
+            >
+              上一步
+            </button>
+            {stepIndex < 6 ? (
+              <button
+                className="rounded-xl bg-[#263138] px-5 py-2 text-xs font-black text-white disabled:opacity-40"
+                disabled={!creationSteps[stepIndex - 1]?.done}
+                onClick={() => goToStep(stepIndex + 1)}
+                type="button"
+              >
+                下一步
+              </button>
+            ) : onOpenVideoProject && videoVersions[0] ? (
+              <button
+                className="rounded-xl bg-[#9a6b3c] px-5 py-2 text-xs font-black text-white"
+                onClick={() => onOpenVideoProject(videoVersions[0]!.videoProjectId)}
+                type="button"
+              >
+                在 Studio 中打开成片
+              </button>
+            ) : null}
+          </div>
         </section>
       ) : null}
     </section>

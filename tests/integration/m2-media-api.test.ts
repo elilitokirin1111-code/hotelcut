@@ -420,4 +420,62 @@ describeWithDatabase('M2 media API integration', () => {
       ]),
     );
   });
+
+  it('organizes assets into folders and switches their purpose', async () => {
+    const registrationResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/uploads`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        kind: 'video',
+        originalFilename: 'organize-me.mp4',
+        contentType: 'video/mp4',
+        byteSize: 35_687,
+        checksumSha256: checksum,
+        partSize: 5 * 1024 * 1024,
+      },
+    });
+    expect(registrationResponse.statusCode, registrationResponse.body).toBe(201);
+    const registration = registrationResponse.json<{
+      asset: { id: string };
+      upload: { providerUploadId: string };
+    }>();
+    const completionResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${registration.asset.id}/uploads/complete`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        uploadId: registration.upload.providerUploadId,
+        parts: [{ partNumber: 1, etag: '"organize-etag"' }],
+      },
+    });
+    expect(completionResponse.statusCode, completionResponse.body).toBe(202);
+
+    const organizeResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/organize`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        assetIds: [registration.asset.id],
+        folder: '客房',
+        purpose: 'reference_video',
+      },
+    });
+    expect(organizeResponse.statusCode, organizeResponse.body).toBe(200);
+    expect(organizeResponse.json<Array<{ folder: string; purpose: string }>>()[0]).toMatchObject({
+      folder: '客房',
+      purpose: 'reference_video',
+    });
+
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotelId}/assets`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(listResponse.statusCode, listResponse.body).toBe(200);
+    const organized = listResponse
+      .json<Array<{ folder: string | null; id: string; purpose: string }>>()
+      .find((asset) => asset.id === registration.asset.id);
+    expect(organized).toMatchObject({ folder: '客房', purpose: 'reference_video' });
+  });
 });

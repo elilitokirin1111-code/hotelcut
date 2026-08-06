@@ -389,6 +389,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         (asset) =>
           asset.kind === 'video' &&
           asset.status === 'ready' &&
+          asset.purpose !== 'reference_video' &&
           (blueprint.sourceAssetIds.length === 0 || blueprint.sourceAssetIds.includes(asset.id)),
       );
       if (readyAssets.length === 0) {
@@ -1105,7 +1106,8 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
       ]);
       if (script.creativeProjectId !== project.id) throw new DomainNotFoundError();
       const assets = await store.listAssets(request.actorUserId, project.hotelId);
-      const allowedTags = collectAllowedAssetTags(assets);
+      const productionAssets = assets.filter((asset) => asset.purpose !== 'reference_video');
+      const allowedTags = collectAllowedAssetTags(productionAssets);
       try {
         const generated = editBlueprintGenerationSchema.parse(
           await generate(
@@ -1125,7 +1127,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           ),
         );
         const beats = generated.beats.map((beat) => sanitizeBeatTags(beat, allowedTags));
-        const readyAssetCount = assets.filter(
+        const readyAssetCount = productionAssets.filter(
           (asset) => asset.kind === 'video' && asset.status === 'ready',
         ).length;
         const reusableBeats =
@@ -1232,7 +1234,12 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
       const assets = await store.listAssets(request.actorUserId, project.hotelId);
       const details = await Promise.all(
         assets
-          .filter((asset) => asset.kind === 'video' && asset.status === 'ready')
+          .filter(
+            (asset) =>
+              asset.kind === 'video' &&
+              asset.status === 'ready' &&
+              asset.purpose !== 'reference_video',
+          )
           .map((asset) => store.getAssetDetail(request.actorUserId, asset.id)),
       );
       const requirements = await store.replaceAssetRequirements(

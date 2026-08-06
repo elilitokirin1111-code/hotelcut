@@ -6,6 +6,7 @@ import { ANALYSIS_PIPELINE_VERSION, type AnalysisJobData } from '@hotelcut/media
 import {
   analysisRetryResponseSchema,
   assetBatchDeleteSchema,
+  assetPurposeSchema,
   assetDerivativeParamsSchema,
   assetDetailSchema,
   assetIdParamsSchema,
@@ -38,6 +39,14 @@ const commonResponses = {
   404: errorResponseSchema,
   409: errorResponseSchema,
 };
+
+const organizeAssetsSchema = z
+  .object({
+    assetIds: z.array(z.uuid()).min(1).max(200),
+    purpose: assetPurposeSchema.optional(),
+    folder: z.string().trim().max(80).nullable().optional(),
+  })
+  .strict();
 
 function analysisJobData(queued: QueuedAssetAnalysis): AnalysisJobData {
   if (!queued.asset.checksumSha256) {
@@ -381,6 +390,58 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
         );
       }
       return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    '/v1/hotels/:hotelId/assets/organize',
+    {
+      schema: {
+        body: organizeAssetsSchema,
+        params: hotelIdParamsSchema,
+        response: { 200: z.array(assetSchema), ...commonResponses },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Assign assets to folders or switch their purpose',
+        tags: ['assets'],
+      },
+    },
+    async (request) =>
+      repository().updateAssetOrganization(
+        request.actorUserId,
+        request.params.hotelId,
+        request.body.assetIds,
+        {
+          ...(request.body.purpose === undefined ? {} : { purpose: request.body.purpose }),
+          ...(request.body.folder === undefined ? {} : { folder: request.body.folder }),
+        },
+      ),
+  );
+
+  app.put(
+    '/v1/assets/:assetId/organization',
+    {
+      schema: {
+        body: organizeAssetsSchema.omit({ assetIds: true }),
+        params: assetIdParamsSchema,
+        response: { 200: assetSchema, ...commonResponses },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Move one asset to a folder or switch its purpose',
+        tags: ['assets'],
+      },
+    },
+    async (request) => {
+      const detail = await repository().getAssetDetail(request.actorUserId, request.params.assetId);
+      const [updated] = await repository().updateAssetOrganization(
+        request.actorUserId,
+        detail.hotelId,
+        [request.params.assetId],
+        {
+          ...(request.body.purpose === undefined ? {} : { purpose: request.body.purpose }),
+          ...(request.body.folder === undefined ? {} : { folder: request.body.folder }),
+        },
+      );
+      if (!updated) throw new Error('Asset organization update returned no asset');
+      return updated;
     },
   );
 

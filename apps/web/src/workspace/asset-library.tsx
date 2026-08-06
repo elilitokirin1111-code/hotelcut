@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 
-import type { Asset, AssetDetail } from '@hotelcut/schemas';
+import type { Asset, AssetDetail, AssetPurpose } from '@hotelcut/schemas';
 
 import {
   visionAngleLabels,
@@ -184,6 +184,10 @@ export function AssetLibrary({
   const [detailVersion, setDetailVersion] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<Asset['status'] | 'all'>('all');
+  const [purposeFilter, setPurposeFilter] = useState<'all' | AssetPurpose>('all');
+  const [folderFilter, setFolderFilter] = useState<string | null>(null);
+  const [folderDraft, setFolderDraft] = useState('');
+  const [organizing, setOrganizing] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileInputVersion, setFileInputVersion] = useState(0);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
@@ -224,6 +228,50 @@ export function AssetLibrary({
     const interval = window.setInterval(() => setListVersion((version) => version + 1), 5_000);
     return () => window.clearInterval(interval);
   }, [hasActiveAnalysis]);
+
+  const folders = useMemo(
+    () =>
+      listState.status === 'ready'
+        ? [
+            ...new Set(
+              listState.assets
+                .map((asset) => asset.folder)
+                .filter((folder): folder is string => Boolean(folder)),
+            ),
+          ].sort((left, right) => left.localeCompare(right, 'zh-CN'))
+        : [],
+    [listState],
+  );
+
+  const applyOrganization = async (
+    assetIds: string[],
+    input: { purpose?: AssetPurpose; folder?: string | null },
+  ) => {
+    if (assetIds.length === 0) {
+      return;
+    }
+    setOrganizing(true);
+    setOperationMessage(null);
+    try {
+      const updated = await api.organizeAssets(hotelId, assetIds, input);
+      setListState((state) =>
+        state.status === 'ready'
+          ? {
+              ...state,
+              assets: state.assets.map(
+                (asset) => updated.find((candidate) => candidate.id === asset.id) ?? asset,
+              ),
+            }
+          : state,
+      );
+      setFolderDraft('');
+      setOperationMessage('素材归类已保存');
+    } catch (error) {
+      setOperationMessage(formatError(error));
+    } finally {
+      setOrganizing(false);
+    }
+  };
 
   const selectedListAsset =
     listState.status === 'ready'
@@ -299,10 +347,14 @@ export function AssetLibrary({
       return [];
     }
     const byStatus = listState.assets.filter(
-      (asset) => statusFilter === 'all' || asset.status === statusFilter,
+      (asset) =>
+        (statusFilter === 'all' || asset.status === statusFilter) &&
+        (purposeFilter === 'all' || asset.purpose === purposeFilter) &&
+        (folderFilter === null ||
+          (folderFilter === '__unfiled__' ? asset.folder === null : asset.folder === folderFilter)),
     );
     return searchAssets(byStatus, search);
-  }, [listState, search, statusFilter]);
+  }, [folderFilter, listState, purposeFilter, search, statusFilter]);
 
   const uploadAssets = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -563,6 +615,111 @@ export function AssetLibrary({
               </label>
             </div>
 
+            <div className="asset-purpose-row">
+              {(
+                [
+                  ['all', '全部素材'],
+                  ['production_asset', '正片素材'],
+                  ['reference_video', '参考视频'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  aria-pressed={purposeFilter === value}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-black transition ${
+                    purposeFilter === value
+                      ? 'bg-[#263138] text-white'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                  key={value}
+                  onClick={() => setPurposeFilter(value)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {[
+                [null, '全部文件夹'],
+                ['__unfiled__', '未分类'],
+                ...folders.map((folder) => [folder, folder] as const),
+              ].map(([value, label]) => (
+                <button
+                  aria-pressed={folderFilter === value}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-black transition ${
+                    folderFilter === value
+                      ? 'bg-[#9a6b3c] text-white'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                  key={value ?? (label as string)}
+                  onClick={() => setFolderFilter(value)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {selectedAssetIds.length > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div>
+                  <p className="text-xs font-black text-slate-700">
+                    已选 {selectedAssetIds.length} 个素材
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    归入文件夹或切换用途；参考视频不会参与自动选片。
+                  </p>
+                </div>
+                <label className="flex-1 min-w-44">
+                  <span className="sr-only">文件夹名称</span>
+                  <input
+                    aria-label="文件夹名称"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#d6a76d]"
+                    list="asset-folders"
+                    onChange={(event) => setFolderDraft(event.target.value)}
+                    placeholder="输入或选择文件夹"
+                    value={folderDraft}
+                  />
+                  <datalist id="asset-folders">
+                    {folders.map((folder) => (
+                      <option key={folder} value={folder ?? ''} />
+                    ))}
+                  </datalist>
+                </label>
+                <button
+                  className="rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                  disabled={organizing || !folderDraft.trim()}
+                  onClick={() =>
+                    void applyOrganization(selectedAssetIds, { folder: folderDraft.trim() })
+                  }
+                  type="button"
+                >
+                  {organizing ? '保存中…' : '移入文件夹'}
+                </button>
+                <button
+                  className="rounded-xl bg-[#9a6b3c] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                  disabled={organizing}
+                  onClick={() =>
+                    void applyOrganization(selectedAssetIds, { purpose: 'reference_video' })
+                  }
+                  type="button"
+                >
+                  设为参考视频
+                </button>
+                <button
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black text-slate-600 disabled:opacity-60"
+                  disabled={organizing}
+                  onClick={() =>
+                    void applyOrganization(selectedAssetIds, { purpose: 'production_asset' })
+                  }
+                  type="button"
+                >
+                  设为正片素材
+                </button>
+              </div>
+            ) : null}
+
             {listState.status === 'ready' &&
             listState.assets.some((asset) => asset.status === 'ready') &&
             onCreateVideo ? (
@@ -634,8 +791,18 @@ export function AssetLibrary({
                       <div>
                         <strong>{assetShortName(asset)}</strong>
                         <AssetStatus status={asset.status} />
+                        {asset.purpose === 'reference_video' ? (
+                          <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[9px] font-black text-violet-700">
+                            参考视频
+                          </span>
+                        ) : null}
                       </div>
                       <small className="asset-card-file">{asset.originalFilename}</small>
+                      {asset.folder ? (
+                        <small className="text-[9px] font-black text-[#9a6b3c]">
+                          📁 {asset.folder}
+                        </small>
+                      ) : null}
                       <p>
                         {asset.kind === 'audio' ? '音频' : '视频'} · {formatBytes(asset.byteSize)}
                       </p>

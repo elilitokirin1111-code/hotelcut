@@ -256,6 +256,7 @@ export const assets = pgTable(
     storageBucket: varchar('storage_bucket', { length: 120 }).notNull(),
     storageKey: varchar('storage_key', { length: 500 }).notNull(),
     checksumSha256: varchar('checksum_sha256', { length: 64 }),
+    folder: varchar('folder', { length: 80 }),
     metadata: jsonb('metadata')
       .default(sql`'{}'::jsonb`)
       .notNull(),

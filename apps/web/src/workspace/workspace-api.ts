@@ -42,6 +42,7 @@ import {
   videoProjectDetailSchema,
   videoProjectSchema,
   type Asset,
+  type AssetPurpose,
   type AiDirectorFeatureFlags,
   type AiEditPlan,
   type AiEditPlanInput,
@@ -190,6 +191,11 @@ export interface WorkspaceApi {
   retryAssetAnalysis(assetId: string): Promise<AssetAnalysisRetryResult>;
   deleteAsset(assetId: string): Promise<void>;
   deleteAssets(hotelId: string, assetIds: string[]): Promise<void>;
+  organizeAssets(
+    hotelId: string,
+    assetIds: string[],
+    input: { purpose?: AssetPurpose; folder?: string | null },
+  ): Promise<Asset[]>;
   deleteAiTemplates(hotelId: string, aiTemplateIds: string[]): Promise<void>;
   deleteRenderJobs(projectId: string, renderJobIds: string[]): Promise<void>;
   deleteVideoProjects(hotelId: string, projectIds: string[]): Promise<void>;
@@ -842,6 +848,22 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
         aiTemplateSchema,
         {
           body: JSON.stringify(generateAiTemplateSchema.parse(input)),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async organizeAssets(hotelId, assetIds, input) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/assets/organize`,
+        z.array(assetSchema),
+        {
+          body: JSON.stringify({
+            assetIds,
+            ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
+            ...(input.folder === undefined ? {} : { folder: input.folder }),
+          }),
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
         },

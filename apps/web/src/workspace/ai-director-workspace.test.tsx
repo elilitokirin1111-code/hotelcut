@@ -337,6 +337,7 @@ describe('AI Director workspace foundation', () => {
       hotelId,
       kind: 'video',
       status: 'ready',
+      purpose: 'reference_video',
       originalFilename: '前台反差参考片.mp4',
       contentType: 'video/mp4',
       byteSize: 20_000_000,
@@ -437,6 +438,10 @@ describe('AI Director workspace foundation', () => {
     };
 
     const { api, createCreativeProject } = createApi();
+    createCreativeProject.mockResolvedValue({
+      ...creativeProject,
+      mode: 'reference',
+    });
     api.getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
       aiDirectorEnabled: true,
       aiReviewEnabled: false,

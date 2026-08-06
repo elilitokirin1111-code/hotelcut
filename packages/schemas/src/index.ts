@@ -9,6 +9,7 @@ export const hexColorSchema = z
 export const organizationRoleSchema = z.enum(['owner', 'admin', 'member']);
 export const userStatusSchema = z.enum(['active', 'disabled']);
 export const assetKindSchema = z.enum(['video', 'image', 'audio', 'logo', 'font']);
+export const assetPurposeSchema = z.enum(['production_asset', 'reference_video']);
 export const assetStatusSchema = z.enum(['registered', 'uploaded', 'analyzing', 'ready', 'failed']);
 export const assetUploadStatusSchema = z.enum(['initiated', 'completed', 'aborted', 'expired']);
 export const assetDerivativeKindSchema = z.enum(['proxy', 'thumbnail', 'audio']);
@@ -197,6 +198,8 @@ export const assetSchema = z.object({
     .string()
     .regex(/^[0-9A-Fa-f]{64}$/)
     .nullable(),
+  purpose: assetPurposeSchema.optional(),
+  folder: z.string().max(80).nullable().optional(),
   metadata: z.record(z.string(), z.unknown()),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
@@ -622,6 +625,7 @@ export type UpsertBrandKitInput = z.infer<typeof upsertBrandKitSchema>;
 export type VideoBrief = z.infer<typeof videoBriefSchema>;
 export type CreateVideoBriefInput = z.infer<typeof createVideoBriefSchema>;
 export type Asset = z.infer<typeof assetSchema>;
+export type AssetPurpose = z.infer<typeof assetPurposeSchema>;
 export type AssetSegment = z.infer<typeof assetSegmentSchema>;
 export type AssetUpload = z.infer<typeof assetUploadSchema>;
 export type AssetDerivative = z.infer<typeof assetDerivativeSchema>;

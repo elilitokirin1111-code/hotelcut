@@ -29,6 +29,7 @@ import {
   type RegisteredAssetUpload,
   type StorageObjectReference,
   type StoredModelProviderSettings,
+  type UpdateAssetOrganizationInput,
 } from '@hotelcut/domain';
 import type {
   AnalysisJob,
@@ -1421,6 +1422,43 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       references.push({ bucket: row.bucket, key: row.key });
     }
     return references;
+  }
+
+  async updateAssetOrganization(
+    actorUserId: string,
+    hotelId: string,
+    assetIds: string[],
+    input: UpdateAssetOrganizationInput,
+  ): Promise<Asset[]> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .select({ id: schema.assets.id })
+      .from(schema.assets)
+      .where(and(eq(schema.assets.hotelId, hotelId), inArray(schema.assets.id, assetIds)));
+    if (rows.length === 0) {
+      throw new DomainNotFoundError('Asset not found');
+    }
+    const foundIds = rows.map((row) => row.id);
+    const values: Partial<typeof schema.assets.$inferInsert> = {};
+    if (input.purpose !== undefined) {
+      values.purpose = input.purpose;
+    }
+    if (input.folder !== undefined) {
+      values.folder = input.folder;
+    }
+    if (Object.keys(values).length === 0) {
+      const unchanged = await this.db
+        .select()
+        .from(schema.assets)
+        .where(inArray(schema.assets.id, foundIds));
+      return unchanged.map(mapAsset);
+    }
+    const updated = await this.db
+      .update(schema.assets)
+      .set(values)
+      .where(inArray(schema.assets.id, foundIds))
+      .returning();
+    return updated.map(mapAsset);
   }
 
   async deleteRenderJobs(
