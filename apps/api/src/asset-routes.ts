@@ -5,6 +5,7 @@ import type { AnalysisQueue } from '@hotelcut/job-queue';
 import { ANALYSIS_PIPELINE_VERSION, type AnalysisJobData } from '@hotelcut/media';
 import {
   analysisRetryResponseSchema,
+  assetBatchDeleteSchema,
   assetDerivativeParamsSchema,
   assetDetailSchema,
   assetIdParamsSchema,
@@ -312,6 +313,74 @@ export const assetRoutes: FastifyPluginCallbackZod<AssetRouteOptions> = (app, op
         ),
         expiresInSeconds,
       };
+    },
+  );
+
+  app.delete(
+    '/v1/assets/:assetId',
+    {
+      schema: {
+        params: assetIdParamsSchema,
+        response: { 204: z.void(), ...commonResponses },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Delete an asset and its analysis artifacts',
+        tags: ['assets'],
+      },
+    },
+    async (request, reply) => {
+      const detail = await repository().getAssetDetail(request.actorUserId, request.params.assetId);
+      const references = await repository().listAssetStorageReferences(
+        request.actorUserId,
+        detail.hotelId,
+        [request.params.assetId],
+      );
+      await repository().deleteAssets(request.actorUserId, detail.hotelId, [
+        request.params.assetId,
+      ]);
+      try {
+        await storage().deleteObjects(references);
+      } catch (error) {
+        request.log.warn(
+          { assetId: request.params.assetId, objectCount: references.length, error },
+          'Asset rows deleted but object-storage cleanup failed; orphan objects will need a cleanup pass',
+        );
+      }
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    '/v1/hotels/:hotelId/assets/batch-delete',
+    {
+      schema: {
+        body: assetBatchDeleteSchema,
+        params: hotelIdParamsSchema,
+        response: { 204: z.void(), ...commonResponses },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Batch-delete hotel assets',
+        tags: ['assets'],
+      },
+    },
+    async (request, reply) => {
+      const references = await repository().listAssetStorageReferences(
+        request.actorUserId,
+        request.params.hotelId,
+        request.body.assetIds,
+      );
+      await repository().deleteAssets(
+        request.actorUserId,
+        request.params.hotelId,
+        request.body.assetIds,
+      );
+      try {
+        await storage().deleteObjects(references);
+      } catch (error) {
+        request.log.warn(
+          { hotelId: request.params.hotelId, objectCount: references.length, error },
+          'Asset rows deleted but object-storage cleanup failed; orphan objects will need a cleanup pass',
+        );
+      }
+      return reply.code(204).send();
     },
   );
 

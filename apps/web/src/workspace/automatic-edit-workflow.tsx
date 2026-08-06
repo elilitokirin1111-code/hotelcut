@@ -1,5 +1,6 @@
 import type {
   AiEditPlan,
+  AiTemplate,
   Asset,
   CreateVideoBriefInput,
   GeneratedVideoProject,
@@ -20,10 +21,13 @@ import type { WorkspaceApi } from './workspace-api';
 interface AutomaticEditWorkflowProps {
   api: WorkspaceApi;
   hotelId: string;
+  onProjectOpened?: () => void;
+  openProjectId?: string | null;
 }
 
 interface WorkflowData {
   assets: Asset[];
+  aiTemplates: AiTemplate[];
   projects: VideoProject[];
   templates: ProjectTemplate[];
 }
@@ -218,6 +222,19 @@ function durationFor(template: ProjectTemplate): number {
   );
 }
 
+function allTemplateOptions(data: WorkflowData): ProjectTemplate[] {
+  const aiTemplates: ProjectTemplate[] = data.aiTemplates.map((template) => ({
+    key: template.id,
+    version: '1.0.0',
+    name: template.name,
+    description: template.description,
+    minDurationSeconds: template.durationSeconds,
+    maxDurationSeconds: template.durationSeconds,
+    requiredTags: [...new Set(template.spec.beats.flatMap((beat) => beat.requiredTags))],
+  }));
+  return [...data.templates, ...aiTemplates];
+}
+
 function statusLabel(status: VideoProject['status']): string {
   const labels: Record<VideoProject['status'], string> = {
     archived: '已归档',
@@ -228,7 +245,12 @@ function statusLabel(status: VideoProject['status']): string {
   return labels[status];
 }
 
-export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowProps) {
+export function AutomaticEditWorkflow({
+  api,
+  hotelId,
+  onProjectOpened,
+  openProjectId,
+}: AutomaticEditWorkflowProps) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
   const [loadVersion, setLoadVersion] = useState(0);
   const [templateKey, setTemplateKey] = useState('');
@@ -242,17 +264,20 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
   const [studioOpen, setStudioOpen] = useState(false);
   const [studioSessionVersion, setStudioSessionVersion] = useState(0);
   const [aiPlanState, setAiPlanState] = useState<AiPlanState>({ status: 'idle' });
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+  const [projectNotice, setProjectNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
     setLoadState({ status: 'loading' });
     void Promise.all([
       api.listProjectTemplates(controller.signal),
+      api.listAiTemplates(hotelId, controller.signal),
       api.listVideoProjects(hotelId, controller.signal),
       api.listAssets(hotelId, controller.signal),
     ])
-      .then(([templates, projects, assets]) => {
-        setLoadState({ data: { assets, projects, templates }, status: 'ready' });
+      .then(([templates, aiTemplates, projects, assets]) => {
+        setLoadState({ data: { aiTemplates, assets, projects, templates }, status: 'ready' });
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
@@ -279,7 +304,8 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
 
   const selectedTemplate =
     loadState.status === 'ready'
-      ? (loadState.data.templates.find((template) => template.key === templateKey) ?? null)
+      ? (allTemplateOptions(loadState.data).find((template) => template.key === templateKey) ??
+        null)
       : null;
   const readyAssets = useMemo(
     () =>
@@ -393,6 +419,30 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
     }
   };
 
+  const deleteSelectedProjects = async () => {
+    if (selectedProjectIds.length === 0) {
+      return;
+    }
+    if (
+      !window.confirm(
+        `确定删除选中的 ${selectedProjectIds.length} 个项目？项目修订和渲染记录会一并删除。`,
+      )
+    ) {
+      return;
+    }
+    setProjectNotice(null);
+    try {
+      await api.deleteVideoProjects(hotelId, selectedProjectIds);
+      setProjectNotice(`已删除 ${selectedProjectIds.length} 个项目`);
+      setSelectedProjectIds([]);
+      setSelectedDetail(null);
+      setStudioOpen(false);
+      setLoadVersion((version) => version + 1);
+    } catch (error) {
+      setProjectNotice(formatError(error));
+    }
+  };
+
   const generateAiPlan = async () => {
     if (loadState.status !== 'ready') {
       setAiPlanState({ message: '工作流数据尚未加载完成，请稍后重试。', status: 'error' });
@@ -445,6 +495,18 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
       setCreateState({ message: formatError(error), status: 'error' });
     }
   };
+
+  useEffect(() => {
+    if (!openProjectId || loadState.status !== 'ready') {
+      return;
+    }
+    const project = loadState.data.projects.find((candidate) => candidate.id === openProjectId);
+    if (!project) {
+      return;
+    }
+    void openProject(openProjectId, true);
+    onProjectOpened?.();
+  }, [loadState, onProjectOpened, openProjectId]);
 
   const saveStudioRevision = async (
     project: HotelVideoProjectV1,
@@ -566,8 +628,11 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
             <legend className="text-sm font-black text-[#263138]">2. 选择剪辑模板</legend>
             <p className="wizard-pane-description">模板决定角色节奏、素材槽位与最终时长范围。</p>
             <div className="workflow-template-grid">
-              {loadState.data.templates.map((template) => {
+              {allTemplateOptions(loadState.data).map((template) => {
                 const selected = template.key === templateKey;
+                const isAiTemplate = loadState.data.aiTemplates.some(
+                  (aiTemplate) => aiTemplate.id === template.key,
+                );
                 return (
                   <label
                     className={`cursor-pointer rounded-2xl border p-4 transition ${
@@ -591,7 +656,14 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
                       type="radio"
                       value={template.key}
                     />
-                    <span className="text-xs font-black text-[#263138]">{template.name}</span>
+                    <span className="text-xs font-black text-[#263138]">
+                      {template.name}
+                      {isAiTemplate ? (
+                        <em className="ml-1.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[8px] not-italic text-amber-700">
+                          AI
+                        </em>
+                      ) : null}
+                    </span>
                     <span className="mt-2 block text-[10px] leading-4 text-slate-500">
                       {template.description}
                     </span>
@@ -897,10 +969,26 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
           <div className="rounded-3xl border border-slate-200 bg-white/80 p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black">已保存项目</h3>
-              <span className="text-[10px] font-bold text-slate-400">
-                {loadState.data.projects.length}
-              </span>
+              <div className="flex items-center gap-2">
+                {selectedProjectIds.length > 0 ? (
+                  <button
+                    className="editor-secondary-button"
+                    onClick={() => void deleteSelectedProjects()}
+                    type="button"
+                  >
+                    删除选中（{selectedProjectIds.length}）
+                  </button>
+                ) : null}
+                <span className="text-[10px] font-bold text-slate-400">
+                  {loadState.data.projects.length}
+                </span>
+              </div>
             </div>
+            {projectNotice ? (
+              <p className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-[10px] font-bold text-slate-600">
+                {projectNotice}
+              </p>
+            ) : null}
             <div className="mt-3 space-y-2">
               {loadState.data.projects.length === 0 ? (
                 <p className="rounded-xl bg-slate-50 p-4 text-[10px] text-slate-500">
@@ -908,23 +996,38 @@ export function AutomaticEditWorkflow({ api, hotelId }: AutomaticEditWorkflowPro
                 </p>
               ) : (
                 loadState.data.projects.map((project) => (
-                  <button
-                    aria-label={`在 Studio 中打开 ${project.name}`}
-                    className="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-3 text-left transition hover:border-[#d9b489]"
-                    key={project.id}
-                    onClick={() => void openProject(project.id, true)}
-                    type="button"
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-xs font-black">{project.name}</span>
-                      <span className="mt-1 block text-[9px] text-slate-400">
-                        {project.templateKey} · 修订 {project.currentRevision}
+                  <div className="flex items-start gap-2" key={project.id}>
+                    <label className="render-job-check mt-1">
+                      <input
+                        aria-label={`选择项目 ${project.name}`}
+                        checked={selectedProjectIds.includes(project.id)}
+                        onChange={(event) =>
+                          setSelectedProjectIds((current) =>
+                            event.target.checked
+                              ? [...current, project.id]
+                              : current.filter((id) => id !== project.id),
+                          )
+                        }
+                        type="checkbox"
+                      />
+                    </label>
+                    <button
+                      aria-label={`在 Studio 中打开 ${project.name}`}
+                      className="flex min-w-0 flex-1 items-center justify-between rounded-xl border border-slate-100 bg-white px-3 py-3 text-left transition hover:border-[#d9b489]"
+                      onClick={() => void openProject(project.id, true)}
+                      type="button"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-black">{project.name}</span>
+                        <span className="mt-1 block text-[9px] text-slate-400">
+                          {project.templateKey} · 修订 {project.currentRevision}
+                        </span>
                       </span>
-                    </span>
-                    <span className="ml-3 rounded-full bg-slate-100 px-2 py-1 text-[8px] font-bold text-slate-600">
-                      {statusLabel(project.status)}
-                    </span>
-                  </button>
+                      <span className="ml-3 rounded-full bg-slate-100 px-2 py-1 text-[8px] font-bold text-slate-600">
+                        {statusLabel(project.status)}
+                      </span>
+                    </button>
+                  </div>
                 ))
               )}
             </div>

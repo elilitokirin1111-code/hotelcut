@@ -14,6 +14,7 @@ type RenderCenterApi = Pick<
   WorkspaceApi,
   | 'cancelRenderJob'
   | 'createRenderJob'
+  | 'deleteRenderJobs'
   | 'getRenderArtifactDownload'
   | 'getRenderJob'
   | 'listRenderJobs'
@@ -172,6 +173,7 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
   const [jobVersion, setJobVersion] = useState(0);
   const [jobState, setJobState] = useState<JobListState>({ status: 'idle' });
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedJobIds, setSelectedJobIds] = useState<string[]>([]);
   const [detailVersion, setDetailVersion] = useState(0);
   const [detailState, setDetailState] = useState<DetailState>({ status: 'idle' });
   const [actionState, setActionState] = useState<ActionState>({ status: 'idle' });
@@ -311,6 +313,27 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
     }
   };
 
+  const deleteSelectedRenders = async () => {
+    if (!selectedProjectId || selectedJobIds.length === 0) {
+      return;
+    }
+    if (!window.confirm(`确定删除选中的 ${selectedJobIds.length} 个渲染任务？删除后不可恢复。`)) {
+      return;
+    }
+    setActionState({ message: '正在删除渲染任务…', status: 'working' });
+    try {
+      await api.deleteRenderJobs(selectedProjectId, selectedJobIds);
+      setActionState({
+        message: `已删除 ${selectedJobIds.length} 个渲染任务`,
+        status: 'success',
+      });
+      setSelectedJobIds([]);
+      setJobVersion((version) => version + 1);
+    } catch (error) {
+      setActionState({ message: formatError(error), status: 'error' });
+    }
+  };
+
   const prepareDownload = async (artifactId: string) => {
     setDownloads((state) => ({ ...state, [artifactId]: { status: 'loading' } }));
     try {
@@ -438,9 +461,20 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-black">渲染记录</h3>
               {jobState.status === 'ready' ? (
-                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500">
-                  {jobState.jobs.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  {selectedJobIds.length > 0 ? (
+                    <button
+                      className="editor-secondary-button"
+                      onClick={() => void deleteSelectedRenders()}
+                      type="button"
+                    >
+                      删除选中（{selectedJobIds.length}）
+                    </button>
+                  ) : null}
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500">
+                    {jobState.jobs.length}
+                  </span>
+                </div>
               ) : null}
             </div>
             {jobState.status === 'loading' ? (
@@ -457,38 +491,54 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
             {jobState.status === 'ready' ? (
               <div className="mt-4 space-y-2">
                 {jobState.jobs.map((job) => (
-                  <button
-                    aria-label={`查看渲染任务 ${job.id}`}
-                    aria-pressed={job.id === selectedJobId}
-                    className={`w-full rounded-2xl border p-3 text-left transition ${
-                      job.id === selectedJobId
-                        ? 'border-[#d6a76d] bg-[#fff9f1]'
-                        : 'border-white bg-white hover:border-slate-200'
-                    }`}
-                    key={job.id}
-                    onClick={() => setSelectedJobId(job.id)}
-                    type="button"
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-black text-slate-600">
-                        第 {job.attempt + 1} 次尝试
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 text-[9px] font-black ${statusStyles[job.status]}`}
-                      >
-                        {statusLabels[job.status]}
-                      </span>
-                    </span>
-                    <span className="mt-2 block text-[10px] text-slate-400">
-                      {formatTime(job.createdAt)}
-                    </span>
-                    <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-slate-100">
-                      <span
-                        className="block h-full rounded-full bg-[#d6a76d]"
-                        style={{ width: `${job.progressBasisPoints / 100}%` }}
+                  <div className="flex items-start gap-2" key={job.id}>
+                    <label className="render-job-check">
+                      <input
+                        aria-label={`选择渲染任务 ${job.id}`}
+                        checked={selectedJobIds.includes(job.id)}
+                        disabled={activeStatuses.has(job.status)}
+                        onChange={(event) =>
+                          setSelectedJobIds((current) =>
+                            event.target.checked
+                              ? [...current, job.id]
+                              : current.filter((id) => id !== job.id),
+                          )
+                        }
+                        type="checkbox"
                       />
-                    </span>
-                  </button>
+                    </label>
+                    <button
+                      aria-label={`查看渲染任务 ${job.id}`}
+                      aria-pressed={job.id === selectedJobId}
+                      className={`min-w-0 flex-1 rounded-2xl border p-3 text-left transition ${
+                        job.id === selectedJobId
+                          ? 'border-[#d6a76d] bg-[#fff9f1]'
+                          : 'border-white bg-white hover:border-slate-200'
+                      }`}
+                      onClick={() => setSelectedJobId(job.id)}
+                      type="button"
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-black text-slate-600">
+                          第 {job.attempt + 1} 次尝试
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-1 text-[9px] font-black ${statusStyles[job.status]}`}
+                        >
+                          {statusLabels[job.status]}
+                        </span>
+                      </span>
+                      <span className="mt-2 block text-[10px] text-slate-400">
+                        {formatTime(job.createdAt)}
+                      </span>
+                      <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-slate-100">
+                        <span
+                          className="block h-full rounded-full bg-[#d6a76d]"
+                          style={{ width: `${job.progressBasisPoints / 100}%` }}
+                        />
+                      </span>
+                    </button>
+                  </div>
                 ))}
               </div>
             ) : null}

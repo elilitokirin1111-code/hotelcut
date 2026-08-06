@@ -2,6 +2,7 @@ import type {
   AnalysisJob,
   AiReview,
   AiReviewGeneration,
+  AiTemplate,
   Asset,
   AssetDerivative,
   AssetDerivativeKind,
@@ -21,6 +22,7 @@ import type {
   CreateCreativeProjectInput,
   CreateAssetUploadInput,
   CreateHotelInput,
+  CreateAiTemplateInput,
   CreateManualSegmentInput,
   CreateRenderJobInput,
   EditBlueprint,
@@ -75,6 +77,11 @@ export interface AssetUploadContext extends RegisteredAssetUpload {
 export interface QueuedAssetAnalysis {
   asset: Asset;
   analysisJob: AnalysisJob;
+}
+
+export interface StorageObjectReference {
+  bucket: string;
+  key: string;
 }
 
 export interface PersistVideoProjectInput extends CreateVideoProjectInput {
@@ -289,6 +296,23 @@ export interface HotelCutRepository {
     input: PersistModelProviderSettingsInput,
   ): Promise<StoredModelProviderSettings>;
   listCreativeProjects(actorUserId: string, hotelId: string): Promise<CreativeProject[]>;
+  listAiTemplates(actorUserId: string, hotelId: string): Promise<AiTemplate[]>;
+  createAiTemplate(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateAiTemplateInput,
+  ): Promise<AiTemplate>;
+  getAiTemplate(actorUserId: string, hotelId: string, aiTemplateId: string): Promise<AiTemplate>;
+  deleteAiTemplate(actorUserId: string, hotelId: string, aiTemplateId: string): Promise<void>;
+  deleteAiTemplates(actorUserId: string, hotelId: string, aiTemplateIds: string[]): Promise<void>;
+  deleteAssets(actorUserId: string, hotelId: string, assetIds: string[]): Promise<void>;
+  listAssetStorageReferences(
+    actorUserId: string,
+    hotelId: string,
+    assetIds: string[],
+  ): Promise<StorageObjectReference[]>;
+  deleteRenderJobs(actorUserId: string, projectId: string, renderJobIds: string[]): Promise<void>;
+  deleteVideoProjects(actorUserId: string, hotelId: string, projectIds: string[]): Promise<void>;
   createCreativeProject(
     actorUserId: string,
     hotelId: string,

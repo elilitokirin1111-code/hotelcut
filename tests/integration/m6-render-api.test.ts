@@ -89,6 +89,11 @@ class FakeObjectStorage implements MultipartObjectStorage {
     );
   }
 
+  deleteObjects(_objects: readonly { bucket: string; key: string }[]): Promise<void> {
+    void _objects;
+    return Promise.resolve();
+  }
+
   putObject(_input: {
     bucket: string;
     key: string;

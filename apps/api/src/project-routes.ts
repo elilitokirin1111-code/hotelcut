@@ -1,6 +1,6 @@
 import { randomInt, randomUUID } from 'node:crypto';
 
-import { compileVideo } from '@hotelcut/compiler';
+import { buildAiTemplateCompilationTemplate, compileVideo } from '@hotelcut/compiler';
 import type { HotelCutRepository } from '@hotelcut/domain';
 import {
   createVideoProjectSchema,
@@ -12,6 +12,7 @@ import {
   projectTemplateSchema,
   projectRevisionSchema,
   saveProjectRevisionSchema,
+  videoProjectBatchDeleteSchema,
   videoProjectDetailSchema,
   videoProjectSchema,
 } from '@hotelcut/schemas';
@@ -138,8 +139,25 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
       try {
         template = resolveProjectTemplate(request.body.templateKey);
       } catch {
-        throw new ProjectRequestError(
-          `Unknown automatic-edit template: ${request.body.templateKey}`,
+        let aiTemplate = null;
+        try {
+          aiTemplate = await store.getAiTemplate(
+            request.actorUserId,
+            request.params.hotelId,
+            request.body.templateKey,
+          );
+        } catch {
+          aiTemplate = null;
+        }
+        if (!aiTemplate) {
+          throw new ProjectRequestError(
+            `Unknown automatic-edit template: ${request.body.templateKey}`,
+          );
+        }
+        template = buildAiTemplateCompilationTemplate(
+          aiTemplate.id,
+          aiTemplate.name,
+          aiTemplate.spec,
         );
       }
 
@@ -328,6 +346,56 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
         schemaVersion: projectDocument.schemaVersion,
       });
       return reply.code(201).send(result);
+    },
+  );
+
+  app.delete(
+    '/v1/video-projects/:id',
+    {
+      schema: {
+        params: idParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Delete a video project, its revisions and render history',
+        tags: ['video-projects'],
+      },
+    },
+    async (request, reply) => {
+      const project = await repository().getVideoProject(request.actorUserId, request.params.id);
+      await repository().deleteVideoProjects(request.actorUserId, project.project.hotelId, [
+        request.params.id,
+      ]);
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    '/v1/hotels/:hotelId/video-projects/batch-delete',
+    {
+      schema: {
+        body: videoProjectBatchDeleteSchema,
+        params: hotelIdParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Batch-delete video projects',
+        tags: ['video-projects'],
+      },
+    },
+    async (request, reply) => {
+      await repository().deleteVideoProjects(
+        request.actorUserId,
+        request.params.hotelId,
+        request.body.projectIds,
+      );
+      return reply.code(204).send();
     },
   );
 };

@@ -11,6 +11,7 @@ import {
   renderArtifactDownloadSchema,
   renderJobDetailSchema,
   renderJobSchema,
+  renderJobBatchDeleteSchema,
 } from '@hotelcut/schemas';
 import type { MultipartObjectStorage } from '@hotelcut/storage';
 
@@ -20,6 +21,13 @@ interface RenderRouteOptions {
   renderQueue?: RenderQueue | undefined;
   repository?: HotelCutRepository | undefined;
 }
+
+const renderJobDeleteParamsSchema = z
+  .object({
+    projectId: z.uuid(),
+    renderJobId: z.uuid(),
+  })
+  .strict();
 
 export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify, options) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -203,6 +211,57 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
         downloadUrl,
         expiresAt: new Date(Date.now() + options.downloadUrlTtlSeconds * 1_000).toISOString(),
       };
+    },
+  );
+
+  app.delete(
+    '/v1/video-projects/:projectId/render-jobs/:renderJobId',
+    {
+      schema: {
+        params: renderJobDeleteParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Delete a finished render job and its delivery artifacts',
+        tags: ['render-jobs'],
+      },
+    },
+    async (request, reply) => {
+      await repository().deleteRenderJobs(request.actorUserId, request.params.projectId, [
+        request.params.renderJobId,
+      ]);
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    '/v1/video-projects/:projectId/render-jobs/batch-delete',
+    {
+      schema: {
+        body: renderJobBatchDeleteSchema,
+        params: idParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Batch-delete finished render jobs',
+        tags: ['render-jobs'],
+      },
+    },
+    async (request, reply) => {
+      await repository().deleteRenderJobs(
+        request.actorUserId,
+        request.params.id,
+        request.body.renderJobIds,
+      );
+      return reply.code(204).send();
     },
   );
 };
