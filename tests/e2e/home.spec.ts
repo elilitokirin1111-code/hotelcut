@@ -614,12 +614,12 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
   await expect(page.getByRole('heading', { name: '生产素材库' })).toBeVisible();
   await expect(page.getByRole('button', { name: /湖景房介绍\.mp4/ })).toBeVisible();
 
-  await page.getByRole('searchbox', { name: '搜索素材文件名' }).fill('大堂');
+  await page.getByRole('searchbox', { name: '搜索素材' }).fill('大堂');
   await page.getByRole('button', { name: /大堂口播\.mp4/ }).click();
   await page.getByRole('button', { name: '重新分析' }).click();
   await expect.poll(() => analysisRetried).toBe(true);
 
-  await page.getByRole('searchbox', { name: '搜索素材文件名' }).fill('湖景');
+  await page.getByRole('searchbox', { name: '搜索素材' }).fill('湖景');
   await page.getByRole('button', { name: /湖景房介绍\.mp4/ }).click();
   await expect(page.getByAltText('湖景房介绍.mp4 缩略图')).toBeVisible();
   await page.getByRole('textbox', { exact: true, name: '标签' }).fill('湖景房');

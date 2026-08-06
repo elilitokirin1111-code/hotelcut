@@ -6,7 +6,7 @@ import type {
   RenderJobStatus,
   VideoProject,
 } from '@hotelcut/schemas';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { RenderArtifactDownload, WorkspaceApi } from './workspace-api';
 
@@ -170,6 +170,7 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
   const [projectVersion, setProjectVersion] = useState(0);
   const [projectState, setProjectState] = useState<ProjectLoadState>({ status: 'loading' });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const createdJobIdsRef = useRef<Set<string>>(new Set());
   const [jobVersion, setJobVersion] = useState(0);
   const [jobState, setJobState] = useState<JobListState>({ status: 'idle' });
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -207,10 +208,26 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
       return;
     }
     const controller = new AbortController();
-    setJobState({ status: 'loading' });
+    setJobState((state) =>
+      createdJobIdsRef.current.size > 0 && state.status === 'ready'
+        ? state
+        : { status: 'loading' },
+    );
     void api
       .listRenderJobs(selectedProjectId, controller.signal)
       .then((jobs) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        const knownIds = new Set(jobs.map((job) => job.id));
+        for (const id of createdJobIdsRef.current) {
+          if (knownIds.has(id)) {
+            createdJobIdsRef.current.delete(id);
+          }
+        }
+        if (createdJobIdsRef.current.size > 0) {
+          return;
+        }
         setJobState({ jobs, status: 'ready' });
         setSelectedJobId((current) =>
           current && jobs.some((job) => job.id === current) ? current : (jobs[0]?.id ?? null),
@@ -277,9 +294,11 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
     setActionState({ message: '正在提交渲染任务…', status: 'working' });
     try {
       const job = await api.createRenderJob(selectedProject.id);
+      createdJobIdsRef.current.add(job.id);
       setJobState((state) => updateJobList(state, job));
       setSelectedJobId(job.id);
       setDetailVersion((version) => version + 1);
+      setJobVersion((version) => version + 1);
       setActionState({
         message: `已锁定项目修订 ${selectedProject.currentRevision} 并提交渲染`,
         status: 'success',
