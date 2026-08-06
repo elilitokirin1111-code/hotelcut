@@ -93,6 +93,9 @@ VisionTag = Literal[
     "detail",
     "service",
     "promotion",
+    "welcome",
+    "booking",
+    "food",
     "host",
     "presenter",
     "wide",
@@ -111,6 +114,11 @@ VisionTag = Literal[
     "design",
     "amenity",
     "travel",
+    "towel",
+    "mirror",
+    "desk",
+    "marble",
+    "warm",
 ]
 
 
@@ -125,14 +133,68 @@ class VisionFrame(BaseModel):
     imagePath: Path
 
 
+VisionAngle = Literal[
+    "wide",
+    "medium",
+    "closeup",
+    "detail",
+    "top-down",
+    "low-angle",
+]
+
+VisionCameraMotion = Literal[
+    "static",
+    "pan",
+    "tilt",
+    "handheld",
+    "drone",
+    "zoom",
+    "push-in",
+    "tracking",
+]
+
+VisionLighting = Literal[
+    "bright",
+    "warm",
+    "natural",
+    "low-light",
+    "night",
+    "backlit",
+]
+
+VisionComposition = Literal[
+    "centered",
+    "rule-of-thirds",
+    "symmetry",
+    "diagonal",
+    "frame-in-frame",
+    "leading-lines",
+]
+
+
+class VisionShotDetails(BaseModel):
+    """Per-scene photographic dimensions used for richer asset matching."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    angle: VisionAngle
+    cameraMotion: VisionCameraMotion
+    lighting: VisionLighting
+    composition: VisionComposition
+    subjects: list[str] = Field(max_length=6)
+    recommendedTemplateTags: list[VisionTag] = Field(max_length=8)
+
+
 class VisionSceneAnalysis(BaseModel):
     """Structured editorial judgment for one detected scene."""
 
     model_config = ConfigDict(extra="forbid")
 
     sceneIndex: int = Field(ge=1)
+    shortName: str = Field(max_length=14)
     category: VisionCategory
     tags: list[VisionTag] = Field(max_length=12)
+    shot: VisionShotDetails
     description: str = Field(max_length=240)
     sellingPoints: list[str] = Field(max_length=5)
     issues: list[str] = Field(max_length=5)
@@ -146,6 +208,7 @@ class VisionModelOutput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    shortName: str = Field(max_length=20)
     summary: str = Field(max_length=500)
     tags: list[VisionTag] = Field(max_length=20)
     sellingPoints: list[str] = Field(max_length=8)
@@ -177,6 +240,7 @@ class VisionAnalysis(BaseModel):
     promptVersion: str
     model: str | None
     responseId: str | None
+    shortName: str = Field(default="", max_length=20)
     summary: str
     tags: list[VisionTag]
     sellingPoints: list[str]
@@ -193,6 +257,7 @@ class VisionAnalysis(BaseModel):
             promptVersion=prompt_version,
             model=None,
             responseId=None,
+            shortName="",
             summary="",
             tags=[],
             sellingPoints=[],
@@ -216,6 +281,7 @@ class VisionAnalysis(BaseModel):
             promptVersion=prompt_version,
             model=model,
             responseId=None,
+            shortName="",
             summary="",
             tags=[],
             sellingPoints=[],

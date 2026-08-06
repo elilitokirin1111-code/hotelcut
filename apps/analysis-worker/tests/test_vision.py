@@ -70,6 +70,7 @@ class RecordingChatClient:
 
 def _output(scene_index: int = 1) -> dict[str, object]:
     return {
+        "shortName": "湖景客房",
         "summary": "明亮整洁的酒店客房, 适合展示空间与窗景。",
         "tags": ["room", "bright", "window"],
         "sellingPoints": ["自然采光", "宽敞客房"],
@@ -77,8 +78,17 @@ def _output(scene_index: int = 1) -> dict[str, object]:
         "scenes": [
             {
                 "sceneIndex": scene_index,
+                "shortName": "客房全景",
                 "category": "room",
                 "tags": ["bright", "window", "clean"],
+                "shot": {
+                    "angle": "wide",
+                    "cameraMotion": "static",
+                    "lighting": "bright",
+                    "composition": "symmetry",
+                    "subjects": ["bed", "window"],
+                    "recommendedTemplateTags": ["room", "window", "clean"],
+                },
                 "description": "明亮整洁的客房全景",
                 "sellingPoints": ["落地窗采光"],
                 "issues": [],
@@ -107,7 +117,13 @@ def test_openai_vision_uses_images_strict_schema_privacy_and_usage(tmp_path: Pat
     assert result.status == "succeeded"
     assert result.model == "gpt-5.6-terra-2026-07-01"
     assert result.usage is not None and result.usage.totalTokens == 820
+    assert result.shortName == "湖景客房"
     assert result.scenes[0].tags == ["bright", "window", "clean", "room"]
+    assert result.scenes[0].shortName == "客房全景"
+    assert result.scenes[0].shot.angle == "wide"
+    assert result.scenes[0].shot.cameraMotion == "static"
+    assert result.scenes[0].shot.recommendedTemplateTags == ["room", "window", "clean"]
+    assert result.promptVersion == "hotel-video-vision-v2"
     arguments = client.responses.arguments
     assert arguments is not None
     assert arguments["store"] is False
