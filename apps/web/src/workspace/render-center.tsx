@@ -209,9 +209,7 @@ export function RenderCenter({ api, hotelId, pollIntervalMs = 1_500 }: RenderCen
     }
     const controller = new AbortController();
     setJobState((state) =>
-      createdJobIdsRef.current.size > 0 && state.status === 'ready'
-        ? state
-        : { status: 'loading' },
+      createdJobIdsRef.current.size > 0 && state.status === 'ready' ? state : { status: 'loading' },
     );
     void api
       .listRenderJobs(selectedProjectId, controller.signal)
