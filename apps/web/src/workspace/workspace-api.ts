@@ -1,6 +1,9 @@
 import {
   analysisRetryResponseSchema,
+  aiTemplateBatchDeleteSchema,
   aiDirectorFeatureFlagsSchema,
+  aiTemplateSchema,
+  assetBatchDeleteSchema,
   assetDetailSchema,
   assetRequirementSchema,
   assetSchema,
@@ -15,6 +18,7 @@ import {
   creativeVideoVersionSchema,
   creativeProjectSchema,
   createAssetUploadResponseSchema,
+  generateAiTemplateSchema,
   createRenderJobSchema,
   derivativeDownloadSchema,
   generatedVideoProjectSchema,
@@ -26,6 +30,7 @@ import {
   modelProviderSettingsSchema,
   organizationSchema,
   projectTemplateSchema,
+  renderJobBatchDeleteSchema,
   renderArtifactDownloadSchema,
   renderJobDetailSchema,
   renderJobSchema,
@@ -33,12 +38,14 @@ import {
   editBlueprintSchema,
   scriptPackageSchema,
   videoBriefSchema,
+  videoProjectBatchDeleteSchema,
   videoProjectDetailSchema,
   videoProjectSchema,
   type Asset,
   type AiDirectorFeatureFlags,
   type AiEditPlan,
   type AiEditPlanInput,
+  type AiTemplate,
   type AssetDetail,
   type AssetDerivativeKind,
   type AssetRequirement,
@@ -55,6 +62,7 @@ import {
   type CreateVideoBriefInput,
   type GenerateVideoProjectInput,
   type GeneratedVideoProject,
+  type GenerateAiTemplateInput,
   type EditBlueprint,
   type Hotel,
   type ModelProviderConnectionResult,
@@ -176,8 +184,16 @@ export interface WorkspaceApi {
     signal?: AbortSignal,
   ): Promise<AssetUploadResult>;
   retryAssetAnalysis(assetId: string): Promise<AssetAnalysisRetryResult>;
+  deleteAsset(assetId: string): Promise<void>;
+  deleteAssets(hotelId: string, assetIds: string[]): Promise<void>;
+  deleteAiTemplates(hotelId: string, aiTemplateIds: string[]): Promise<void>;
+  deleteRenderJobs(projectId: string, renderJobIds: string[]): Promise<void>;
+  deleteVideoProjects(hotelId: string, projectIds: string[]): Promise<void>;
   createManualSegment(assetId: string, input: CreateManualSegmentInput): Promise<AssetSegment>;
   listProjectTemplates(signal?: AbortSignal): Promise<ProjectTemplate[]>;
+  listAiTemplates(hotelId: string, signal?: AbortSignal): Promise<AiTemplate[]>;
+  generateAiTemplate(hotelId: string, input: GenerateAiTemplateInput): Promise<AiTemplate>;
+  deleteAiTemplate(hotelId: string, aiTemplateId: string): Promise<void>;
   listVideoProjects(hotelId: string, signal?: AbortSignal): Promise<VideoProject[]>;
   getVideoProject(projectId: string, signal?: AbortSignal): Promise<VideoProjectDetail>;
   saveProjectRevision(
@@ -722,6 +738,71 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
       );
     },
 
+    async deleteAsset(assetId) {
+      const response = await fetchApi(`/v1/assets/${encodeURIComponent(assetId)}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+    },
+
+    async deleteAssets(hotelId, assetIds) {
+      const response = await fetchApi(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/assets/batch-delete`,
+        {
+          body: JSON.stringify(assetBatchDeleteSchema.parse({ assetIds })),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+    },
+
+    async deleteAiTemplates(hotelId, aiTemplateIds) {
+      const response = await fetchApi(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/ai-templates/batch-delete`,
+        {
+          body: JSON.stringify(aiTemplateBatchDeleteSchema.parse({ aiTemplateIds })),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+    },
+
+    async deleteRenderJobs(projectId, renderJobIds) {
+      const response = await fetchApi(
+        `/v1/video-projects/${encodeURIComponent(projectId)}/render-jobs/batch-delete`,
+        {
+          body: JSON.stringify(renderJobBatchDeleteSchema.parse({ renderJobIds })),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+    },
+
+    async deleteVideoProjects(hotelId, projectIds) {
+      const response = await fetchApi(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/video-projects/batch-delete`,
+        {
+          body: JSON.stringify(videoProjectBatchDeleteSchema.parse({ projectIds })),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+      if (!response.ok) {
+        throw await parseError(response);
+      }
+    },
+
     async createManualSegment(assetId, input) {
       return request(`/v1/assets/${encodeURIComponent(assetId)}/segments`, assetSegmentSchema, {
         body: JSON.stringify(input),
@@ -736,6 +817,36 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
         projectTemplateSchema.array(),
         signal ? { signal } : undefined,
       );
+    },
+
+    async listAiTemplates(hotelId, signal) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/ai-templates`,
+        aiTemplateSchema.array(),
+        signal ? { signal } : undefined,
+      );
+    },
+
+    async generateAiTemplate(hotelId, input) {
+      return request(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/ai-templates/generate`,
+        aiTemplateSchema,
+        {
+          body: JSON.stringify(generateAiTemplateSchema.parse(input)),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
+      );
+    },
+
+    async deleteAiTemplate(hotelId, aiTemplateId) {
+      const response = await fetchApi(
+        `/v1/hotels/${encodeURIComponent(hotelId)}/ai-templates/${encodeURIComponent(aiTemplateId)}`,
+        { method: 'DELETE' },
+      );
+      if (!response.ok) {
+        throw await parseError(response);
+      }
     },
 
     async listVideoProjects(hotelId, signal) {

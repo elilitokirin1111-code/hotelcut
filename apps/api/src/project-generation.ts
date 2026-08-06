@@ -213,6 +213,8 @@ export function assetDetailToCompilerMedia(
   const tagSources = [
     detail.originalFilename,
     ...stringArray(detail.metadata['tags']),
+    ...stringArray(vision['tags']),
+    ...detail.segments.flatMap((segment) => stringArray(asRecord(segment.metadata)['tags'])),
     ...detail.segments
       .filter((segment) => segment.source === 'manual')
       .flatMap((segment) => [segment.label ?? '', ...stringArray(segment.metadata['tags'])]),

@@ -543,6 +543,7 @@ export const scriptScenes = pgTable(
     action: text('action').notNull(),
     narration: text('narration'),
     dialogue: text('dialogue'),
+    caption: text('caption'),
     durationMs: integer('duration_ms').notNull(),
     shotType: varchar('shot_type', { length: 40 }),
     motionType: varchar('motion_type', { length: 40 }),
@@ -1142,4 +1143,22 @@ export const qualityReports = pgTable(
       sql`${table.scoreBasisPoints} >= 0 and ${table.scoreBasisPoints} <= 10000`,
     ),
   ],
+);
+
+export const aiTemplates = pgTable(
+  'ai_templates',
+  {
+    id: uuid('id').primaryKey(),
+    hotelId: uuid('hotel_id')
+      .notNull()
+      .references(() => hotels.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    durationSeconds: integer('duration_seconds').notNull(),
+    spec: jsonb('spec').notNull(),
+    createdByUserId: uuid('created_by_user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('ai_templates_hotel_id_idx').on(table.hotelId)],
 );

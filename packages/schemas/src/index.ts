@@ -22,6 +22,9 @@ export const analysisJobStatusSchema = z.enum([
   'cancelled',
 ]);
 export const videoProjectStatusSchema = z.enum(['draft', 'rendering', 'completed', 'archived']);
+export const videoProjectBatchDeleteSchema = z
+  .object({ projectIds: z.array(idSchema).min(1).max(100) })
+  .strict();
 export const renderJobStatusSchema = z.enum([
   'queued',
   'preprocessing',
@@ -31,6 +34,15 @@ export const renderJobStatusSchema = z.enum([
   'failed',
   'cancelled',
 ]);
+export const renderJobBatchDeleteSchema = z
+  .object({ renderJobIds: z.array(idSchema).min(1).max(100) })
+  .strict();
+export const assetBatchDeleteSchema = z
+  .object({ assetIds: z.array(idSchema).min(1).max(100) })
+  .strict();
+export const aiTemplateBatchDeleteSchema = z
+  .object({ aiTemplateIds: z.array(idSchema).min(1).max(100) })
+  .strict();
 export const renderArtifactKindSchema = z.enum([
   'video',
   'thumbnail',
@@ -647,3 +659,4 @@ export type AiEditPlanInput = z.infer<typeof aiEditPlanInputSchema>;
 export type AiEditPlan = z.infer<typeof aiEditPlanSchema>;
 
 export * from './ai-director.js';
+export * from './ai-template.js';

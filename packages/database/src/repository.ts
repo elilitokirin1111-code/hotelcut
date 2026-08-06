@@ -27,6 +27,7 @@ import {
   type QueuedAssetAnalysis,
   type RegisterAssetUploadInput,
   type RegisteredAssetUpload,
+  type StorageObjectReference,
   type StoredModelProviderSettings,
 } from '@hotelcut/domain';
 import type {
@@ -36,6 +37,7 @@ import type {
   AssetDerivativeKind,
   AssetDetail,
   AssetRequirement,
+  AiTemplate,
   EditBlueprint,
   AssetSegment,
   AssetUpload,
@@ -49,6 +51,7 @@ import type {
   CreativeBriefRevision,
   CreateCreativeProjectInput,
   CreateHotelInput,
+  CreateAiTemplateInput,
   CreateManualSegmentInput,
   CreateRenderJobInput,
   CreateVideoBriefInput,
@@ -81,6 +84,7 @@ import {
   editBlueprintSchema,
   creativeVideoVersionSchema,
   aiReviewSchema,
+  aiTemplateSchema,
   creativeProjectSchema,
   creativeFeedbackEventSchema,
   creativeBriefRevisionSchema,
@@ -153,6 +157,15 @@ function mapCreativeProject(row: typeof schema.creativeProjects.$inferSelect): C
   });
 }
 
+function mapAiTemplate(row: typeof schema.aiTemplates.$inferSelect): AiTemplate {
+  return aiTemplateSchema.parse({
+    ...row,
+    spec: row.spec,
+    createdAt: toIso(row.createdAt),
+    updatedAt: toIso(row.updatedAt),
+  });
+}
+
 function mapCreativeBriefRevision(
   row: typeof schema.creativeBriefRevisions.$inferSelect,
 ): CreativeBriefRevision {
@@ -186,6 +199,7 @@ function mapScriptScene(row: typeof schema.scriptScenes.$inferSelect) {
     ...row,
     narration: row.narration ?? null,
     dialogue: row.dialogue ?? null,
+    caption: row.caption ?? null,
     shotType: row.shotType ?? null,
     motionType: row.motionType ?? null,
     filmingInstruction: row.filmingInstruction ?? null,
@@ -235,15 +249,19 @@ function mapEditBlueprint(
     generationParameters: row.generationParameters,
     inputSummary: row.inputSummary ?? null,
     createdAt: toIso(row.createdAt),
-    beats: beats.map((beat) => ({
-      ...beat,
-      narration: beat.narration ?? null,
-      dialogue: beat.dialogue ?? null,
-      transitionIn: beat.transitionIn as 'cut' | 'dissolve' | 'fade' | null,
-      transitionOut: beat.transitionOut as 'cut' | 'dissolve' | 'fade' | null,
-      caption: beat.caption ?? null,
-      createdAt: toIso(beat.createdAt),
-    })),
+    beats: beats.map((beat) => {
+      const { editBlueprintId: _editBlueprintId, createdAt: _createdAt, ...mapped } = beat;
+      void _editBlueprintId;
+      void _createdAt;
+      return {
+        ...mapped,
+        narration: beat.narration ?? null,
+        dialogue: beat.dialogue ?? null,
+        transitionIn: beat.transitionIn as 'cut' | 'dissolve' | 'fade' | null,
+        transitionOut: beat.transitionOut as 'cut' | 'dissolve' | 'fade' | null,
+        caption: beat.caption ?? null,
+      };
+    }),
   });
 }
 
@@ -805,6 +823,7 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
             action: scene.action,
             narration: scene.narration,
             dialogue: scene.dialogue,
+            caption: scene.caption,
             durationMs: scene.durationMs,
             shotType: scene.shotType,
             motionType: scene.motionType,
@@ -1265,6 +1284,209 @@ export class PostgresHotelCutRepository implements HotelCutRepository, AuthRepos
       throw new DomainNotFoundError('Video brief not found');
     }
     return mapVideoBrief(row.brief);
+  }
+
+  async listAiTemplates(actorUserId: string, hotelId: string): Promise<AiTemplate[]> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .select()
+      .from(schema.aiTemplates)
+      .where(eq(schema.aiTemplates.hotelId, hotelId))
+      .orderBy(desc(schema.aiTemplates.updatedAt));
+
+    return rows.map(mapAiTemplate);
+  }
+
+  async createAiTemplate(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateAiTemplateInput,
+  ): Promise<AiTemplate> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const [row] = await this.db
+      .insert(schema.aiTemplates)
+      .values({
+        id: randomUUID(),
+        hotelId,
+        name: input.name,
+        description: input.description,
+        durationSeconds: input.durationSeconds,
+        spec: input.spec,
+        createdByUserId: actorUserId,
+      })
+      .returning();
+
+    if (!row) {
+      throw new Error('AI template insert did not return a row');
+    }
+    return mapAiTemplate(row);
+  }
+
+  async getAiTemplate(
+    actorUserId: string,
+    hotelId: string,
+    aiTemplateId: string,
+  ): Promise<AiTemplate> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const [row] = await this.db
+      .select()
+      .from(schema.aiTemplates)
+      .where(and(eq(schema.aiTemplates.id, aiTemplateId), eq(schema.aiTemplates.hotelId, hotelId)))
+      .limit(1);
+    if (!row) {
+      throw new DomainNotFoundError('AI template not found');
+    }
+    return mapAiTemplate(row);
+  }
+
+  async deleteAiTemplate(
+    actorUserId: string,
+    hotelId: string,
+    aiTemplateId: string,
+  ): Promise<void> {
+    await this.deleteAiTemplates(actorUserId, hotelId, [aiTemplateId]);
+  }
+
+  async deleteAiTemplates(
+    actorUserId: string,
+    hotelId: string,
+    aiTemplateIds: string[],
+  ): Promise<void> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .delete(schema.aiTemplates)
+      .where(
+        and(eq(schema.aiTemplates.hotelId, hotelId), inArray(schema.aiTemplates.id, aiTemplateIds)),
+      )
+      .returning({ id: schema.aiTemplates.id });
+    if (rows.length === 0) {
+      throw new DomainNotFoundError('AI template not found');
+    }
+  }
+
+  async deleteAssets(actorUserId: string, hotelId: string, assetIds: string[]): Promise<void> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .select({ id: schema.assets.id })
+      .from(schema.assets)
+      .where(and(eq(schema.assets.hotelId, hotelId), inArray(schema.assets.id, assetIds)));
+    if (rows.length === 0) {
+      throw new DomainNotFoundError('Asset not found');
+    }
+    const foundIds = rows.map((row) => row.id);
+    await this.db
+      .update(schema.brandKits)
+      .set({ logoAssetId: null })
+      .where(
+        and(eq(schema.brandKits.hotelId, hotelId), inArray(schema.brandKits.logoAssetId, foundIds)),
+      );
+    await this.db.delete(schema.assets).where(inArray(schema.assets.id, foundIds));
+  }
+
+  async listAssetStorageReferences(
+    actorUserId: string,
+    hotelId: string,
+    assetIds: string[],
+  ): Promise<StorageObjectReference[]> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const found = await this.db
+      .select({ id: schema.assets.id })
+      .from(schema.assets)
+      .where(and(eq(schema.assets.hotelId, hotelId), inArray(schema.assets.id, assetIds)));
+    if (found.length === 0) {
+      throw new DomainNotFoundError('Asset not found');
+    }
+    const foundIds = found.map((row) => row.id);
+    const [originals, derivatives] = await Promise.all([
+      this.db
+        .select({ bucket: schema.assets.storageBucket, key: schema.assets.storageKey })
+        .from(schema.assets)
+        .where(inArray(schema.assets.id, foundIds)),
+      this.db
+        .select({
+          bucket: schema.assetDerivatives.storageBucket,
+          key: schema.assetDerivatives.storageKey,
+        })
+        .from(schema.assetDerivatives)
+        .where(inArray(schema.assetDerivatives.assetId, foundIds)),
+    ]);
+    const seen = new Set<string>();
+    const references: StorageObjectReference[] = [];
+    for (const row of [...originals, ...derivatives]) {
+      const signature = `${row.bucket}\u0000${row.key}`;
+      if (seen.has(signature)) {
+        continue;
+      }
+      seen.add(signature);
+      references.push({ bucket: row.bucket, key: row.key });
+    }
+    return references;
+  }
+
+  async deleteRenderJobs(
+    actorUserId: string,
+    projectId: string,
+    renderJobIds: string[],
+  ): Promise<void> {
+    await this.requireVideoProjectMember(actorUserId, projectId);
+    const rows = await this.db
+      .select()
+      .from(schema.renderJobs)
+      .where(
+        and(
+          eq(schema.renderJobs.videoProjectId, projectId),
+          inArray(schema.renderJobs.id, renderJobIds),
+        ),
+      );
+    if (rows.length === 0) {
+      throw new DomainNotFoundError('Render job not found');
+    }
+    const active = rows.filter((row) =>
+      ['queued', 'preprocessing', 'rendering', 'validating'].includes(row.status),
+    );
+    if (active.length > 0) {
+      throw new DomainConflictError('正在执行的渲染任务不能删除，请先取消或等待完成');
+    }
+    await this.db.delete(schema.renderJobs).where(
+      inArray(
+        schema.renderJobs.id,
+        rows.map((row) => row.id),
+      ),
+    );
+  }
+
+  async deleteVideoProjects(
+    actorUserId: string,
+    hotelId: string,
+    projectIds: string[],
+  ): Promise<void> {
+    await this.requireHotelMember(actorUserId, hotelId);
+    const rows = await this.db
+      .select({ id: schema.videoProjects.id })
+      .from(schema.videoProjects)
+      .where(
+        and(
+          eq(schema.videoProjects.hotelId, hotelId),
+          inArray(schema.videoProjects.id, projectIds),
+        ),
+      );
+    if (rows.length === 0) {
+      throw new DomainNotFoundError('Video project not found');
+    }
+    const foundIds = rows.map((row) => row.id);
+    const renderJobs = await this.db
+      .select({ id: schema.renderJobs.id })
+      .from(schema.renderJobs)
+      .where(inArray(schema.renderJobs.videoProjectId, foundIds));
+    if (renderJobs.length > 0) {
+      await this.db.delete(schema.renderJobs).where(
+        inArray(
+          schema.renderJobs.id,
+          renderJobs.map((job) => job.id),
+        ),
+      );
+    }
+    await this.db.delete(schema.videoProjects).where(inArray(schema.videoProjects.id, foundIds));
   }
 
   async listVideoProjects(actorUserId: string, hotelId: string): Promise<VideoProject[]> {

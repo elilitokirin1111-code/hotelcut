@@ -65,6 +65,18 @@ describe('API health routes', () => {
     expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/model-provider/test');
     expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/ai/edit-plan');
     expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/creative-projects');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/ai-templates');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/ai-templates/generate');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/ai-templates/{aiTemplateId}');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/ai-templates/batch-delete');
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/assets/batch-delete');
+    expect(document.paths).toHaveProperty(
+      '/v1/video-projects/{projectId}/render-jobs/batch-delete',
+    );
+    expect(document.paths).toHaveProperty(
+      '/v1/video-projects/{projectId}/render-jobs/{renderJobId}',
+    );
+    expect(document.paths).toHaveProperty('/v1/hotels/{hotelId}/video-projects/batch-delete');
     expect(document.paths).toHaveProperty('/v1/creative-projects/{projectId}');
     expect(uiResponse.statusCode).toBe(200);
   });
