@@ -825,6 +825,22 @@ describe('M7 email-authenticated hotel workspace', () => {
     expect(await screen.findByText('2 个素材上传完成，已进入自动分析队列')).toBeInTheDocument();
   });
 
+  it('routes from a ready asset library into AI creation', async () => {
+    const { api, listAssets } = createApi(session);
+    render(<WorkspaceApp api={api} guestMode={false} />);
+    await screen.findByRole('heading', { name: '选择酒店' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开素材库' }));
+    await screen.findByRole('heading', { name: '生产素材库' });
+    await waitFor(() =>
+      expect(listAssets).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal)),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '用素材开始创作' }));
+    expect(await screen.findByRole('heading', { name: '创建专属剪辑方案' })).toBeInTheDocument();
+  });
+
   it('refreshes selected asset detail when analysis changes the list status', async () => {
     const { api, getAssetDetail, listAssets } = createApi(session);
     const uploadedAsset: Asset = {

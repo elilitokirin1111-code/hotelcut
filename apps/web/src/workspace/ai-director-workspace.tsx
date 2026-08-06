@@ -83,6 +83,7 @@ export function AiDirectorWorkspace({
   const [referenceAssets, setReferenceAssets] = useState<Asset[]>([]);
   const [referenceProfiles, setReferenceProfiles] = useState<ReferenceVideoProfile[]>([]);
   const [assetRequirements, setAssetRequirements] = useState<AssetRequirement[]>([]);
+  const [selectedScriptId, setSelectedScriptId] = useState<string | null>(null);
   const [blueprints, setBlueprints] = useState<EditBlueprint[]>([]);
   const [videoVersions, setVideoVersions] = useState<CreativeVideoVersion[]>([]);
   const assistantRef = useRef<HTMLElement | null>(null);
@@ -193,6 +194,7 @@ export function AiDirectorWorkspace({
     setCreateError(null);
     try {
       await api.selectScript(selectedProjectId, scriptId);
+      setSelectedScriptId(scriptId);
       setAssetRequirements(await api.generateAssetRequirements(selectedProjectId, scriptId));
     } catch (error) {
       setCreateError(errorMessage(error));
@@ -244,6 +246,31 @@ export function AiDirectorWorkspace({
       setDirecting(false);
     }
   };
+
+  const creationSteps = [
+    { key: 'script', label: '生成创意与脚本', done: briefs.length > 0 || scripts.length > 0 },
+    {
+      key: 'select',
+      label: '选择脚本',
+      done: selectedScriptId !== null || assetRequirements.length > 0,
+    },
+    { key: 'match', label: '素材匹配', done: assetRequirements.length > 0 },
+    { key: 'blueprint', label: '生成蓝图', done: blueprints.length > 0 },
+    { key: 'versions', label: 'A/B/C 成片', done: videoVersions.length > 0 },
+    { key: 'studio', label: 'Studio 精剪', done: videoVersions.length > 0 },
+  ];
+  const activeStepIndex = creationSteps.findIndex((step) => !step.done);
+  const currentStep =
+    creationSteps[activeStepIndex === -1 ? creationSteps.length - 1 : activeStepIndex]!;
+  const stepHints: Record<string, string> = {
+    script: '先在下方输入一句创意，点击「生成三套创意与完整脚本」。',
+    select: '在生成的脚本卡片上点击「选为后续蓝图脚本」，系统会同时完成素材匹配。',
+    match: '素材匹配已生成，可手动替换候选；确认后点击「生成已校验 EditBlueprint」。',
+    blueprint: '蓝图已校验通过，点击「生成 A/B/C 成片」。',
+    versions: 'A/B/C 成片已生成，点击「在 Studio 中打开成片」开始精剪。',
+    studio: '你可以在 Studio 中修改镜头、字幕和 CTA，然后到渲染中心出片。',
+  };
+  const canGenerateBlueprint = selectedScriptId !== null || assetRequirements.length > 0;
 
   if (loadState.status === 'loading') {
     return (
@@ -374,6 +401,38 @@ export function AiDirectorWorkspace({
           <p className="mt-2 text-sm text-slate-500">
             输入创意后，百炼将返回三套方向、可编辑分镜与拍摄清单；每次结果均保存为独立版本。
           </p>
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <ol className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px] font-black">
+              {creationSteps.map((step, index) => (
+                <li
+                  className={`flex items-center gap-1 ${
+                    step.done
+                      ? 'text-emerald-700'
+                      : index === activeStepIndex
+                        ? 'text-[#9a6b3c]'
+                        : 'text-slate-400'
+                  }`}
+                  key={step.key}
+                >
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                      step.done
+                        ? 'bg-emerald-600 text-white'
+                        : index === activeStepIndex
+                          ? 'bg-[#9a6b3c] text-white'
+                          : 'bg-slate-200 text-slate-500'
+                    }`}
+                  >
+                    {step.done ? '✓' : index + 1}
+                  </span>
+                  {step.label}
+                </li>
+              ))}
+            </ol>
+            <p className="mt-2 text-xs font-semibold text-slate-600">
+              下一步：{stepHints[currentStep.key] ?? ''}
+            </p>
+          </div>
           <textarea
             aria-label="创意输入"
             className="mt-4 min-h-28 w-full rounded-xl border border-slate-200 p-4 text-sm outline-none focus:border-[#d09a59]"
@@ -478,14 +537,20 @@ export function AiDirectorWorkspace({
               <p className="mt-2 text-xs text-slate-500">
                 蓝图先经过时长、镜头和素材边界校验，再编译为可在 Studio 继续修改的时间线。
               </p>
-              <button
-                className="mt-3 rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
-                disabled={directing}
-                onClick={() => void generateBlueprint()}
-                type="button"
-              >
-                {directing ? '正在生成…' : '生成已校验 EditBlueprint'}
-              </button>
+              {canGenerateBlueprint ? (
+                <button
+                  className="mt-3 rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                  disabled={directing}
+                  onClick={() => void generateBlueprint()}
+                  type="button"
+                >
+                  {directing ? '正在生成…' : '生成已校验 EditBlueprint'}
+                </button>
+              ) : (
+                <p className="mt-3 rounded-xl border border-dashed border-slate-300 p-4 text-xs text-slate-500">
+                  请先完成上一步：在脚本卡片上点击「选为后续蓝图脚本」，生成素材匹配后才能生成剪辑蓝图。
+                </p>
+              )}
               {blueprints.map((blueprint) => (
                 <article
                   className="mt-3 rounded-xl border border-slate-200 p-4 text-xs"
@@ -511,41 +576,46 @@ export function AiDirectorWorkspace({
                 </article>
               ))}
               {videoVersions.length > 0 ? (
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
-                  {videoVersions.map((version) => (
-                    <article className="rounded-xl bg-slate-50 p-4 text-xs" key={version.id}>
-                      <strong>
-                        版本 {version.variant}
-                        {version.variant === 'A'
-                          ? ' · 严格脚本'
-                          : version.variant === 'B'
-                            ? ' · 快节奏 Hook'
-                            : ' · 转化 CTA'}
-                      </strong>
-                      <p className="mt-2">
-                        综合 {version.scoreBasisPoints} · 钩子 {version.hookScoreBasisPoints}
-                      </p>
-                      <p className="mt-1">
-                        卖点 {version.sellingPointCoverageBasisPoints} · 节奏{' '}
-                        {version.paceScoreBasisPoints}
-                      </p>
-                      <p className="mt-2 text-slate-500">{version.recommendationReason}</p>
-                      {onOpenVideoProject ? (
-                        <button
-                          className="mt-2 rounded-lg bg-[#9a6b3c] px-3 py-2 text-xs font-black text-white"
-                          onClick={() => onOpenVideoProject(version.videoProjectId)}
-                          type="button"
-                        >
-                          在 Studio 中打开成片
-                        </button>
-                      ) : (
-                        <p className="mt-2 font-black text-[#9a6b3c]">
-                          已生成可编辑项目：{version.videoProjectId}
+                <>
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    {videoVersions.map((version) => (
+                      <article className="rounded-xl bg-slate-50 p-4 text-xs" key={version.id}>
+                        <strong>
+                          版本 {version.variant}
+                          {version.variant === 'A'
+                            ? ' · 严格脚本'
+                            : version.variant === 'B'
+                              ? ' · 快节奏 Hook'
+                              : ' · 转化 CTA'}
+                        </strong>
+                        <p className="mt-2">
+                          综合 {version.scoreBasisPoints} · 钩子 {version.hookScoreBasisPoints}
                         </p>
-                      )}
-                    </article>
-                  ))}
-                </div>
+                        <p className="mt-1">
+                          卖点 {version.sellingPointCoverageBasisPoints} · 节奏{' '}
+                          {version.paceScoreBasisPoints}
+                        </p>
+                        <p className="mt-2 text-slate-500">{version.recommendationReason}</p>
+                        {onOpenVideoProject ? (
+                          <button
+                            className="mt-2 rounded-lg bg-[#9a6b3c] px-3 py-2 text-xs font-black text-white"
+                            onClick={() => onOpenVideoProject(version.videoProjectId)}
+                            type="button"
+                          >
+                            在 Studio 中打开成片
+                          </button>
+                        ) : (
+                          <p className="mt-2 font-black text-[#9a6b3c]">
+                            已生成可编辑项目：{version.videoProjectId}
+                          </p>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs font-black text-[#9a6b3c]">
+                    下一步：点击成片卡片上的「在 Studio 中打开成片」进入精剪。
+                  </p>
+                </>
               ) : null}
             </div>
           ) : null}

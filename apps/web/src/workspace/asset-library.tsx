@@ -166,7 +166,15 @@ function AssetStatus({ status }: { status: Asset['status'] }) {
   );
 }
 
-export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: string }) {
+export function AssetLibrary({
+  api,
+  hotelId,
+  onCreateVideo,
+}: {
+  api: WorkspaceApi;
+  hotelId: string;
+  onCreateVideo?: () => void;
+}) {
   const [listState, setListState] = useState<AssetListState>({ status: 'loading' });
   const [listVersion, setListVersion] = useState(0);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
@@ -554,6 +562,26 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
                 </select>
               </label>
             </div>
+
+            {listState.status === 'ready' &&
+            listState.assets.some((asset) => asset.status === 'ready') &&
+            onCreateVideo ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div>
+                  <p className="text-xs font-black text-emerald-800">素材已就绪，可以开始创作</p>
+                  <p className="mt-1 text-[10px] leading-4 text-emerald-700">
+                    分析完成的素材会自动进入 AI 创作与自动剪辑的候选池。
+                  </p>
+                </div>
+                <button
+                  className="rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white"
+                  onClick={onCreateVideo}
+                  type="button"
+                >
+                  用素材开始创作
+                </button>
+              </div>
+            ) : null}
 
             {listState.status === 'loading' ? (
               <p className="mt-5 text-xs font-semibold text-slate-500">正在加载素材…</p>

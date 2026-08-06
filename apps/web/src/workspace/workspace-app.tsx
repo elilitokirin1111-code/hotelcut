@@ -528,7 +528,13 @@ function HotelWorkspace({
           ) : null}
         </section>
       ) : null}
-      {activeModule === 'assets' ? <AssetLibrary api={api} hotelId={hotel.id} /> : null}
+      {activeModule === 'assets' ? (
+        <AssetLibrary
+          api={api}
+          hotelId={hotel.id}
+          onCreateVideo={() => setActiveModule('ai-director')}
+        />
+      ) : null}
       {activeModule === 'ai-director' ? (
         <AiDirectorWorkspace
           api={api}
