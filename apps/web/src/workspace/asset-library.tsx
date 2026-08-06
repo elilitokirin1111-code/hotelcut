@@ -2,6 +2,15 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react';
 
 import type { Asset, AssetDetail } from '@hotelcut/schemas';
 
+import {
+  visionAngleLabels,
+  visionCategoryLabels,
+  visionCompositionLabels,
+  visionLightingLabels,
+  visionMotionLabels,
+  visionTagLabels,
+} from './asset-labels';
+import { searchAssets } from './asset-search';
 import { type AssetUploadProgress, type WorkspaceApi, WorkspaceApiError } from './workspace-api';
 
 type AssetListState =
@@ -60,95 +69,6 @@ const uploadPhaseLabels: Record<AssetUploadProgress['phase'], string> = {
   registering: '正在登记安全上传',
   uploading: '正在上传素材分片',
   finalizing: '正在校验并提交分析',
-};
-
-const visionTagLabels: Record<string, string> = {
-  exterior: '酒店外观',
-  lobby: '大堂',
-  room: '客房',
-  bathroom: '卫浴',
-  facility: '设施',
-  detail: '细节',
-  service: '服务',
-  promotion: '促销',
-  host: '口播人物',
-  presenter: '出镜人物',
-  wide: '全景',
-  bright: '明亮',
-  window: '窗景',
-  clean: '整洁',
-  day: '日景',
-  night: '夜景',
-  staff: '员工',
-  pool: '泳池',
-  gym: '健身房',
-  restaurant: '餐厅',
-  breakfast: '早餐',
-  bed: '床品',
-  view: '景观',
-  design: '设计',
-  amenity: '用品',
-  travel: '旅拍',
-  welcome: '迎宾',
-  booking: '预订',
-  food: '餐饮',
-  towel: '毛巾',
-  mirror: '镜面',
-  desk: '桌面',
-  marble: '大理石',
-  warm: '暖光',
-};
-
-const visionAngleLabels: Record<string, string> = {
-  wide: '全景',
-  medium: '中景',
-  closeup: '近景',
-  detail: '特写',
-  'top-down': '俯拍',
-  'low-angle': '仰拍',
-};
-
-const visionMotionLabels: Record<string, string> = {
-  static: '固定机位',
-  pan: '横摇',
-  tilt: '俯仰',
-  handheld: '手持',
-  drone: '航拍',
-  zoom: '变焦',
-  'push-in': '推近',
-  tracking: '跟拍',
-};
-
-const visionLightingLabels: Record<string, string> = {
-  bright: '明亮',
-  warm: '暖光',
-  natural: '自然光',
-  'low-light': '弱光',
-  night: '夜景',
-  backlit: '逆光',
-};
-
-const visionCompositionLabels: Record<string, string> = {
-  centered: '居中',
-  'rule-of-thirds': '三分法',
-  symmetry: '对称',
-  diagonal: '对角线',
-  'frame-in-frame': '框式构图',
-  'leading-lines': '引导线',
-};
-
-const visionCategoryLabels: Record<string, string> = {
-  exterior: '外景',
-  lobby: '大堂',
-  room: '客房',
-  bathroom: '浴室',
-  facility: '设施',
-  detail: '细节',
-  service: '服务',
-  promotion: '促销',
-  food: '餐饮',
-  host: '口播',
-  other: '素材',
 };
 
 function formatError(error: unknown): string {
@@ -370,13 +290,10 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
     if (listState.status !== 'ready') {
       return [];
     }
-    const normalizedSearch = search.trim().toLocaleLowerCase('zh-CN');
-    return listState.assets.filter(
-      (asset) =>
-        (statusFilter === 'all' || asset.status === statusFilter) &&
-        (!normalizedSearch ||
-          asset.originalFilename.toLocaleLowerCase('zh-CN').includes(normalizedSearch)),
+    const byStatus = listState.assets.filter(
+      (asset) => statusFilter === 'all' || asset.status === statusFilter,
     );
+    return searchAssets(byStatus, search);
   }, [listState, search, statusFilter]);
 
   const uploadAssets = async (event: FormEvent<HTMLFormElement>) => {
@@ -602,17 +519,18 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
               {listState.status === 'ready' ? (
                 <span className="text-[10px] font-black text-slate-400">
                   {listState.assets.length} 个文件
+                  {search.trim() ? `，匹配 ${filteredAssets.length} 个` : ''}
                 </span>
               ) : null}
             </div>
             <div className="asset-filter-row">
               <label>
-                <span className="sr-only">搜索素材文件名</span>
+                <span className="sr-only">搜索素材</span>
                 <input
-                  aria-label="搜索素材文件名"
+                  aria-label="搜索素材"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs outline-none focus:border-[#d6a76d]"
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="搜索文件名"
+                  placeholder="搜索名称、标签、卖点或画面描述…"
                   type="search"
                   value={search}
                 />
@@ -647,7 +565,9 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
             ) : null}
             {listState.status === 'ready' && filteredAssets.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-dashed border-slate-300 p-5 text-center text-xs text-slate-500">
-                {listState.assets.length === 0 ? '还没有上传素材' : '没有符合筛选条件的素材'}
+                {listState.assets.length === 0
+                  ? '还没有上传素材'
+                  : '没有匹配的素材，试试名称、标签、卖点或画面描述'}
               </p>
             ) : null}
             <div aria-label="素材列表" className="asset-card-grid">

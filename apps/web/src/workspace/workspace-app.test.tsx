@@ -786,7 +786,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     );
     expect(screen.getByText('明亮整洁的湖景客房，适合展示空间与窗景。')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材文件名' }), {
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材' }), {
       target: { value: '大堂' },
     });
     expect(
@@ -796,7 +796,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     fireEvent.click(await screen.findByRole('button', { name: '重新分析' }));
     await waitFor(() => expect(retryAssetAnalysis).toHaveBeenCalledWith(assets[1]!.id));
 
-    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材文件名' }), {
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材' }), {
       target: { value: '湖景' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /湖景房介绍\.mp4/ }));
