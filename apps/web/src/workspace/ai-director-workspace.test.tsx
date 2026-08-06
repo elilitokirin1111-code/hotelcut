@@ -111,14 +111,12 @@ describe('AI Director workspace foundation', () => {
     api.listCreativeVideoVersions = vi
       .fn<WorkspaceApi['listCreativeVideoVersions']>()
       .mockResolvedValue([videoVersion]);
-    api.getAiDirectorFeatures = vi
-      .fn<WorkspaceApi['getAiDirectorFeatures']>()
-      .mockResolvedValue({
-        aiDirectorEnabled: true,
-        aiReviewEnabled: false,
-        dynamicBlueprintEnabled: true,
-        referenceAnalysisEnabled: false,
-      });
+    api.getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
+      aiDirectorEnabled: true,
+      aiReviewEnabled: false,
+      dynamicBlueprintEnabled: true,
+      referenceAnalysisEnabled: false,
+    });
     const onOpenVideoProject = vi.fn();
     render(
       <AiDirectorWorkspace api={api} hotelId={hotelId} onOpenVideoProject={onOpenVideoProject} />,
