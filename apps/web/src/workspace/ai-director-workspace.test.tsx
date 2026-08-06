@@ -3,11 +3,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
+  Asset,
   AssetRequirement,
   CreativeBriefRevision,
   CreativeProject,
   CreativeVideoVersion,
   EditBlueprint,
+  ReferenceVideoProfile,
   ScriptPackage,
 } from '@hotelcut/schemas';
 
@@ -326,5 +328,165 @@ describe('AI Director workspace foundation', () => {
     await waitFor(() => expect(generateVideoVersions).toHaveBeenCalled());
     fireEvent.click(await screen.findByRole('button', { name: '在 Studio 中打开成片' }));
     expect(onOpenVideoProject).toHaveBeenCalledWith(version.videoProjectId);
+  });
+
+  it('generates a script from a reference video profile and auto-matches assets', async () => {
+    const projectId = creativeProject.id;
+    const referenceAsset: Asset = {
+      id: '9c000000-0000-4000-8000-000000000001',
+      hotelId,
+      kind: 'video',
+      status: 'ready',
+      originalFilename: '前台反差参考片.mp4',
+      contentType: 'video/mp4',
+      byteSize: 20_000_000,
+      storageBucket: 'hotelcut-local',
+      storageKey: 'hotels/demo/reference.mp4',
+      checksumSha256: 'd'.repeat(64),
+      metadata: {},
+      createdAt: '2026-08-05T04:00:00.000Z',
+      updatedAt: '2026-08-05T04:00:00.000Z',
+    };
+    const profile: ReferenceVideoProfile = {
+      id: '9b000000-0000-4000-8000-000000000001',
+      creativeProjectId: creativeProject.id,
+      assetId: referenceAsset.id,
+      revision: 1,
+      durationMs: 16_000,
+      averageShotDurationMs: 4_000,
+      shotCount: 4,
+      modelName: null,
+      promptVersion: null,
+      generationParameters: {},
+      inputSummary: null,
+      createdAt: '2026-08-05T04:10:00.000Z',
+      analysisSummary: '前台反差参考片：专业形象展示与反差幽默结合',
+      narrativePattern: '专业形象展示与反差幽默结合',
+      hookDurationMs: 2_000,
+      paceCurve: [
+        { startMs: 0, endMs: 2_000, label: '引入' },
+        { startMs: 2_000, endMs: 16_000, label: '展示' },
+      ],
+      shotTypeDistribution: { medium: 2, closeup: 2 },
+      transitionProfile: { density: 'low' },
+      captionProfile: { density: 'medium' },
+      audioProfile: { style: '轻快' },
+      emotionalCurve: [{ startMs: 0, endMs: 16_000, label: '惊喜' }],
+      reusableStyleRules: ['前台服务开场', '快节奏转场'],
+    };
+    const brief: CreativeBriefRevision = {
+      id: '9d000000-0000-4000-8000-000000000001',
+      creativeProjectId: creativeProject.id,
+      revision: 1,
+      direction: null,
+      rawIdea: '参考《前台反差参考片.mp4》的剪辑风格制作成片',
+      objective: null,
+      platform: 'douyin',
+      durationSeconds: 16,
+      targetAudience: null,
+      tone: [],
+      hotelSellingPoints: [],
+      hardConstraints: [],
+      userPrompt: null,
+      createdBy: 'user',
+      modelName: null,
+      promptVersion: null,
+      generationParameters: {},
+      inputSummary: null,
+      createdAt: '2026-08-05T04:20:00.000Z',
+    };
+    const script: ScriptPackage = {
+      id: '9e000000-0000-4000-8000-000000000001',
+      creativeProjectId: creativeProject.id,
+      revision: 1,
+      modelName: null,
+      promptVersion: null,
+      generationParameters: {},
+      inputSummary: null,
+      createdAt: '2026-08-05T04:30:00.000Z',
+      title: '前台反差短片（参考风格）',
+      hook: '前台也能带来惊喜',
+      storySummary: '按参考片的叙事节奏编排',
+      narrativePattern: '专业形象展示与反差幽默结合',
+      voiceoverScript: null,
+      dialogue: [],
+      captions: [],
+      callToAction: '联系酒店',
+      filmingTips: [],
+      requiredAssets: ['前台'],
+      totalDurationMs: 16_000,
+      scenes: [],
+      shotList: [],
+    };
+    const requirement: AssetRequirement = {
+      id: '9f000000-0000-4000-8000-000000000001',
+      creativeProjectId: creativeProject.id,
+      scriptSceneId: null,
+      description: '前台服务镜头',
+      requiredTags: ['service'],
+      preferredShotType: 'medium',
+      preferredMotionType: 'static',
+      preferredDurationMs: 4_000,
+      required: true,
+      matchedAssetIds: [],
+      candidateMatches: [],
+      status: 'missing',
+      filmingInstruction: '补拍：前台服务',
+      createdAt: '2026-08-05T04:40:00.000Z',
+      updatedAt: '2026-08-05T04:40:00.000Z',
+    };
+
+    const { api, createCreativeProject } = createApi();
+    api.getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
+      aiDirectorEnabled: true,
+      aiReviewEnabled: false,
+      dynamicBlueprintEnabled: true,
+      referenceAnalysisEnabled: true,
+    });
+    api.listAssets = vi.fn<WorkspaceApi['listAssets']>().mockResolvedValue([referenceAsset]);
+    api.listReferenceVideoProfiles = vi
+      .fn<WorkspaceApi['listReferenceVideoProfiles']>()
+      .mockResolvedValue([profile]);
+    const createBrief = vi
+      .fn<WorkspaceApi['createCreativeBriefRevision']>()
+      .mockResolvedValue(brief);
+    const generateScript = vi.fn<WorkspaceApi['generateScript']>().mockResolvedValue(script);
+    const selectScript = vi.fn<WorkspaceApi['selectScript']>().mockResolvedValue(creativeProject);
+    const generateAssetRequirements = vi
+      .fn<WorkspaceApi['generateAssetRequirements']>()
+      .mockResolvedValue([requirement]);
+    api.createCreativeBriefRevision = createBrief;
+    api.generateScript = generateScript;
+    api.selectScript = selectScript;
+    api.generateAssetRequirements = generateAssetRequirements;
+    render(<AiDirectorWorkspace api={api} hotelId={hotelId} />);
+
+    await screen.findByRole('heading', { name: '创建专属剪辑方案' });
+    fireEvent.click(screen.getByRole('button', { name: /模仿参考视频结构/ }));
+    fireEvent.change(screen.getByRole('textbox', { name: '创作项目标题' }), {
+      target: { value: '参考风格成片' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建 AI 创作项目' }));
+    await waitFor(() => expect(createCreativeProject).toHaveBeenCalled());
+
+    fireEvent.click(await screen.findByRole('button', { name: '基于该参考生成脚本' }));
+    await waitFor(() => expect(createBrief).toHaveBeenCalled());
+    expect(createBrief).toHaveBeenCalledWith(projectId, {
+      durationSeconds: 16,
+      platform: 'douyin',
+      rawIdea: '参考《前台反差参考片.mp4》的剪辑风格制作成片',
+    });
+    await waitFor(() =>
+      expect(generateScript).toHaveBeenCalledWith(projectId, brief.id, {
+        referenceProfileId: profile.id,
+      }),
+    );
+    await waitFor(() => expect(selectScript).toHaveBeenCalledWith(projectId, script.id));
+    await waitFor(() =>
+      expect(generateAssetRequirements).toHaveBeenCalledWith(projectId, script.id),
+    );
+    expect(
+      await screen.findByRole('button', { name: '生成已校验 EditBlueprint' }),
+    ).toBeInTheDocument();
   });
 });

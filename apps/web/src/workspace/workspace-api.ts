@@ -140,7 +140,11 @@ export interface WorkspaceApi {
     signal?: AbortSignal,
   ): Promise<CreativeBriefRevision[]>;
   expandIdea(projectId: string): Promise<CreativeBriefRevision[]>;
-  generateScript(projectId: string, briefRevisionId?: string): Promise<ScriptPackage>;
+  generateScript(
+    projectId: string,
+    briefRevisionId?: string,
+    options?: { referenceProfileId?: string },
+  ): Promise<ScriptPackage>;
   listScriptPackages(projectId: string, signal?: AbortSignal): Promise<ScriptPackage[]>;
   selectScript(projectId: string, scriptId: string): Promise<CreativeProject>;
   listEditBlueprints(projectId: string, signal?: AbortSignal): Promise<EditBlueprint[]>;
@@ -427,12 +431,17 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
       );
     },
 
-    async generateScript(projectId, briefRevisionId) {
+    async generateScript(projectId, briefRevisionId, options) {
       return request(
         `/v1/creative-projects/${encodeURIComponent(projectId)}/generate-script`,
         scriptPackageSchema,
         {
-          body: JSON.stringify(briefRevisionId ? { briefRevisionId } : {}),
+          body: JSON.stringify({
+            ...(briefRevisionId ? { briefRevisionId } : {}),
+            ...(options?.referenceProfileId
+              ? { referenceProfileId: options.referenceProfileId }
+              : {}),
+          }),
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
         },

@@ -109,6 +109,7 @@ export const aiReviewRoutes: FastifyPluginCallback<AiReviewRouteOptions> = (fast
         decryptModelApiKey(settings.encryptedApiKey, options.configSecret),
         reviewBody(settings, input),
         options.fetchProvider ?? fetch,
+        120_000,
       );
       const generated = aiReviewGenerationSchema.parse(
         JSON.parse(responseOutputText(result.payload, settings.apiMode)),

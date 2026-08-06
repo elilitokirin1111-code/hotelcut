@@ -367,4 +367,129 @@ describe('compiler primitives', () => {
     expect(ranking.selected).toBeNull();
     expect(ranking.records[0]?.reasons).toContain('Analyzed scene was marked unusable');
   });
+
+  it('falls back to the whole asset when scene segments are too short', () => {
+    const media = compilerMediaCandidateSchema.parse({
+      assetId: '10000000-0000-4000-8000-000000000004',
+      kind: 'video',
+      durationFrames: 300,
+      tags: ['staff'],
+      scoreBasisPoints: 9_000,
+      metadata: {},
+      availability: 'ready',
+      contentFingerprint: null,
+      analysis: {
+        width: 1080,
+        height: 1920,
+        frameRate: 30,
+        hasAudio: false,
+        silenceRatioBasisPoints: 10_000,
+        qualityBasisPoints: 9_000,
+      },
+      segments: [
+        {
+          id: '11000000-0000-4000-8000-000000000002',
+          kind: 'scene',
+          startFrame: 0,
+          durationFrames: 60,
+          label: '员工服务',
+          tags: ['staff'],
+          scoreBasisPoints: 8_000,
+          transcript: null,
+          words: [],
+        },
+      ],
+    });
+    const slot = {
+      ...templateSlotSchema.parse({
+        id: 'staff.hero',
+        track: 'main',
+        role: 'montage',
+        startBasisPoints: 0,
+        endBasisPoints: 5_000,
+        acceptedKinds: ['video'],
+        requiredTags: ['staff'],
+        preferredTags: [],
+        required: true,
+        allowAssetReuse: false,
+        audioPolicy: 'mute',
+        transition: 'cut',
+      }),
+      startFrame: 0,
+      durationFrames: 150,
+    };
+
+    const ranking = rankSlotCandidates(
+      [media],
+      slot,
+      { assetIds: new Set(), candidateIds: new Set() },
+      20260806,
+    );
+
+    expect(ranking.selected).not.toBeNull();
+    expect(ranking.selected?.segment).toBeNull();
+    expect(ranking.selected?.candidateId).toContain('whole-fallback');
+  });
+
+  it('prefers a long-enough scene segment over the whole-asset fallback', () => {
+    const media = compilerMediaCandidateSchema.parse({
+      assetId: '10000000-0000-4000-8000-000000000005',
+      kind: 'video',
+      durationFrames: 300,
+      tags: ['room'],
+      scoreBasisPoints: 9_000,
+      metadata: {},
+      availability: 'ready',
+      contentFingerprint: null,
+      analysis: {
+        width: 1080,
+        height: 1920,
+        frameRate: 30,
+        hasAudio: false,
+        silenceRatioBasisPoints: 10_000,
+        qualityBasisPoints: 9_000,
+      },
+      segments: [
+        {
+          id: '11000000-0000-4000-8000-000000000003',
+          kind: 'scene',
+          startFrame: 0,
+          durationFrames: 300,
+          label: '客房全景',
+          tags: ['room'],
+          scoreBasisPoints: 8_000,
+          transcript: null,
+          words: [],
+        },
+      ],
+    });
+    const slot = {
+      ...templateSlotSchema.parse({
+        id: 'room.hero',
+        track: 'main',
+        role: 'montage',
+        startBasisPoints: 0,
+        endBasisPoints: 5_000,
+        acceptedKinds: ['video'],
+        requiredTags: ['room'],
+        preferredTags: [],
+        required: true,
+        allowAssetReuse: false,
+        audioPolicy: 'mute',
+        transition: 'cut',
+      }),
+      startFrame: 0,
+      durationFrames: 150,
+    };
+
+    const ranking = rankSlotCandidates(
+      [media],
+      slot,
+      { assetIds: new Set(), candidateIds: new Set() },
+      20260806,
+    );
+
+    expect(ranking.selected).not.toBeNull();
+    expect(ranking.selected?.segment?.id).toBe('11000000-0000-4000-8000-000000000003');
+  });
 });

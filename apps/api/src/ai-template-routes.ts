@@ -22,6 +22,7 @@ import {
   providerErrorMessage,
   responseOutputText,
 } from './model-provider-routes.js';
+import { collectAllowedAssetTags, sanitizeBeatTags } from './blueprint-tags.js';
 
 interface AiTemplateRouteOptions {
   configSecret?: string | undefined;
@@ -229,6 +230,7 @@ export const aiTemplateRoutes: FastifyPluginCallback<AiTemplateRouteOptions> = (
           apiKey,
           templateModelBody(settings, aiTemplateGenerationOutputSchema, input),
           options.fetchProvider ?? fetch,
+          120_000,
         );
         output = aiTemplateGenerationOutputSchema.parse(
           JSON.parse(responseOutputText(result.payload, settings.apiMode)),
@@ -236,11 +238,17 @@ export const aiTemplateRoutes: FastifyPluginCallback<AiTemplateRouteOptions> = (
       } catch (error) {
         throw new AiTemplateRequestError(`AI 模板生成失败：${providerErrorMessage(error, apiKey)}`);
       }
+      const spec = {
+        ...output.spec,
+        beats: output.spec.beats.map((beat) =>
+          sanitizeBeatTags(beat, collectAllowedAssetTags(readyAssets)),
+        ),
+      };
       const template = await store.createAiTemplate(request.actorUserId, hotelId, {
         name: request.body.name?.trim() || output.name,
         description: output.description,
         durationSeconds: output.durationSeconds,
-        spec: output.spec,
+        spec,
       });
       return reply.code(201).send(template);
     },

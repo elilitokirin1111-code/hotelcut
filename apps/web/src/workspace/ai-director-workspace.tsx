@@ -188,6 +188,35 @@ export function AiDirectorWorkspace({
     }
   };
 
+  const generateReferenceScript = async (profileId: string) => {
+    if (!selectedProjectId) return;
+    const profile = referenceProfiles.find((item) => item.id === profileId);
+    if (!profile) return;
+    const asset = referenceAssets.find((item) => item.id === profile.assetId);
+    setDirecting(true);
+    setCreateError(null);
+    try {
+      const durationSeconds = Math.min(180, Math.max(5, Math.round(profile.durationMs / 1_000)));
+      const brief = await api.createCreativeBriefRevision(selectedProjectId, {
+        durationSeconds,
+        platform: 'douyin',
+        rawIdea: `参考《${asset?.originalFilename ?? '参考视频'}》的剪辑风格制作成片`,
+      });
+      const script = await api.generateScript(selectedProjectId, brief.id, {
+        referenceProfileId: profileId,
+      });
+      setBriefs([brief]);
+      setScripts((current) => [script, ...current]);
+      await api.selectScript(selectedProjectId, script.id);
+      setSelectedScriptId(script.id);
+      setAssetRequirements(await api.generateAssetRequirements(selectedProjectId, script.id));
+    } catch (error) {
+      setCreateError(errorMessage(error));
+    } finally {
+      setDirecting(false);
+    }
+  };
+
   const selectScriptAndMatch = async (scriptId: string) => {
     if (!selectedProjectId) return;
     setDirecting(true);
@@ -646,8 +675,21 @@ export function AiDirectorWorkspace({
                     {profile.shotCount} 镜头 · 平均 {profile.averageShotDurationMs}ms ·{' '}
                     {profile.reusableStyleRules.join('；')}
                   </p>
+                  <button
+                    className="mt-3 rounded-lg bg-[#263138] px-3 py-2 text-xs font-black text-white disabled:opacity-60"
+                    disabled={directing}
+                    onClick={() => void generateReferenceScript(profile.id)}
+                    type="button"
+                  >
+                    {directing ? '正在生成脚本…' : '基于该参考生成脚本'}
+                  </button>
                 </article>
               ))}
+              {referenceProfiles.length > 0 ? (
+                <p className="mt-3 text-[10px] leading-4 text-slate-500">
+                  生成脚本后会沿用参考片的节奏、字幕与转场风格，并用你上传的素材自动匹配与成片。
+                </p>
+              ) : null}
             </div>
           ) : null}
         </section>

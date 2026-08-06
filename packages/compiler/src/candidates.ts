@@ -12,6 +12,7 @@ export interface SourceCandidate {
   candidateId: string;
   media: CompilerMediaCandidate;
   segment: CompilerMediaSegment | null;
+  fallback?: boolean;
   sourceStartFrame: number;
   availableDurationFrames: number | null;
   tags: readonly string[];
@@ -176,6 +177,20 @@ export function buildSourceCandidates(
         });
       });
     });
+
+    // When analyzed scene segments are shorter than the requested slot, fall
+    // back to the whole asset range instead of leaving the slot unfilled.
+    sources.push({
+      candidateId: `${media.assetId}:whole-fallback`,
+      media,
+      segment: null,
+      fallback: true,
+      sourceStartFrame: 0,
+      availableDurationFrames: media.durationFrames,
+      tags: normalizedTags(media.tags),
+      transcript: null,
+      duplicateOfAssetId,
+    });
   });
 
   return sources.sort((left, right) => compareStrings(left.candidateId, right.candidateId));
@@ -241,7 +256,11 @@ function scoreSource(
     reasons.push(`None of the required tags matched: ${slot.requiredTags.join(', ')}`);
   }
 
-  const base = source.segment?.scoreBasisPoints ?? source.media.scoreBasisPoints ?? 5_000;
+  const base = source.segment?.scoreBasisPoints
+    ? source.segment.scoreBasisPoints
+    : source.fallback
+      ? Math.min(source.media.scoreBasisPoints ?? 5_000, 5_000)
+      : (source.media.scoreBasisPoints ?? 5_000);
   add({
     name: 'base',
     value: base,

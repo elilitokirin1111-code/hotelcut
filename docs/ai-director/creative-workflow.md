@@ -38,7 +38,8 @@ from one storyboard beat span the whole beat across its sub-shots instead of rep
 - `POST/GET /v1/creative-projects/:projectId/brief-revisions`
 - `POST /v1/creative-projects/:projectId/expand-idea`
 - `POST /v1/creative-projects/:projectId/select-brief`
-- `POST /v1/creative-projects/:projectId/generate-script`
+- `POST /v1/creative-projects/:projectId/generate-script` (optional `referenceProfileId` makes the
+  script follow the reference video's narrative, pacing, caption and transition rules)
 - `GET /v1/creative-projects/:projectId/scripts`
 - `POST /v1/creative-projects/:projectId/scripts/:scriptId/revise`
 - `POST /v1/creative-projects/:projectId/select-script`

@@ -517,6 +517,25 @@
     },
     {
       "slotId": "promo.exterior",
+      "candidateId": "10000000-0000-4000-8000-000000000003:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 10211,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched exterior" },
+        { "name": "preferred-tags", "value": 1000, "detail": "Matched wide, day" },
+        { "name": "duration", "value": 618, "detail": "618 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 93, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
+    },
+    {
+      "slotId": "promo.exterior",
       "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000004",
       "segmentId": "14000000-0000-4000-8000-000000000001",
@@ -536,6 +555,25 @@
     },
     {
       "slotId": "promo.exterior",
+      "candidateId": "10000000-0000-4000-8000-000000000004:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8288,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 500, "detail": "Matched wide" },
+        { "name": "duration", "value": 518, "detail": "518 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 70, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: exterior"]
+    },
+    {
+      "slotId": "promo.exterior",
       "candidateId": "10000000-0000-4000-8000-000000000005:15000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000005",
       "segmentId": "15000000-0000-4000-8000-000000000001",
@@ -550,6 +588,25 @@
         { "name": "duration", "value": 568, "detail": "568 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 9, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: exterior"]
+    },
+    {
+      "slotId": "promo.exterior",
+      "candidateId": "10000000-0000-4000-8000-000000000005:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8255,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 768, "detail": "768 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 37, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: exterior"]
     },
@@ -593,6 +650,25 @@
     },
     {
       "slotId": "promo.exterior",
+      "candidateId": "10000000-0000-4000-8000-000000000007:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7644,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 568, "detail": "568 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 76, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: exterior"]
+    },
+    {
+      "slotId": "promo.exterior",
       "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000008",
       "segmentId": "18000000-0000-4000-8000-000000000001",
@@ -607,6 +683,25 @@
         { "name": "duration", "value": 428, "detail": "428 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 71, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: exterior"]
+    },
+    {
+      "slotId": "promo.exterior",
+      "candidateId": "10000000-0000-4000-8000-000000000008:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7815,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 568, "detail": "568 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 47, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: exterior"]
     },
@@ -650,6 +745,25 @@
     },
     {
       "slotId": "promo.exterior",
+      "candidateId": "10000000-0000-4000-8000-000000000010:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7959,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 568, "detail": "568 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 91, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: exterior"]
+    },
+    {
+      "slotId": "promo.exterior",
       "candidateId": "10000000-0000-4000-8000-000000000012:whole",
       "assetId": "10000000-0000-4000-8000-000000000012",
       "segmentId": null,
@@ -683,6 +797,25 @@
         { "name": "duration", "value": 518, "detail": "518 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 39, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: exterior"]
+    },
+    {
+      "slotId": "promo.exterior",
+      "candidateId": "10000000-0000-4000-8000-000000000013:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7428,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 668, "detail": "668 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 60, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: exterior"]
     },
@@ -757,6 +890,28 @@
     },
     {
       "slotId": "promo.room",
+      "candidateId": "10000000-0000-4000-8000-000000000003:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7958,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 570, "detail": "570 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 88, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Asset is already used by another slot",
+        "None of the required tags matched: room"
+      ]
+    },
+    {
+      "slotId": "promo.room",
       "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000004",
       "segmentId": "14000000-0000-4000-8000-000000000001",
@@ -771,6 +926,25 @@
         { "name": "duration", "value": 320, "detail": "320 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 67, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "promo.room",
+      "candidateId": "10000000-0000-4000-8000-000000000004:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7716,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 470, "detail": "470 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 46, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: room"]
     },
@@ -795,6 +969,25 @@
         "Eligible after filtering and duration matching",
         "Highest deterministic score for slot"
       ]
+    },
+    {
+      "slotId": "promo.room",
+      "candidateId": "10000000-0000-4000-8000-000000000005:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 10408,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 1000, "detail": "Matched window, clean" },
+        { "name": "duration", "value": 720, "detail": "720 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 38, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
     },
     {
       "slotId": "promo.room",
@@ -836,6 +1029,25 @@
     },
     {
       "slotId": "promo.room",
+      "candidateId": "10000000-0000-4000-8000-000000000007:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7531,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 520, "detail": "520 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 11, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "promo.room",
       "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000008",
       "segmentId": "18000000-0000-4000-8000-000000000001",
@@ -850,6 +1062,25 @@
         { "name": "duration", "value": 380, "detail": "380 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 44, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "promo.room",
+      "candidateId": "10000000-0000-4000-8000-000000000008:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7813,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 520, "detail": "520 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 93, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: room"]
     },
@@ -893,6 +1124,25 @@
     },
     {
       "slotId": "promo.room",
+      "candidateId": "10000000-0000-4000-8000-000000000010:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7898,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 520, "detail": "520 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 78, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: room"]
+    },
+    {
+      "slotId": "promo.room",
       "candidateId": "10000000-0000-4000-8000-000000000012:whole",
       "assetId": "10000000-0000-4000-8000-000000000012",
       "segmentId": null,
@@ -926,6 +1176,25 @@
         { "name": "duration", "value": 470, "detail": "470 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 32, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
+    },
+    {
+      "slotId": "promo.room",
+      "candidateId": "10000000-0000-4000-8000-000000000013:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 8578,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched room" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 620, "detail": "620 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 58, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["Eligible after filtering and duration matching"]
     },
@@ -1000,6 +1269,28 @@
     },
     {
       "slotId": "promo.service",
+      "candidateId": "10000000-0000-4000-8000-000000000003:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7965,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 606, "detail": "606 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 59, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Asset is already used by another slot",
+        "None of the required tags matched: service"
+      ]
+    },
+    {
+      "slotId": "promo.service",
       "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000004",
       "segmentId": "14000000-0000-4000-8000-000000000001",
@@ -1014,6 +1305,25 @@
         { "name": "duration", "value": 356, "detail": "356 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 37, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "promo.service",
+      "candidateId": "10000000-0000-4000-8000-000000000004:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7804,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 506, "detail": "506 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 98, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: service"]
     },
@@ -1036,6 +1346,28 @@
       ],
       "reasons": [
         "Candidate source range is already used",
+        "Asset is already used by another slot",
+        "None of the required tags matched: service"
+      ]
+    },
+    {
+      "slotId": "promo.service",
+      "candidateId": "10000000-0000-4000-8000-000000000005:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8286,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 756, "detail": "756 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 80, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
         "Asset is already used by another slot",
         "None of the required tags matched: service"
       ]
@@ -1080,6 +1412,25 @@
     },
     {
       "slotId": "promo.service",
+      "candidateId": "10000000-0000-4000-8000-000000000007:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7559,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 556, "detail": "556 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 3, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "promo.service",
       "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000008",
       "segmentId": "18000000-0000-4000-8000-000000000001",
@@ -1099,6 +1450,25 @@
         "Eligible after filtering and duration matching",
         "Highest deterministic score for slot"
       ]
+    },
+    {
+      "slotId": "promo.service",
+      "candidateId": "10000000-0000-4000-8000-000000000008:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 10001,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched service" },
+        { "name": "preferred-tags", "value": 1000, "detail": "Matched staff, welcome" },
+        { "name": "duration", "value": 556, "detail": "556 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 45, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
     },
     {
       "slotId": "promo.service",
@@ -1140,6 +1510,25 @@
     },
     {
       "slotId": "promo.service",
+      "candidateId": "10000000-0000-4000-8000-000000000010:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7874,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 556, "detail": "556 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 18, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "promo.service",
       "candidateId": "10000000-0000-4000-8000-000000000012:whole",
       "assetId": "10000000-0000-4000-8000-000000000012",
       "segmentId": null,
@@ -1173,6 +1562,25 @@
         { "name": "duration", "value": 506, "detail": "506 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 94, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: service"]
+    },
+    {
+      "slotId": "promo.service",
+      "candidateId": "10000000-0000-4000-8000-000000000013:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7448,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 656, "detail": "656 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 92, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: service"]
     },
@@ -1247,6 +1655,28 @@
     },
     {
       "slotId": "promo.offer",
+      "candidateId": "10000000-0000-4000-8000-000000000003:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000003",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7996,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 606, "detail": "606 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 90, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
+        "Asset is already used by another slot",
+        "None of the required tags matched: promotion"
+      ]
+    },
+    {
+      "slotId": "promo.offer",
       "candidateId": "10000000-0000-4000-8000-000000000004:14000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000004",
       "segmentId": "14000000-0000-4000-8000-000000000001",
@@ -1261,6 +1691,25 @@
         { "name": "duration", "value": 356, "detail": "356 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 72, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: promotion"]
+    },
+    {
+      "slotId": "promo.offer",
+      "candidateId": "10000000-0000-4000-8000-000000000004:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000004",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7782,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 506, "detail": "506 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 76, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: promotion"]
     },
@@ -1283,6 +1732,28 @@
       ],
       "reasons": [
         "Candidate source range is already used",
+        "Asset is already used by another slot",
+        "None of the required tags matched: promotion"
+      ]
+    },
+    {
+      "slotId": "promo.offer",
+      "candidateId": "10000000-0000-4000-8000-000000000005:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000005",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 8301,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2150, "detail": "Technical quality 9300" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 756, "detail": "756 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 95, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
         "Asset is already used by another slot",
         "None of the required tags matched: promotion"
       ]
@@ -1327,6 +1798,25 @@
     },
     {
       "slotId": "promo.offer",
+      "candidateId": "10000000-0000-4000-8000-000000000007:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000007",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7605,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1700, "detail": "Technical quality 8400" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 556, "detail": "556 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 49, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: promotion"]
+    },
+    {
+      "slotId": "promo.offer",
       "candidateId": "10000000-0000-4000-8000-000000000008:18000000-0000-4000-8000-000000000001:0",
       "assetId": "10000000-0000-4000-8000-000000000008",
       "segmentId": "18000000-0000-4000-8000-000000000001",
@@ -1344,6 +1834,28 @@
       ],
       "reasons": [
         "Candidate source range is already used",
+        "Asset is already used by another slot",
+        "None of the required tags matched: promotion"
+      ]
+    },
+    {
+      "slotId": "promo.offer",
+      "candidateId": "10000000-0000-4000-8000-000000000008:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000008",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7853,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1900, "detail": "Technical quality 8800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 556, "detail": "556 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 97, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": [
         "Asset is already used by another slot",
         "None of the required tags matched: promotion"
       ]
@@ -1391,6 +1903,25 @@
     },
     {
       "slotId": "promo.offer",
+      "candidateId": "10000000-0000-4000-8000-000000000010:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000010",
+      "segmentId": null,
+      "eligible": true,
+      "selected": false,
+      "totalScore": 10092,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 2000, "detail": "Technical quality 9000" },
+        { "name": "required-tags", "value": 1200, "detail": "Matched promotion" },
+        { "name": "preferred-tags", "value": 1000, "detail": "Matched food, weekend" },
+        { "name": "duration", "value": 556, "detail": "556 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 36, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["Eligible after filtering and duration matching"]
+    },
+    {
+      "slotId": "promo.offer",
       "candidateId": "10000000-0000-4000-8000-000000000012:whole",
       "assetId": "10000000-0000-4000-8000-000000000012",
       "segmentId": null,
@@ -1424,6 +1955,25 @@
         { "name": "duration", "value": 506, "detail": "506 spare frames" },
         { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
         { "name": "tie-break", "value": 31, "detail": "Seeded deterministic tie-break" }
+      ],
+      "reasons": ["None of the required tags matched: promotion"]
+    },
+    {
+      "slotId": "promo.offer",
+      "candidateId": "10000000-0000-4000-8000-000000000013:whole-fallback",
+      "assetId": "10000000-0000-4000-8000-000000000013",
+      "segmentId": null,
+      "eligible": false,
+      "selected": false,
+      "totalScore": 7397,
+      "components": [
+        { "name": "base", "value": 5000, "detail": "Candidate analysis base score" },
+        { "name": "quality", "value": 1400, "detail": "Technical quality 7800" },
+        { "name": "required-tags", "value": 0, "detail": "No required tag bonus" },
+        { "name": "preferred-tags", "value": 0, "detail": "No preferred tag bonus" },
+        { "name": "duration", "value": 656, "detail": "656 spare frames" },
+        { "name": "orientation", "value": 300, "detail": "Portrait-compatible media" },
+        { "name": "tie-break", "value": 41, "detail": "Seeded deterministic tie-break" }
       ],
       "reasons": ["None of the required tags matched: promotion"]
     },

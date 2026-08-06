@@ -63,6 +63,7 @@ import {
   missingRequiredSlotLabels,
   summarizeGeneration,
 } from './project-generation.js';
+import { collectAllowedAssetTags, sanitizeBeatTags } from './blueprint-tags.js';
 
 interface CreativeProjectRouteOptions {
   configSecret: string;
@@ -258,6 +259,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         apiKey,
         modelBody(settings, operation, outputSchema, input),
         options.fetchProvider ?? fetch,
+        120_000,
       );
       const raw: unknown = JSON.parse(
         responseOutputText(result.payload, settings.apiMode),
@@ -399,6 +401,22 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
       const assetDetails = await Promise.all(
         readyAssets.map((asset) => store.getAssetDetail(request.actorUserId, asset.id)),
       );
+      const allowedTags = collectAllowedAssetTags(readyAssets);
+      const normalizedBlueprint = validation.normalizedBlueprint;
+      const sanitizedBlueprint = {
+        ...normalizedBlueprint,
+        beats: normalizedBlueprint.beats.map((beat) => sanitizeBeatTags(beat, allowedTags)),
+      };
+      const compileBlueprint =
+        readyAssets.length < sanitizedBlueprint.beats.length
+          ? {
+              ...sanitizedBlueprint,
+              beats: sanitizedBlueprint.beats.map((beat) => ({
+                ...beat,
+                maximumAssetReuse: Math.max(beat.maximumAssetReuse, 2),
+              })),
+            }
+          : sanitizedBlueprint;
       const projectId = randomUUID();
       const transientBrief = {
         id: randomUUID(),
@@ -415,7 +433,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      const template = buildDynamicCompilationTemplate(validation.normalizedBlueprint);
+      const template = buildDynamicCompilationTemplate(compileBlueprint);
       let compilation: ReturnType<typeof compileVideo>;
       try {
         compilation = compileVideo(
@@ -883,6 +901,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     projectId: string,
     briefId: string | undefined,
     instruction: string | undefined,
+    referenceProfileIds: string[],
   ): Promise<ScriptPackage> => {
     const store = repository();
     const project = await store.getCreativeProject(actorUserId, projectId);
@@ -891,6 +910,12 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
       briefs.find((candidate) => candidate.id === (briefId ?? project.selectedBriefRevisionId)) ??
       briefs[0];
     if (!brief) throw new Error('CREATIVE_BRIEF_REQUIRED');
+    const referenceProfiles =
+      referenceProfileIds.length > 0
+        ? (await store.listReferenceVideoProfiles(actorUserId, projectId)).filter((profile) =>
+            referenceProfileIds.includes(profile.id),
+          )
+        : [];
     const result = scriptGenerationSchema.parse(
       await generate(
         actorUserId,
@@ -903,7 +928,18 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           outputRequirements:
             '根据内容智能选择信息载体：口播场景用 narration，对话场景用 dialogue，' +
             '纯画面/参考片风格镜头（空镜、B-roll、氛围画面）可以没有口播，但必须提供 caption 字幕文案。' +
-            '每个 scene 必须至少包含 narration、dialogue、caption 之一；所有 scene 的 durationMs 之和应接近 targetDurationMs。',
+            '每个 scene 必须至少包含 narration、dialogue、caption 之一；所有 scene 的 durationMs 之和应接近 targetDurationMs。' +
+            '拍摄清单 shotList 的 requiredTags 只能使用酒店素材标签词表（如 lobby、room、service、staff、detail、exterior），' +
+            '不要编造 computer、phone、map 等过细的物件标签。',
+          ...(referenceProfiles.length > 0
+            ? {
+                referenceProfiles,
+                referenceRules:
+                  '已提供参考视频风格画像：请遵循其 narrativePattern、paceCurve、' +
+                  'shotTypeDistribution、transitionProfile、captionProfile 和 reusableStyleRules 来编排脚本分镜；' +
+                  '不得复制参考片的人物、台词、品牌事实或具体画面内容。',
+              }
+            : {}),
           targetDurationMs: brief.durationSeconds * 1_000,
         },
         (value) => ensureSceneInformation(value),
@@ -919,7 +955,9 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
       modelName: settings?.model ?? null,
       promptVersion,
       generationParameters,
-      inputSummary: `Brief ${brief.id}${instruction ? `; revise: ${instruction}` : ''}`,
+      inputSummary: `Brief ${brief.id}${
+        instruction ? `; revise: ${instruction}` : ''
+      }${referenceProfiles.length > 0 ? `; references: ${referenceProfileIds.join(',')}` : ''}`,
     });
   };
 
@@ -927,7 +965,12 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     '/v1/creative-projects/:projectId/generate-script',
     {
       schema: {
-        body: z.object({ briefRevisionId: z.uuid().optional() }).strict(),
+        body: z
+          .object({
+            briefRevisionId: z.uuid().optional(),
+            referenceProfileId: z.uuid().optional(),
+          })
+          .strict(),
         params: creativeProjectIdParamsSchema,
         response: {
           201: scriptPackageSchema,
@@ -948,6 +991,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           request.params.projectId,
           request.body.briefRevisionId,
           undefined,
+          request.body.referenceProfileId ? [request.body.referenceProfileId] : [],
         );
         return reply.code(201).send(script);
       } catch (error) {
@@ -997,6 +1041,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           request.params.projectId,
           undefined,
           `${request.body.instruction}\n原脚本：${JSON.stringify(source)}`,
+          [],
         );
         const project = await repository().getCreativeProject(
           request.actorUserId,
@@ -1059,6 +1104,8 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         store.listReferenceVideoProfiles(request.actorUserId, project.id),
       ]);
       if (script.creativeProjectId !== project.id) throw new DomainNotFoundError();
+      const assets = await store.listAssets(request.actorUserId, project.hotelId);
+      const allowedTags = collectAllowedAssetTags(assets);
       try {
         const generated = editBlueprintGenerationSchema.parse(
           await generate(
@@ -1071,10 +1118,23 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
               assetRequirements: requirements,
               referenceProfiles: profiles,
               constraints:
-                '仅使用已确认或候选素材 ID；beats 必须连续覆盖全片；禁止生成不可实现的转场或音频策略。',
+                '仅使用已确认或候选素材 ID；beats 必须连续覆盖全片；禁止生成不可实现的转场或音频策略。' +
+                'requiredTags 只能使用酒店素材标签词表（如 lobby、room、service、staff、detail、exterior），' +
+                '不要编造 computer、phone、map 等过细的物件标签。',
             },
           ),
         );
+        const beats = generated.beats.map((beat) => sanitizeBeatTags(beat, allowedTags));
+        const readyAssetCount = assets.filter(
+          (asset) => asset.kind === 'video' && asset.status === 'ready',
+        ).length;
+        const reusableBeats =
+          readyAssetCount < beats.length
+            ? beats.map((beat) => ({
+                ...beat,
+                maximumAssetReuse: Math.max(beat.maximumAssetReuse, 2),
+              }))
+            : beats;
         const seed = request.body.seed ?? 1;
         const validation = validateEditBlueprint({
           ...generated,
@@ -1090,7 +1150,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           generationParameters: {},
           inputSummary: null,
           createdAt: new Date().toISOString(),
-          beats: generated.beats.map((beat) => ({ ...beat, id: randomUUID() })),
+          beats: reusableBeats.map((beat) => ({ ...beat, id: randomUUID() })),
         });
         if (!validation.valid)
           throw new Error(
@@ -1099,6 +1159,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         const current = await store.getModelProviderSettings(request.actorUserId, project.hotelId);
         const blueprint = await store.createEditBlueprint(request.actorUserId, project.id, {
           ...generated,
+          beats: reusableBeats,
           seed,
           compilerVersion: COMPILER_VERSION,
           sourceAssetIds: requirements.flatMap((item) => item.matchedAssetIds),

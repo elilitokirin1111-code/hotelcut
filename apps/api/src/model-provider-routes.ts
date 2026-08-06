@@ -206,6 +206,7 @@ export async function callProvider(
   apiKey: string,
   body: Record<string, unknown>,
   fetchProvider: ProviderFetch,
+  timeoutMs = 30_000,
 ): Promise<{ payload: unknown; latencyMs: number }> {
   const startedAt = Date.now();
   const response = await fetchProvider(providerEndpoint(settings), {
@@ -216,7 +217,7 @@ export async function callProvider(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const latencyMs = Date.now() - startedAt;
   const text = await response.text();
