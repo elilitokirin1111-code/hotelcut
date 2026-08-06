@@ -28,8 +28,10 @@ OpenAI Responses and OpenAI-compatible providers use native strict `json_schema`
 Each AI operation records an `ai_generation_runs` audit row with model name, prompt version,
 generation parameters, redacted input/output summaries, status, retry attempt and failure reason.
 The API rejects a script if its summed scene duration differs from the selected brief duration by
-more than 10 percent. Every scene requires visual, action, dialogue-or-narration field and duration;
-the shot list links its shooting requirements to scene sequence.
+more than 10 percent. Every scene requires visual, action, duration and at least one of
+`narration`, `dialogue` or `caption`, so pure-visual/reference-style scenes can carry subtitles
+without spoken content; the shot list links its shooting requirements to scene sequence. Captions
+from one storyboard beat span the whole beat across its sub-shots instead of repeating per shot.
 
 ## Phase 1 endpoints
 

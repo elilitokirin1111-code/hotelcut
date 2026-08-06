@@ -262,15 +262,86 @@ function createCaptionClips(
   if (!layout) {
     return [];
   }
-  const clips: CaptionClip[] = [];
-  selectedSlots
-    .filter(
-      (selection) => selection.clip && (selection.slot.caption || selection.slot.role === 'a-roll'),
-    )
+
+  interface CaptionUnit {
+    key: string;
+    text: string;
+    startFrame: number;
+    durationFrames: number;
+    slotId: string;
+    generatedFrom: string | null;
+  }
+
+  const units: CaptionUnit[] = [];
+  const grouped = new Map<string, SelectedSlot[]>();
+  const ungrouped: SelectedSlot[] = [];
+  selectedSlots.forEach((selection) => {
+    if (!selection.clip) {
+      return;
+    }
+    const slot = selection.slot;
+    if (slot.captionGroup && slot.caption) {
+      const group = grouped.get(slot.captionGroup);
+      if (group) {
+        group.push(selection);
+      } else {
+        grouped.set(slot.captionGroup, [selection]);
+      }
+      return;
+    }
+    if (slot.caption || slot.role === 'a-roll') {
+      ungrouped.push(selection);
+    }
+  });
+
+  grouped.forEach((selections, groupKey) => {
+    selections.sort((left, right) => left.slot.startFrame - right.slot.startFrame);
+    let run: SelectedSlot[] = [];
+    const flushRun = () => {
+      if (run.length === 0) {
+        return;
+      }
+      const text = run[0]!.slot.caption;
+      if (!text) {
+        warnings.push({
+          code: 'CAPTION_SOURCE_MISSING',
+          message: `Caption group ${groupKey} has no caption text`,
+          severity: 'warning',
+          path: `captionGroups.${groupKey}`,
+        });
+        run = [];
+        return;
+      }
+      const startFrame = run[0]!.slot.startFrame;
+      const endFrame = run.at(-1)!.slot.startFrame + run.at(-1)!.slot.durationFrames;
+      units.push({
+        key: `${groupKey}:${startFrame}`,
+        text,
+        startFrame,
+        durationFrames: endFrame - startFrame,
+        slotId: run[0]!.slot.id,
+        generatedFrom: run[0]!.source?.candidateId ?? null,
+      });
+      run = [];
+    };
+    selections.forEach((selection) => {
+      const previous = run.at(-1);
+      if (
+        previous &&
+        selection.slot.startFrame !== previous.slot.startFrame + previous.slot.durationFrames
+      ) {
+        flushRun();
+      }
+      run.push(selection);
+    });
+    flushRun();
+  });
+
+  ungrouped
     .sort((left, right) => left.slot.startFrame - right.slot.startFrame)
     .forEach((selection) => {
-      const captionText = selection.slot.caption ?? selection.source?.transcript;
-      if (!captionText) {
+      const text = selection.slot.caption ?? selection.source?.transcript;
+      if (!text) {
         warnings.push({
           code: 'CAPTION_SOURCE_MISSING',
           message: `Slot ${selection.slot.id} has no transcript for captions`,
@@ -279,44 +350,54 @@ function createCaptionClips(
         });
         return;
       }
-      const pages = paginateCaptionLines(
-        splitCaptionLines(captionText, layout.maxVisualWidth),
-        layout.maxLines,
-      );
-      pages.forEach((text, pageIndex) => {
-        const pageStart = Math.round((selection.slot.durationFrames * pageIndex) / pages.length);
-        const pageEnd = Math.round(
-          (selection.slot.durationFrames * (pageIndex + 1)) / pages.length,
-        );
-        clips.push({
-          id: id(`caption:${selection.slot.id}:${pageIndex}`),
-          kind: 'caption',
-          startFrame: selection.slot.startFrame + pageStart,
-          durationFrames: Math.max(1, pageEnd - pageStart),
-          text,
-          words: [],
-          style: {
-            fontToken: layout.fontToken,
-            colorToken: layout.colorToken,
-            ...(layout.backgroundColorToken
-              ? { backgroundColorToken: layout.backgroundColorToken }
-              : {}),
-            fontSize: layout.fontSize,
-            lineHeight: 1.2,
-            align: 'center',
-            maxLines: layout.maxLines,
-          },
-          safeAreaId: layout.safeAreaId,
-          transform: defaultTransform,
-          transitionIn: null,
-          transitionOut: null,
-          metadata: {
-            slotId: selection.slot.id,
-            generatedFrom: selection.source?.candidateId ?? null,
-          },
-        });
+      units.push({
+        key: selection.slot.id,
+        text,
+        startFrame: selection.slot.startFrame,
+        durationFrames: selection.slot.durationFrames,
+        slotId: selection.slot.id,
+        generatedFrom: selection.source?.candidateId ?? null,
       });
     });
+
+  const clips: CaptionClip[] = [];
+  units.forEach((unit) => {
+    const pages = paginateCaptionLines(
+      splitCaptionLines(unit.text, layout.maxVisualWidth),
+      layout.maxLines,
+    );
+    pages.forEach((text, pageIndex) => {
+      const pageStart = Math.round((unit.durationFrames * pageIndex) / pages.length);
+      const pageEnd = Math.round((unit.durationFrames * (pageIndex + 1)) / pages.length);
+      clips.push({
+        id: id(`caption:${unit.key}:${pageIndex}`),
+        kind: 'caption',
+        startFrame: unit.startFrame + pageStart,
+        durationFrames: Math.max(1, pageEnd - pageStart),
+        text,
+        words: [],
+        style: {
+          fontToken: layout.fontToken,
+          colorToken: layout.colorToken,
+          ...(layout.backgroundColorToken
+            ? { backgroundColorToken: layout.backgroundColorToken }
+            : {}),
+          fontSize: layout.fontSize,
+          lineHeight: 1.2,
+          align: 'center',
+          maxLines: layout.maxLines,
+        },
+        safeAreaId: layout.safeAreaId,
+        transform: defaultTransform,
+        transitionIn: null,
+        transitionOut: null,
+        metadata: {
+          slotId: unit.slotId,
+          generatedFrom: unit.generatedFrom,
+        },
+      });
+    });
+  });
 
   explain('caption', 'CAPTIONS_LAYOUT_COMPLETE', `Generated ${clips.length} caption clips`, {
     clipCount: clips.length,

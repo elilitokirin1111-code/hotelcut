@@ -235,6 +235,7 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     operation: string,
     outputSchema: z.ZodType,
     input: Record<string, unknown>,
+    normalize?: (value: unknown) => unknown,
   ): Promise<unknown> => {
     const store = repository();
     const project = await store.getCreativeProject(actorUserId, projectId);
@@ -258,9 +259,10 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         modelBody(settings, operation, outputSchema, input),
         options.fetchProvider ?? fetch,
       );
-      const parsed = outputSchema.parse(
-        JSON.parse(responseOutputText(result.payload, settings.apiMode)),
-      );
+      const raw: unknown = JSON.parse(
+        responseOutputText(result.payload, settings.apiMode),
+      ) as unknown;
+      const parsed = outputSchema.parse(normalize ? normalize(raw) : raw);
       await store.finishAiGenerationRun(runId, {
         outputSummary: JSON.stringify(parsed).slice(0, 4_000),
       });
@@ -756,9 +758,10 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
           request.params.projectId,
         );
         const settings = await store.getModelProviderSettings(request.actorUserId, project.hotelId);
-        const rows = await Promise.all(
-          result.directions.map((direction) =>
-            store.createCreativeBriefRevision(request.actorUserId, request.params.projectId, {
+        const rows = [];
+        for (const direction of result.directions) {
+          rows.push(
+            await store.createCreativeBriefRevision(request.actorUserId, request.params.projectId, {
               createdBy: 'ai',
               direction: direction.direction,
               rawIdea: brief.rawIdea,
@@ -780,8 +783,8 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
               generationParameters,
               inputSummary: `Expanded brief ${brief.id}`,
             }),
-          ),
-        );
+          );
+        }
         return rows;
       } catch (error) {
         const configured =
@@ -845,6 +848,36 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
     },
   );
 
+  const ensureSceneInformation = (value: unknown): unknown => {
+    if (!value || typeof value !== 'object') {
+      return value;
+    }
+    const record = value as Record<string, unknown>;
+    const scenes: unknown[] = Array.isArray(record['scenes'])
+      ? (record['scenes'] as unknown[])
+      : [];
+    record['scenes'] = scenes.map((scene): unknown => {
+      if (!scene || typeof scene !== 'object') {
+        return scene;
+      }
+      const item = scene as Record<string, unknown>;
+      const narration = typeof item['narration'] === 'string' ? item['narration'].trim() : '';
+      const dialogue = typeof item['dialogue'] === 'string' ? item['dialogue'].trim() : '';
+      const caption = typeof item['caption'] === 'string' ? item['caption'].trim() : '';
+      if (narration || dialogue || caption) {
+        return scene;
+      }
+      const title = typeof item['title'] === 'string' ? item['title'].trim() : '';
+      const visual = typeof item['visual'] === 'string' ? item['visual'].trim() : '';
+      const purpose = typeof item['purpose'] === 'string' ? item['purpose'].trim() : '';
+      item['caption'] = `${title ? `${title}，` : ''}${visual}${
+        purpose ? `，${purpose}` : ''
+      }`.slice(0, 240);
+      return item;
+    });
+    return record;
+  };
+
   const generateScript = async (
     actorUserId: string,
     projectId: string,
@@ -867,8 +900,13 @@ export const creativeProjectRoutes: FastifyPluginCallback<CreativeProjectRouteOp
         {
           brief,
           instruction: instruction ?? null,
+          outputRequirements:
+            '根据内容智能选择信息载体：口播场景用 narration，对话场景用 dialogue，' +
+            '纯画面/参考片风格镜头（空镜、B-roll、氛围画面）可以没有口播，但必须提供 caption 字幕文案。' +
+            '每个 scene 必须至少包含 narration、dialogue、caption 之一；所有 scene 的 durationMs 之和应接近 targetDurationMs。',
           targetDurationMs: brief.durationSeconds * 1_000,
         },
+        (value) => ensureSceneInformation(value),
       ),
     );
     const target = brief.durationSeconds * 1_000;

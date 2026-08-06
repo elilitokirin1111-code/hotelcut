@@ -123,6 +123,7 @@ export const scriptSceneSchema = z.object({
   action: z.string().min(1),
   narration: z.string().nullable(),
   dialogue: z.string().nullable(),
+  caption: z.string().max(240).nullable(),
   durationMs: z.number().int().positive(),
   shotType: z.string().nullable(),
   motionType: z.string().nullable(),
@@ -148,9 +149,12 @@ export const shotRequirementSchema = z.object({
 const scriptSceneDraftSchema = scriptSceneSchema
   .omit({ id: true, scriptPackageId: true, createdAt: true })
   .strict()
-  .refine((scene) => Boolean(scene.narration?.trim() || scene.dialogue?.trim()), {
-    message: 'Every scene requires narration or dialogue.',
-  });
+  .refine(
+    (scene) => Boolean(scene.narration?.trim() || scene.dialogue?.trim() || scene.caption?.trim()),
+    {
+      message: 'Every scene requires narration, dialogue or caption text.',
+    },
+  );
 const shotRequirementDraftSchema = shotRequirementSchema
   .omit({ id: true, scriptPackageId: true, scriptSceneId: true, createdAt: true })
   .extend({ sceneSequence: z.number().int().positive().nullable() })

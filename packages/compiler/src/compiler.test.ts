@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   compilerMediaCandidateSchema,
+  buildAiTemplateCompilationTemplate,
   buildDynamicCompilationTemplate,
   compileVideo,
   compilerInputSchema,
@@ -13,6 +14,49 @@ import {
   templateSlotSchema,
   validateEditBlueprint,
 } from './index.js';
+
+describe('buildAiTemplateCompilationTemplate', () => {
+  it('builds time-scaled slots from AI template beats', () => {
+    const template = buildAiTemplateCompilationTemplate(
+      '50000000-0000-4000-8000-000000000001',
+      '湖景周末礼遇',
+      {
+        durationSeconds: 20,
+        globalRules: ['CTA_EMPHASIS'],
+        beats: [
+          {
+            sequence: 1,
+            startMs: 0,
+            endMs: 20_000,
+            purpose: '开场抓注意力',
+            visual: '湖景大远景',
+            requiredTags: ['exterior'],
+            preferredTags: ['wide'],
+            preferredShotTypes: [],
+            preferredMotionTypes: [],
+            maximumShotDurationMs: 5_000,
+            maximumAssetReuse: 1,
+            audioPolicy: 'ambient',
+            caption: '周末住进湖景房',
+            transitionOut: 'dissolve',
+          },
+        ],
+      },
+    );
+
+    expect(template.id).toBe('ai.50000000-0000-4000-8000-000000000001');
+    expect(template.slots).toHaveLength(4);
+    expect(template.slots[0]).toMatchObject({
+      requiredTags: ['exterior'],
+      startBasisPoints: 0,
+      endBasisPoints: 2_500,
+      transition: 'dissolve',
+    });
+    expect(template.slots.every((slot) => slot.caption === '周末住进湖景房')).toBe(true);
+    expect(template.slots.every((slot) => slot.captionGroup === 'ai-beat-1')).toBe(true);
+    expect(template.cta).not.toBeNull();
+  });
+});
 
 const blueprint = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -97,6 +141,10 @@ describe('compiler primitives', () => {
     expect(template.slots[0]!.startBasisPoints).toBe(0);
     expect(template.slots.at(-1)!.endBasisPoints).toBe(10_000);
     expect(template.slots[0]!.caption).toBe('欢迎');
+    expect(template.slots.slice(0, 4).every((slot) => slot.caption === '欢迎')).toBe(true);
+    expect(template.slots.slice(0, 4).every((slot) => slot.captionGroup === 'beat-1')).toBe(true);
+    expect(template.slots.slice(4).every((slot) => slot.caption === null)).toBe(true);
+    expect(template.slots.slice(4).every((slot) => slot.captionGroup === undefined)).toBe(true);
     expect(template.captions).toMatchObject({
       safeAreaId: 'safe.caption',
       fontToken: 'brand.bodyFont',
@@ -187,6 +235,15 @@ describe('compiler primitives', () => {
 
     expect(result.manifest.slots.every((slot) => slot.assetId !== null)).toBe(true);
     expect(clips).toHaveLength(template.slots.length);
+    const captionTrack = result.project.tracks.find((track) => track.kind === 'caption');
+    expect(captionTrack?.clips).toEqual([
+      expect.objectContaining({
+        kind: 'caption',
+        text: '欢迎',
+        startFrame: 0,
+        durationFrames: 120,
+      }),
+    ]);
     expect(
       clips.every(
         (clip, index) =>

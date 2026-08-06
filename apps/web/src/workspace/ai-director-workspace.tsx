@@ -1,5 +1,5 @@
 import { Clapperboard, FileText, Film, Lightbulb, Plus } from 'lucide-react';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import type {
   AiDirectorFeatureFlags,
@@ -19,6 +19,8 @@ import type { WorkspaceApi } from './workspace-api';
 interface AiDirectorWorkspaceProps {
   api: WorkspaceApi;
   hotelId: string;
+  onOpenVideoProject?: (projectId: string) => void;
+  onQuickEdit?: () => void;
 }
 
 type LoadState =
@@ -62,7 +64,12 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'AI 创作工作台加载失败';
 }
 
-export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) {
+export function AiDirectorWorkspace({
+  api,
+  hotelId,
+  onOpenVideoProject,
+  onQuickEdit,
+}: AiDirectorWorkspaceProps) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
   const [mode, setMode] = useState<CreativeProjectMode>('idea');
   const [title, setTitle] = useState('');
@@ -78,6 +85,7 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
   const [assetRequirements, setAssetRequirements] = useState<AssetRequirement[]>([]);
   const [blueprints, setBlueprints] = useState<EditBlueprint[]>([]);
   const [videoVersions, setVideoVersions] = useState<CreativeVideoVersion[]>([]);
+  const assistantRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -131,6 +139,9 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
       );
       setTitle('');
       setSelectedProjectId(project.id);
+      window.setTimeout(() => {
+        assistantRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
     } catch (error) {
       setCreateError(errorMessage(error));
     } finally {
@@ -267,6 +278,16 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
           AI 先生成可版本化的创意、脚本与 EditBlueprint；校验通过后才会交给现有 Compiler
           生成合法时间线。
         </p>
+        {onQuickEdit ? (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button className="button-primary" onClick={onQuickEdit} type="button">
+              直接开始剪辑（素材自动成片）
+            </button>
+            <span className="text-[10px] text-slate-400">
+              不想走 AI 策划？用现有素材直接进入自动剪辑。
+            </span>
+          </div>
+        ) : null}
       </header>
 
       <form className="surface-card p-7" onSubmit={(event) => void createProject(event)}>
@@ -317,6 +338,9 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
           </button>
         </div>
         {createError ? <p className="mt-3 text-xs text-rose-700">{createError}</p> : null}
+        <p className="mt-3 text-[10px] text-slate-400">
+          创建项目后会进入下方「创意助手」，自动加载该项目的脚本、素材匹配和成片版本。
+        </p>
       </form>
 
       <section className="surface-card p-7">
@@ -345,7 +369,7 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
       </section>
 
       {selectedProjectId ? (
-        <section className="surface-card p-7" aria-label="创意助手">
+        <section aria-label="创意助手" className="surface-card p-7" ref={assistantRef}>
           <h3 className="text-lg font-black">创意助手与脚本</h3>
           <p className="mt-2 text-sm text-slate-500">
             输入创意后，百炼将返回三套方向、可编辑分镜与拍摄清单；每次结果均保存为独立版本。
@@ -506,9 +530,19 @@ export function AiDirectorWorkspace({ api, hotelId }: AiDirectorWorkspaceProps) 
                         {version.paceScoreBasisPoints}
                       </p>
                       <p className="mt-2 text-slate-500">{version.recommendationReason}</p>
-                      <p className="mt-2 font-black text-[#9a6b3c]">
-                        已生成可编辑项目：{version.videoProjectId}
-                      </p>
+                      {onOpenVideoProject ? (
+                        <button
+                          className="mt-2 rounded-lg bg-[#9a6b3c] px-3 py-2 text-xs font-black text-white"
+                          onClick={() => onOpenVideoProject(version.videoProjectId)}
+                          type="button"
+                        >
+                          在 Studio 中打开成片
+                        </button>
+                      ) : (
+                        <p className="mt-2 font-black text-[#9a6b3c]">
+                          已生成可编辑项目：{version.videoProjectId}
+                        </p>
+                      )}
                     </article>
                   ))}
                 </div>

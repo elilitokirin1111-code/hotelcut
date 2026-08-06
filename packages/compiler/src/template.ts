@@ -17,6 +17,7 @@ export const templateSlotSchema = z
     requiredTags: z.array(z.string().min(1).max(80)).default([]),
     preferredTags: z.array(z.string().min(1).max(80)).default([]),
     caption: z.string().min(1).max(240).nullable().optional(),
+    captionGroup: stableKeySchema.optional(),
     required: z.boolean().default(true),
     allowAssetReuse: z.boolean().default(false),
     reuseCandidateRanges: z.boolean().default(false),
