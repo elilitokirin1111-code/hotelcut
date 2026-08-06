@@ -511,6 +511,12 @@ function createApi(initialSession: AuthSession | null): {
       createCreativeBriefRevision,
       createCreativeProject,
       createReferenceVideoProfile,
+      deleteAiTemplate: vi.fn<WorkspaceApi['deleteAiTemplate']>().mockResolvedValue(),
+      deleteAiTemplates: vi.fn<WorkspaceApi['deleteAiTemplates']>().mockResolvedValue(),
+      deleteAsset: vi.fn<WorkspaceApi['deleteAsset']>().mockResolvedValue(),
+      deleteAssets: vi.fn<WorkspaceApi['deleteAssets']>().mockResolvedValue(),
+      deleteRenderJobs: vi.fn<WorkspaceApi['deleteRenderJobs']>().mockResolvedValue(),
+      deleteVideoProjects: vi.fn<WorkspaceApi['deleteVideoProjects']>().mockResolvedValue(),
       generateEditBlueprint: vi
         .fn<WorkspaceApi['generateEditBlueprint']>()
         .mockRejectedValue(new Error('test fixture does not generate blueprints')),
@@ -540,7 +546,11 @@ function createApi(initialSession: AuthSession | null): {
         .fn<WorkspaceApi['listCreativeVideoVersions']>()
         .mockResolvedValue([]),
       listEditBlueprints: vi.fn<WorkspaceApi['listEditBlueprints']>().mockResolvedValue([]),
+      listAiTemplates: vi.fn<WorkspaceApi['listAiTemplates']>().mockResolvedValue([]),
       listProjectTemplates,
+      generateAiTemplate: vi
+        .fn<WorkspaceApi['generateAiTemplate']>()
+        .mockRejectedValue(new Error('AI template generation is not configured in this test')),
       listRenderJobs,
       listReferenceVideoProfiles,
       listAssetRequirements,
@@ -606,12 +616,11 @@ describe('M7 email-authenticated hotel workspace', () => {
     } = createApi(null);
     render(<WorkspaceApp api={api} />);
 
-    expect(
-      await screen.findByRole('heading', { name: '下午好，今天继续产出好内容。' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '创建专属剪辑方案' })).toBeInTheDocument();
     expect(getSession).not.toHaveBeenCalled();
     expect(loadWorkspace).toHaveBeenCalledWith(expect.any(AbortSignal));
 
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     fireEvent.click(screen.getByRole('button', { name: '打开设置' }));
     expect(await screen.findByRole('heading', { name: '大模型 API 配置' })).toBeInTheDocument();
     expect(getModelProviderSettings).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal));
@@ -684,6 +693,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     fireEvent.click(screen.getByRole('button', { name: '打开渲染中心' }));
 
     expect(await screen.findByRole('heading', { name: '渲染中心', level: 2 })).toBeInTheDocument();
@@ -699,6 +709,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     fireEvent.click(screen.getByRole('button', { name: '打开酒店配置' }));
     await screen.findByRole('heading', { name: '酒店资料与品牌配置' });
     await waitFor(() =>
@@ -765,7 +776,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       expect(listAssets).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal)),
     );
     expect(
-      await within(screen.getByLabelText('素材列表')).findByText('湖景房介绍.mp4'),
+      await within(screen.getByLabelText('素材列表')).findByText('明亮整洁的湖景客房'),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(getAssetDetail).toHaveBeenCalledWith(assets[0]!.id, expect.anything()),
@@ -826,10 +837,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       status: 'ready',
       updatedAt: '2026-07-29T08:01:00.000Z',
     };
-    listAssets
-      .mockResolvedValueOnce([uploadedAsset])
-      .mockResolvedValueOnce([uploadedAsset])
-      .mockResolvedValue([readyAsset]);
+    listAssets.mockResolvedValueOnce([uploadedAsset]).mockResolvedValue([readyAsset]);
     getAssetDetail
       .mockResolvedValueOnce(detailFor(uploadedAsset))
       .mockResolvedValue(detailFor(readyAsset));
@@ -858,6 +866,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
     expect(await screen.findByRole('heading', { name: '创建自动剪辑项目' })).toBeInTheDocument();
     await waitFor(() => expect(listProjectTemplates).toHaveBeenCalledWith(expect.any(AbortSignal)));
@@ -940,6 +949,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
     await screen.findByRole('heading', { name: '创建自动剪辑项目' });
     fireEvent.click(screen.getByLabelText(/酒店活动推广/));
@@ -964,6 +974,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
     await screen.findByRole('heading', { name: '创建自动剪辑项目' });
     fireEvent.change(screen.getByLabelText('项目标题'), {
@@ -974,6 +985,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '进入 Studio 编辑' }));
 
     expect(await screen.findByRole('heading', { name: 'HotelCut Studio' })).toBeInTheDocument();
+    expect(screen.getAllByText('欢迎来到云栖湖畔酒店').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: '文案' }));
     fireEvent.change(screen.getByLabelText('字幕文本'), {
       target: { value: '湖畔周末，慢下来住一晚' },
@@ -999,6 +1011,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     await screen.findByRole('heading', { name: '选择酒店' });
 
     fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开更多菜单' }));
     fireEvent.click(screen.getByRole('button', { name: '打开视频项目' }));
     await screen.findByRole('heading', { name: '创建自动剪辑项目' });
     fireEvent.change(screen.getByLabelText('项目标题'), {

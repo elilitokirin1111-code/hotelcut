@@ -8,6 +8,7 @@ import type {
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 
 import { AssetLibrary } from './asset-library';
+import { AiTemplateCenter } from './ai-template-center';
 import { AiDirectorWorkspace } from './ai-director-workspace';
 import { AppShell, type WorkspaceSection } from './app-shell';
 import { AutomaticEditWorkflow } from './automatic-edit-workflow';
@@ -160,7 +161,11 @@ function HotelWorkspace({
   const [logoAssetId, setLogoAssetId] = useState<string | null>(null);
   const [hotelSaveState, setHotelSaveState] = useState<SaveState>({ status: 'idle' });
   const [brandKitSaveState, setBrandKitSaveState] = useState<SaveState>({ status: 'idle' });
-  const [activeModule, setActiveModule] = useState<WorkspaceSection>('dashboard');
+  const [activeModule, setActiveModule] = useState<WorkspaceSection>('ai-director');
+  const [studioOpenRequestId, setStudioOpenRequestId] = useState<string | null>(null);
+  const [templatesEnabled, setTemplatesEnabled] = useState<boolean>(
+    () => window.localStorage.getItem('hotelcut.templatesEnabled') !== 'false',
+  );
   const [workspaceCounts, setWorkspaceCounts] = useState<{ assets: number; projects: number }>({
     assets: 0,
     projects: 0,
@@ -238,6 +243,15 @@ function HotelWorkspace({
     }
   };
 
+  const openVideoProjectInStudio = (projectId: string) => {
+    setStudioOpenRequestId(projectId);
+    setActiveModule('projects');
+  };
+
+  const startQuickEdit = () => {
+    setActiveModule('projects');
+  };
+
   return (
     <AppShell
       activeSection={activeModule}
@@ -247,6 +261,7 @@ function HotelWorkspace({
       onNavigate={setActiveModule}
       organizationName={organizationName}
       projectCount={workspaceCounts.projects}
+      templatesEnabled={templatesEnabled}
       userEmail={userEmail}
       {...(onLogout ? { onLogout } : {})}
     >
@@ -514,13 +529,55 @@ function HotelWorkspace({
         </section>
       ) : null}
       {activeModule === 'assets' ? <AssetLibrary api={api} hotelId={hotel.id} /> : null}
-      {activeModule === 'ai-director' ? <AiDirectorWorkspace api={api} hotelId={hotel.id} /> : null}
-      {activeModule === 'projects' ? <AutomaticEditWorkflow api={api} hotelId={hotel.id} /> : null}
-      {activeModule === 'renders' ? <RenderCenter api={api} hotelId={hotel.id} /> : null}
-      {activeModule === 'settings' ? <ModelApiSettings api={api} hotelId={hotel.id} /> : null}
-      {activeModule === 'templates' || activeModule === 'audit' ? (
-        <PlannedWorkspaceSection section={activeModule} />
+      {activeModule === 'ai-director' ? (
+        <AiDirectorWorkspace
+          api={api}
+          hotelId={hotel.id}
+          onOpenVideoProject={openVideoProjectInStudio}
+          onQuickEdit={startQuickEdit}
+        />
       ) : null}
+      {activeModule === 'projects' ? (
+        <AutomaticEditWorkflow
+          api={api}
+          hotelId={hotel.id}
+          onProjectOpened={() => setStudioOpenRequestId(null)}
+          openProjectId={studioOpenRequestId}
+        />
+      ) : null}
+      {activeModule === 'renders' ? <RenderCenter api={api} hotelId={hotel.id} /> : null}
+      {activeModule === 'settings' ? (
+        <div className="space-y-5">
+          <ModelApiSettings api={api} hotelId={hotel.id} />
+          <section aria-label="界面设置" className="configuration-page surface-card">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="page-eyebrow">Workspace</p>
+                <h2>界面设置</h2>
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  控制导航与创作流程中是否显示 AI 模板中心入口。
+                </p>
+              </div>
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                <input
+                  checked={templatesEnabled}
+                  onChange={(event) => {
+                    setTemplatesEnabled(event.target.checked);
+                    window.localStorage.setItem(
+                      'hotelcut.templatesEnabled',
+                      String(event.target.checked),
+                    );
+                  }}
+                  type="checkbox"
+                />
+                启用 AI 模板中心
+              </label>
+            </div>
+          </section>
+        </div>
+      ) : null}
+      {activeModule === 'templates' ? <AiTemplateCenter api={api} hotelId={hotel.id} /> : null}
+      {activeModule === 'audit' ? <PlannedWorkspaceSection section={activeModule} /> : null}
     </AppShell>
   );
 }

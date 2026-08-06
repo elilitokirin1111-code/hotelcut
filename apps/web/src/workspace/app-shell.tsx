@@ -9,6 +9,7 @@ import {
   Gauge,
   LogOut,
   Menu,
+  MoreHorizontal,
   Palette,
   Plus,
   Search,
@@ -41,6 +42,7 @@ interface AppShellProps {
   onNavigate: (section: WorkspaceSection) => void;
   organizationName: string;
   projectCount: number | null;
+  templatesEnabled?: boolean;
   userEmail?: string;
 }
 
@@ -53,14 +55,14 @@ interface NavigationItem {
 }
 
 const creationNavigation: NavigationItem[] = [
-  { ariaLabel: '打开工作台', icon: Gauge, label: '工作台', section: 'dashboard' },
   { ariaLabel: '打开 AI 创作', icon: WandSparkles, label: 'AI 创作', section: 'ai-director' },
-  { ariaLabel: '打开视频项目', icon: Film, label: '视频项目', section: 'projects' },
   { ariaLabel: '打开素材库', icon: Boxes, label: '素材库', section: 'assets' },
-  { ariaLabel: '打开模板中心', icon: Sparkles, label: '模板中心', section: 'templates' },
 ];
 
-const operationsNavigation: NavigationItem[] = [
+const moreNavigation: NavigationItem[] = [
+  { ariaLabel: '打开工作台', icon: Gauge, label: '工作台', section: 'dashboard' },
+  { ariaLabel: '打开视频项目', icon: Film, label: '视频项目', section: 'projects' },
+  { ariaLabel: '打开模板中心', icon: Sparkles, label: '模板中心', section: 'templates' },
   { ariaLabel: '打开酒店配置', icon: Palette, label: '酒店与品牌', section: 'brand' },
   { ariaLabel: '打开渲染中心', icon: Clapperboard, label: '渲染中心', section: 'renders' },
   { ariaLabel: '打开操作记录', icon: FileClock, label: '操作记录', section: 'audit' },
@@ -116,9 +118,11 @@ export function AppShell({
   onNavigate,
   organizationName,
   projectCount,
+  templatesEnabled = true,
   userEmail,
 }: AppShellProps) {
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const creationItems = creationNavigation.map((item) => ({
     ...item,
     ...(item.section === 'assets'
@@ -131,7 +135,11 @@ export function AppShell({
   const navigate = (section: WorkspaceSection) => {
     onNavigate(section);
     setIsMobileNavigationOpen(false);
+    setIsMoreMenuOpen(false);
   };
+  const visibleMoreNavigation = moreNavigation.filter(
+    (item) => templatesEnabled || item.section !== 'templates',
+  );
 
   return (
     <main className="hotelcut-shell">
@@ -182,13 +190,7 @@ export function AppShell({
         <NavigationGroup
           activeSection={activeSection}
           items={creationItems}
-          label="创作工作区"
-          onNavigate={navigate}
-        />
-        <NavigationGroup
-          activeSection={activeSection}
-          items={operationsNavigation}
-          label="酒店运营"
+          label="创作与素材"
           onNavigate={navigate}
         />
 
@@ -249,6 +251,43 @@ export function AppShell({
             />
             <kbd>⌘ K</kbd>
           </label>
+          <div className="shell-more">
+            <button
+              aria-expanded={isMoreMenuOpen}
+              aria-label="打开更多菜单"
+              className="shell-icon-button"
+              onClick={() => setIsMoreMenuOpen((open) => !open)}
+              type="button"
+            >
+              <MoreHorizontal size={17} />
+            </button>
+            {isMoreMenuOpen ? (
+              <div className="shell-more-menu">
+                {visibleMoreNavigation.map((item) => {
+                  const Icon = item.icon;
+                  const active =
+                    activeSection === item.section ||
+                    (item.section === 'ai-director' &&
+                      (activeSection === 'projects' ||
+                        activeSection === 'templates' ||
+                        activeSection === 'renders'));
+                  return (
+                    <button
+                      aria-current={active ? 'page' : undefined}
+                      aria-label={item.ariaLabel}
+                      className={`shell-more-item ${active ? 'is-active' : ''}`}
+                      key={item.section}
+                      onClick={() => navigate(item.section)}
+                      type="button"
+                    >
+                      <Icon aria-hidden="true" size={15} strokeWidth={1.8} />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
           <button
             aria-label="帮助（待接入）"
             className="shell-icon-button"

@@ -446,6 +446,41 @@ textarea:focus-visible {
   color: #9da8aa;
   font-size: 9px;
 }
+.shell-more {
+  position: relative;
+}
+.shell-more-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  display: grid;
+  min-width: 224px;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--hc-border);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 0 16px 44px rgb(35 52 60 / 12%);
+}
+.shell-more-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  color: #4b5a60;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+}
+.shell-more-item:hover,
+.shell-more-item.is-active {
+  color: #26383e;
+  background: #f2f5f4;
+}
 .shell-icon-button,
 .shell-menu-button {
   display: grid;
@@ -543,6 +578,20 @@ textarea:focus-visible {
   color: #31434a;
   border: 1px solid #dfe5e4;
   background: #fff;
+}
+.button-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 15px;
+  color: #a12d2d;
+  font-size: 10px;
+  font-weight: 760;
+  border: 1px solid #f0cccc;
+  border-radius: 12px;
+  background: #fff6f6;
 }
 .surface-card {
   border: 1px solid #e8eceb;
@@ -1158,6 +1207,40 @@ textarea:focus-visible {
   gap: 11px;
   margin-top: 14px;
 }
+.asset-card-wrap {
+  position: relative;
+  min-width: 0;
+}
+.asset-card-wrap .asset-library-card {
+  width: 100%;
+}
+.asset-card-check {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 2;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 7px;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: 0 2px 8px rgb(15 39 47 / 12%);
+}
+.asset-card-check input,
+.render-job-check input {
+  width: 14px;
+  height: 14px;
+  accent-color: #d6a76d;
+}
+.render-job-check {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-top: 8px;
+}
 .asset-library-card {
   min-width: 0;
   overflow: hidden;
@@ -1260,6 +1343,15 @@ textarea:focus-visible {
   flex: 1;
   overflow: hidden;
   font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asset-card-copy .asset-card-file {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #9aa5a8;
+  font-size: 6.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
