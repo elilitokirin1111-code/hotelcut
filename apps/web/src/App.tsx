@@ -242,6 +242,10 @@ export function ProjectStudio({
               <SimpleTimeline
                 assets={assets}
                 currentFrame={currentFrame}
+                onMoveClip={(clip, startFrame) => {
+                  editor.execute({ type: 'move-clip', clipId: clip.id, startFrame });
+                  setCurrentFrame(startFrame);
+                }}
                 onScrub={setCurrentFrame}
                 onSelectClip={selectClip}
                 project={editor.project}

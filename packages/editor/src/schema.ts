@@ -21,6 +21,34 @@ export const trimVideoCommandSchema = z
   })
   .strict();
 
+/** Moves a clip on its existing track without changing its duration. */
+export const moveClipCommandSchema = z
+  .object({
+    type: z.literal('move-clip'),
+    ...clipCommandShape,
+    startFrame: z.number().int().nonnegative(),
+  })
+  .strict();
+
+/** Changes an editorial clip's duration while keeping its timeline start. */
+export const resizeClipCommandSchema = z
+  .object({
+    type: z.literal('resize-clip'),
+    ...clipCommandShape,
+    durationFrames: z.number().int().positive(),
+  })
+  .strict();
+
+/** Sets the volume of an A-roll/B-roll or audio clip. */
+export const updateClipVolumeCommandSchema = z
+  .object({
+    type: z.literal('update-clip-volume'),
+    ...clipCommandShape,
+    volume: z.number().min(0).max(2),
+    muted: z.boolean().optional(),
+  })
+  .strict();
+
 export const updateCaptionCommandSchema = z
   .object({
     type: z.literal('update-caption'),
@@ -56,6 +84,9 @@ export const replaceMusicCommandSchema = z
 export const editorCommandSchema = z.discriminatedUnion('type', [
   replaceClipAssetCommandSchema,
   trimVideoCommandSchema,
+  moveClipCommandSchema,
+  resizeClipCommandSchema,
+  updateClipVolumeCommandSchema,
   updateCaptionCommandSchema,
   updateTitleCommandSchema,
   updateCtaCommandSchema,

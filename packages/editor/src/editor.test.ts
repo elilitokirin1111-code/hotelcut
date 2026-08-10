@@ -137,6 +137,59 @@ describe('M5 editor commands', () => {
     expect(musicClips.every((clip) => clip.assetId === musicAssetId)).toBe(true);
   });
 
+  it('moves and resizes visual clips without permitting collisions', async () => {
+    const project = await fixtureProject();
+    const scene = getEditorScenes(project)[0];
+    if (!scene) throw new Error('Fixture must include a scene');
+
+    const moved = applyEditorCommand(project, {
+      type: 'move-clip',
+      clipId: scene.clipId,
+      startFrame: scene.startFrame,
+    });
+    const resized = applyEditorCommand(moved, {
+      type: 'resize-clip',
+      clipId: scene.clipId,
+      durationFrames: scene.durationFrames,
+    });
+    const clip = resized.tracks
+      .flatMap((track) => track.clips)
+      .find((candidate) => candidate.id === scene.clipId);
+    expect(clip).toMatchObject({
+      startFrame: scene.startFrame,
+      durationFrames: scene.durationFrames,
+    });
+    expect(() =>
+      applyEditorCommand(project, { type: 'move-clip', clipId: scene.clipId, startFrame: 1 }),
+    ).toThrow(EditorCommandError);
+  });
+
+  it('updates video and music volume through a validated command', async () => {
+    const project = await fixtureProject();
+    const video = project.tracks
+      .flatMap((track) => track.clips)
+      .find((clip): clip is VideoClip => clip.kind === 'video');
+    const music = project.tracks
+      .flatMap((track) => track.clips)
+      .find((clip): clip is AudioClip => clip.kind === 'audio');
+    if (!video || !music) throw new Error('Fixture must include video and audio clips');
+
+    const quieterVideo = applyEditorCommand(project, {
+      type: 'update-clip-volume',
+      clipId: video.id,
+      volume: 0.35,
+      muted: true,
+    });
+    const quieterMusic = applyEditorCommand(quieterVideo, {
+      type: 'update-clip-volume',
+      clipId: music.id,
+      volume: 0.2,
+    });
+    const clips = quieterMusic.tracks.flatMap((track) => track.clips);
+    expect(clips.find((clip) => clip.id === video.id)).toMatchObject({ volume: 0.35, muted: true });
+    expect(clips.find((clip) => clip.id === music.id)).toMatchObject({ volume: 0.2 });
+  });
+
   it('supports bounded undo, redo and branch replacement', async () => {
     const project = await fixtureProject();
     const caption = project.tracks

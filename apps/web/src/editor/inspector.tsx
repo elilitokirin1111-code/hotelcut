@@ -12,7 +12,7 @@ import { findEditorAsset, type EditorAsset } from './editor-asset';
 import { Icon, type IconName } from './icon';
 import { PreviewArtwork } from './preview-artwork';
 
-type InspectorTab = 'shot' | 'copy' | 'cta' | 'music';
+type InspectorTab = 'shot' | 'timing' | 'copy' | 'cta' | 'sound' | 'music';
 
 interface InspectorProps {
   assets: readonly EditorAsset[];
@@ -23,6 +23,8 @@ interface InspectorProps {
 }
 
 const tabs: Array<{ id: InspectorTab; label: string; icon: IconName }> = [
+  { id: 'timing', label: '时长', icon: 'scissors' },
+  { id: 'sound', label: '音量', icon: 'music' },
   { id: 'shot', label: '镜头', icon: 'scissors' },
   { id: 'copy', label: '文案', icon: 'copy' },
   { id: 'cta', label: 'CTA', icon: 'replace' },
@@ -56,6 +58,10 @@ export function Inspector({
     ) ?? captions[0];
   const [sourceStart, setSourceStart] = useState(0);
   const [sourceEnd, setSourceEnd] = useState(1);
+  const [timelineStart, setTimelineStart] = useState(0);
+  const [timelineDuration, setTimelineDuration] = useState(1);
+  const [clipVolume, setClipVolume] = useState(1);
+  const [clipMuted, setClipMuted] = useState(false);
   const [captionId, setCaptionId] = useState(activeCaption?.id ?? '');
   const caption = captions.find((candidate) => candidate.id === captionId) ?? activeCaption;
   const [captionDraft, setCaptionDraft] = useState(caption?.text ?? '');
@@ -79,6 +85,16 @@ export function Inspector({
     setCaptionId(activeCaption.id);
     setCaptionDraft(activeCaption.text);
   }, [activeCaption?.id]);
+
+  useEffect(() => {
+    if (!selectedClip) return;
+    setTimelineStart(selectedClip.startFrame);
+    setTimelineDuration(selectedClip.durationFrames);
+    if (selectedClip.kind === 'video' || selectedClip.kind === 'audio') {
+      setClipVolume(selectedClip.volume);
+      setClipMuted(selectedClip.kind === 'video' ? selectedClip.muted : false);
+    }
+  }, [selectedClip?.id]);
 
   const visualAssets = useMemo(
     () => assets.filter((asset) => asset.kind === 'video' || asset.kind === 'image'),
@@ -136,7 +152,7 @@ export function Inspector({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-4 rounded-xl bg-slate-100 p-1">
+      <div className="mt-4 grid grid-cols-3 rounded-xl bg-slate-100 p-1">
         {tabs.map((item) => (
           <button
             aria-pressed={tab === item.id}
@@ -265,6 +281,69 @@ export function Inspector({
           </div>
         )}
 
+        {tab === 'timing' && (
+          <div className="space-y-5">
+            <div className="rounded-2xl bg-[#eef7f5] p-3 text-[11px] leading-5 text-[#3b746c]">
+              在时间线上拖动片段可调整位置；这里可精确输入帧数。系统会阻止同一轨道的片段重叠。
+            </div>
+            <label className="editor-field">
+              <span>时间线起点（帧）</span>
+              <input
+                aria-label="时间线起点"
+                min={0}
+                onChange={(event) => setTimelineStart(Number(event.target.value))}
+                type="number"
+                value={timelineStart}
+              />
+            </label>
+            <button
+              className="editor-secondary-button w-full"
+              disabled={!selectedClip || timelineStart === selectedClip.startFrame}
+              onClick={() => {
+                if (!selectedClip) return;
+                execute({ type: 'move-clip', clipId: selectedClip.id, startFrame: timelineStart });
+                notify('片段位置已更新');
+              }}
+              type="button"
+            >
+              应用位置
+            </button>
+            <label className="editor-field">
+              <span>片段时长（帧）</span>
+              <input
+                aria-label="片段时长"
+                min={1}
+                onChange={(event) => setTimelineDuration(Number(event.target.value))}
+                type="number"
+                value={timelineDuration}
+              />
+            </label>
+            <p className="text-[10px] leading-4 text-slate-400">
+              视频调整时长会自动换算播放速度；字幕调整时长会清除过期的逐词时间码。
+            </p>
+            <button
+              className="editor-secondary-button w-full"
+              disabled={
+                !selectedClip ||
+                selectedClip.kind === 'audio' ||
+                timelineDuration === selectedClip.durationFrames
+              }
+              onClick={() => {
+                if (!selectedClip || selectedClip.kind === 'audio') return;
+                execute({
+                  type: 'resize-clip',
+                  clipId: selectedClip.id,
+                  durationFrames: timelineDuration,
+                });
+                notify('片段时长已更新');
+              }}
+              type="button"
+            >
+              应用时长
+            </button>
+          </div>
+        )}
+
         {tab === 'copy' && (
           <div className="space-y-5">
             <div>
@@ -384,6 +463,68 @@ export function Inspector({
             >
               应用 CTA
             </button>
+          </div>
+        )}
+
+        {tab === 'sound' && (
+          <div className="space-y-5">
+            <div className="rounded-2xl bg-[#eef7f5] p-3 text-[11px] leading-5 text-[#3b746c]">
+              可单独微调口播、原声或音乐片段音量；最终渲染仍会经过现有的音频质量检测。
+            </div>
+            {selectedClip?.kind === 'video' || selectedClip?.kind === 'audio' ? (
+              <>
+                <label className="editor-field">
+                  <span>音量（0–200%）</span>
+                  <input
+                    aria-label="片段音量"
+                    max={2}
+                    min={0}
+                    onChange={(event) => setClipVolume(Number(event.target.value))}
+                    step={0.05}
+                    type="range"
+                    value={clipVolume}
+                  />
+                  <strong className="mt-1 block text-right text-xs text-slate-600">
+                    {Math.round(clipVolume * 100)}%
+                  </strong>
+                </label>
+                {selectedClip.kind === 'video' ? (
+                  <label className="flex items-center justify-between rounded-xl bg-slate-50 p-3 text-xs font-semibold text-slate-600">
+                    静音原声
+                    <input
+                      aria-label="静音原声"
+                      checked={clipMuted}
+                      onChange={(event) => setClipMuted(event.target.checked)}
+                      type="checkbox"
+                    />
+                  </label>
+                ) : null}
+                <button
+                  className="editor-primary-button w-full"
+                  onClick={() => {
+                    if (
+                      !selectedClip ||
+                      (selectedClip.kind !== 'video' && selectedClip.kind !== 'audio')
+                    )
+                      return;
+                    execute({
+                      type: 'update-clip-volume',
+                      clipId: selectedClip.id,
+                      volume: clipVolume,
+                      ...(selectedClip.kind === 'video' ? { muted: clipMuted } : {}),
+                    });
+                    notify('片段音量已更新');
+                  }}
+                  type="button"
+                >
+                  应用音量
+                </button>
+              </>
+            ) : (
+              <p className="rounded-xl bg-slate-50 p-3 text-[11px] leading-5 text-slate-500">
+                请从时间线选择视频或音频片段后再调整音量。
+              </p>
+            )}
           </div>
         )}
 
