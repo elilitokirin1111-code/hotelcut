@@ -5,6 +5,7 @@ import type { HotelCutRepository, PersistCreativeBriefRevisionInput } from '@hot
 import type { CreativeProject } from '@hotelcut/schemas';
 
 import { buildApp } from './app.js';
+import { versionScores } from './creative-project-routes.js';
 import { encryptModelApiKey } from './model-provider-routes.js';
 
 const actorUserId = '20000000-0000-4000-8000-000000000001';
@@ -36,6 +37,35 @@ const baseBrief = {
 
 afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
+});
+
+describe('creative video version scoring', () => {
+  it('scores equivalent shot timing consistently across frame rates', () => {
+    const generation = {
+      selectedSlots: 3,
+      totalSlots: 3,
+      usedAssetIds: ['asset-1', 'asset-2', 'asset-3'],
+    };
+    const projectAt = (frameRate: number) => ({
+      output: { durationFrames: frameRate * 8, frameRate },
+      tracks: [
+        {
+          clips: [
+            { durationFrames: frameRate, kind: 'video', startFrame: 0 },
+            { durationFrames: frameRate * 3, kind: 'video', startFrame: frameRate },
+            { durationFrames: frameRate * 4, kind: 'video', startFrame: frameRate * 4 },
+          ],
+        },
+      ],
+    });
+
+    const scoreAt30 = versionScores('A', generation, projectAt(30));
+    const scoreAt60 = versionScores('A', generation, projectAt(60));
+
+    expect(scoreAt60.paceScoreBasisPoints).toBe(scoreAt30.paceScoreBasisPoints);
+    expect(scoreAt60.hookScoreBasisPoints).toBe(scoreAt30.hookScoreBasisPoints);
+    expect(scoreAt60.paceScoreBasisPoints).toBeGreaterThan(6_000);
+  });
 });
 
 function createRepository() {

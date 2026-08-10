@@ -126,7 +126,7 @@ function deriveVersionBlueprint(
   };
 }
 
-function versionScores(
+export function versionScores(
   variant: VideoVersionVariant,
   generation: { selectedSlots: number; totalSlots: number; usedAssetIds: string[] },
   rawProject: Record<string, unknown>,
@@ -135,7 +135,7 @@ function versionScores(
   'editBlueprintId' | 'videoProjectId' | 'variant' | 'seed' | 'recommendationReason'
 > {
   const project = rawProject as {
-    output: { durationFrames: number };
+    output: { durationFrames: number; frameRate?: number };
     tracks: Array<{ clips: Array<{ startFrame: number; durationFrames: number; kind: string }> }>;
   };
   const visualClips = project.tracks
@@ -146,12 +146,20 @@ function versionScores(
         visualClips.reduce((sum, clip) => sum + clip.durationFrames, 0) / visualClips.length,
       )
     : project.output.durationFrames;
+  const frameRate =
+    typeof project.output.frameRate === 'number' && project.output.frameRate > 0
+      ? project.output.frameRate
+      : 30;
+  const normalizedAverageShotFrames = Math.round((averageShotFrames * 30) / frameRate);
   const repeatedAssetCount = generation.usedAssetIds.length - new Set(generation.usedAssetIds).size;
   const coverage = generation.totalSlots
     ? Math.round((generation.selectedSlots * 10_000) / generation.totalSlots)
     : 0;
-  const hookCoverage = visualClips.some((clip) => clip.startFrame < 90) ? 10_000 : 0;
-  const pace = Math.max(0, Math.min(10_000, 10_000 - Math.max(0, averageShotFrames - 36) * 80));
+  const hookCoverage = visualClips.some((clip) => clip.startFrame < frameRate * 3) ? 10_000 : 0;
+  const pace = Math.max(
+    0,
+    Math.min(10_000, 10_000 - Math.max(0, normalizedAverageShotFrames - 36) * 80),
+  );
   return {
     scoreBasisPoints: Math.round((coverage * 5 + hookCoverage * 3 + pace * 2) / 10),
     hookScoreBasisPoints: hookCoverage,
