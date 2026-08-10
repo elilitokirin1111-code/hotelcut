@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Asset, AssetDetail, AssetPurpose } from '@hotelcut/schemas';
 
@@ -76,6 +76,52 @@ function formatError(error: unknown): string {
     return error.message;
   }
   return '素材请求失败，请稍后重试';
+}
+
+function AssetCardVisual({ api, asset }: { api: WorkspaceApi; asset: Asset }) {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element || asset.kind === 'audio' || asset.status !== 'ready') return;
+    if (!('IntersectionObserver' in window)) {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '160px' },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [asset.kind, asset.status]);
+
+  useEffect(() => {
+    if (!shouldLoad) return;
+    const controller = new AbortController();
+    void api
+      .getAssetDerivativeDownload(asset.id, 'thumbnail', controller.signal)
+      .then((download) => setThumbnailUrl(download.url))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [api, asset.id, shouldLoad]);
+
+  return (
+    <span className={`asset-card-visual asset-card-${asset.kind}`} aria-hidden="true" ref={rootRef}>
+      {thumbnailUrl ? <img alt="" loading="lazy" src={thumbnailUrl} /> : null}
+      <i />
+      <i />
+      <i />
+      <em>{asset.kind === 'audio' ? 'AUDIO' : '9:16'}</em>
+    </span>
+  );
 }
 
 function formatBytes(byteSize: number): string {
@@ -778,15 +824,7 @@ export function AssetLibrary({
                     onClick={() => setSelectedAssetId(asset.id)}
                     type="button"
                   >
-                    <span
-                      className={`asset-card-visual asset-card-${asset.kind}`}
-                      aria-hidden="true"
-                    >
-                      <i />
-                      <i />
-                      <i />
-                      <em>{asset.kind === 'audio' ? 'AUDIO' : '9:16'}</em>
-                    </span>
+                    <AssetCardVisual api={api} asset={asset} />
                     <div className="asset-card-copy">
                       <div>
                         <strong>{assetShortName(asset)}</strong>

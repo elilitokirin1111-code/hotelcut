@@ -760,6 +760,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       api,
       createManualSegment,
       getAssetDetail,
+      getAssetDerivativeDownload,
       listAssets,
       retryAssetAnalysis,
       uploadVideo,
@@ -776,6 +777,13 @@ describe('M7 email-authenticated hotel workspace', () => {
     expect(
       await within(screen.getByLabelText('素材列表')).findByText('明亮整洁的湖景客房'),
     ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(getAssetDerivativeDownload).toHaveBeenCalledWith(
+        assets[0]!.id,
+        'thumbnail',
+        expect.any(AbortSignal),
+      ),
+    );
     await waitFor(() =>
       expect(getAssetDetail).toHaveBeenCalledWith(assets[0]!.id, expect.anything()),
     );

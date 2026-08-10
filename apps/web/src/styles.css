@@ -3067,3 +3067,186 @@ body:has(.hotelcut-studio) .hotelcut-studio {
     border-left: 0;
   }
 }
+
+/* Production workspaces — shared information density and real media surfaces */
+.asset-page,
+.render-page,
+.automatic-workflow-page,
+.template-center-page,
+.model-settings-page {
+  max-width: 1500px;
+  margin: 0 auto;
+}
+.surface-card {
+  border-color: var(--hc-separator);
+  border-radius: var(--hc-radius-lg);
+  box-shadow: var(--hc-shadow-sm);
+}
+.asset-workspace-grid,
+.render-workspace-grid,
+.automatic-wizard-grid {
+  margin-top: 20px;
+  gap: 14px;
+}
+.asset-main-panel {
+  padding: 22px;
+}
+.asset-upload-drop {
+  min-height: 104px;
+  border-color: rgb(43 104 255 / 22%);
+  border-radius: var(--hc-radius-md);
+  background:
+    radial-gradient(circle at 12% 30%, rgb(74 131 247 / 8%), transparent 14rem),
+    var(--hc-surface-subtle);
+}
+.asset-upload-drop label > strong {
+  color: var(--hc-text-primary);
+  font-size: 11px;
+}
+.asset-upload-drop label > small {
+  color: var(--hc-text-tertiary);
+  font-size: 9px;
+}
+.asset-upload-button {
+  top: 29px;
+  min-height: 42px;
+  border-radius: var(--hc-radius-sm);
+  background: #2e6edc;
+  box-shadow: 0 8px 18px rgb(46 110 220 / 18%);
+}
+.asset-collection {
+  margin-top: 22px;
+}
+.asset-toolbar-heading h3 {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+.asset-filter-row input,
+.asset-filter-row select {
+  min-height: 42px;
+  border-color: var(--hc-separator) !important;
+  border-radius: var(--hc-radius-sm) !important;
+  background: var(--hc-surface-subtle) !important;
+}
+.asset-card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 13px;
+  margin-top: 16px;
+}
+.asset-library-card {
+  border-color: var(--hc-separator);
+  border-radius: var(--hc-radius-md);
+  box-shadow: 0 1px 2px rgb(20 34 42 / 3%);
+}
+.asset-library-card.is-selected {
+  border-color: #3478e5;
+  box-shadow: 0 0 0 3px rgb(52 120 229 / 12%);
+}
+.asset-card-visual {
+  height: 138px;
+}
+.asset-card-visual img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.asset-card-visual:has(img) i {
+  display: none;
+}
+.asset-card-visual em {
+  z-index: 2;
+  padding: 4px 6px;
+  font-size: 8px;
+  backdrop-filter: blur(8px);
+}
+.asset-card-copy {
+  padding: 12px;
+}
+.asset-card-copy strong {
+  font-size: 11px;
+}
+.asset-card-copy .asset-card-file {
+  margin-top: 6px;
+  font-size: 8px;
+}
+.asset-card-copy p {
+  margin-top: 9px;
+  font-size: 9px;
+}
+.asset-card-copy time {
+  margin-top: 7px;
+  font-size: 8px;
+}
+.asset-detail-panel {
+  top: 86px;
+  padding: 22px;
+}
+.render-workspace-grid {
+  grid-template-columns: 240px 290px minmax(0, 1fr);
+}
+.render-project-panel,
+.render-history-panel,
+.render-detail-panel {
+  border-radius: var(--hc-radius-lg);
+}
+.render-project-panel,
+.render-history-panel {
+  top: 86px;
+  padding: 18px;
+  background: var(--hc-surface-subtle);
+}
+.render-detail-panel {
+  padding: 24px;
+  background: var(--hc-surface-raised);
+}
+.render-project-panel [aria-pressed='true'],
+.render-history-panel [aria-pressed='true'] {
+  border-color: rgb(52 120 229 / 38%) !important;
+  background: rgb(52 120 229 / 7%) !important;
+  box-shadow: inset 0 0 0 1px rgb(52 120 229 / 8%);
+}
+.workflow-stepper {
+  min-height: 64px;
+  border-radius: var(--hc-radius-md);
+}
+.workflow-stepper .is-active {
+  color: #245fbf;
+}
+.workflow-stepper .is-active i {
+  background: #3478e5;
+  box-shadow: 0 0 0 5px rgb(52 120 229 / 10%);
+}
+.wizard-pane {
+  padding: 22px;
+}
+.wizard-pane > legend {
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+.wizard-pane-description {
+  font-size: 9px;
+  line-height: 1.6;
+}
+.workflow-template-grid label:has(input:checked) {
+  border-color: rgb(52 120 229 / 44%) !important;
+  background: rgb(52 120 229 / 7%) !important;
+  box-shadow: inset 0 0 0 1px rgb(52 120 229 / 8%);
+}
+
+@media (max-width: 1260px) {
+  .render-workspace-grid {
+    grid-template-columns: 220px minmax(250px, 0.7fr) minmax(0, 1.3fr);
+  }
+}
+@media (max-width: 980px) {
+  .render-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+  .render-project-panel,
+  .render-history-panel {
+    position: static;
+  }
+}
