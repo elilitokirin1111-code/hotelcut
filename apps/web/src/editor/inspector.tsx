@@ -12,7 +12,7 @@ import { findEditorAsset, type EditorAsset } from './editor-asset';
 import { Icon, type IconName } from './icon';
 import { PreviewArtwork } from './preview-artwork';
 
-type InspectorTab = 'shot' | 'timing' | 'copy' | 'cta' | 'sound' | 'music';
+type InspectorTab = 'shot' | 'timing' | 'look' | 'motion' | 'copy' | 'cta' | 'sound' | 'music';
 
 interface InspectorProps {
   assets: readonly EditorAsset[];
@@ -23,6 +23,8 @@ interface InspectorProps {
 }
 
 const tabs: Array<{ id: InspectorTab; label: string; icon: IconName }> = [
+  { id: 'look', label: '调色', icon: 'replace' },
+  { id: 'motion', label: '运动', icon: 'play' },
   { id: 'timing', label: '时长', icon: 'scissors' },
   { id: 'sound', label: '音量', icon: 'music' },
   { id: 'shot', label: '镜头', icon: 'scissors' },
@@ -45,6 +47,9 @@ export function Inspector({
   const [tab, setTab] = useState<InspectorTab>('shot');
   const selectedClip = allClips(project).find((clip) => clip.id === selectedClipId);
   const selectedVideo = selectedClip?.kind === 'video' ? selectedClip : null;
+  const selectedTrack = project.tracks.find((track) =>
+    track.clips.some((clip) => clip.id === selectedClipId),
+  );
   const captions = allClips(project).filter((clip): clip is CaptionClip => clip.kind === 'caption');
   const title = allClips(project).find(
     (clip): clip is TextClip =>
@@ -62,6 +67,20 @@ export function Inspector({
   const [timelineDuration, setTimelineDuration] = useState(1);
   const [clipVolume, setClipVolume] = useState(1);
   const [clipMuted, setClipMuted] = useState(false);
+  const [fadeInFrames, setFadeInFrames] = useState(0);
+  const [fadeOutFrames, setFadeOutFrames] = useState(0);
+  const [brightness, setBrightness] = useState(0);
+  const [contrast, setContrast] = useState(1);
+  const [saturation, setSaturation] = useState(1);
+  const [hueRotateDegrees, setHueRotateDegrees] = useState(0);
+  const [blurPx, setBlurPx] = useState(0);
+  const [transitionType, setTransitionType] = useState<'cut' | 'dissolve' | 'fade' | 'wipe'>('cut');
+  const [transitionDuration, setTransitionDuration] = useState(12);
+  const [keyframeX, setKeyframeX] = useState(0.5);
+  const [keyframeY, setKeyframeY] = useState(0.5);
+  const [keyframeScale, setKeyframeScale] = useState(1);
+  const [keyframeRotation, setKeyframeRotation] = useState(0);
+  const [keyframeOpacity, setKeyframeOpacity] = useState(1);
   const [captionId, setCaptionId] = useState(activeCaption?.id ?? '');
   const caption = captions.find((candidate) => candidate.id === captionId) ?? activeCaption;
   const [captionDraft, setCaptionDraft] = useState(caption?.text ?? '');
@@ -93,6 +112,24 @@ export function Inspector({
     if (selectedClip.kind === 'video' || selectedClip.kind === 'audio') {
       setClipVolume(selectedClip.volume);
       setClipMuted(selectedClip.kind === 'video' ? selectedClip.muted : false);
+      if (selectedClip.kind === 'audio') {
+        setFadeInFrames(selectedClip.fadeInFrames);
+        setFadeOutFrames(selectedClip.fadeOutFrames);
+      }
+    }
+    if (selectedClip.kind !== 'audio') {
+      setBrightness(selectedClip.colorAdjustments.brightness);
+      setContrast(selectedClip.colorAdjustments.contrast);
+      setSaturation(selectedClip.colorAdjustments.saturation);
+      setHueRotateDegrees(selectedClip.colorAdjustments.hueRotateDegrees);
+      setBlurPx(selectedClip.colorAdjustments.blurPx);
+      setTransitionType(selectedClip.transitionOut?.type ?? 'cut');
+      setTransitionDuration(selectedClip.transitionOut?.durationFrames ?? 12);
+      setKeyframeX(selectedClip.transform.x);
+      setKeyframeY(selectedClip.transform.y);
+      setKeyframeScale(selectedClip.transform.scaleX);
+      setKeyframeRotation(selectedClip.transform.rotationDegrees);
+      setKeyframeOpacity(selectedClip.transform.opacity);
     }
   }, [selectedClip?.id]);
 
@@ -281,6 +318,61 @@ export function Inspector({
           </div>
         )}
 
+        {tab === 'shot' && selectedTrack ? (
+          <div className="mt-5 space-y-2 border-t border-slate-100 pt-4">
+            <p className="editor-label">插入素材到播放头</p>
+            <p className="text-[10px] leading-4 text-slate-400">
+              只会插入到当前选中轨道的空白时间段，不会覆盖已有片段。
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {visualAssets
+                .filter((asset) =>
+                  selectedTrack.kind === 'video' ? asset.kind === 'video' : asset.kind === 'image',
+                )
+                .slice(0, 6)
+                .map((asset) => {
+                  const durationFrames = Math.min(asset.durationFrames, 90);
+                  return (
+                    <button
+                      className="rounded-xl border border-slate-200 bg-white px-2 py-2 text-left text-[10px] font-bold text-slate-600 hover:border-[#d6a76d]"
+                      key={`insert-${asset.id}`}
+                      onClick={() => {
+                        if (selectedTrack.kind !== 'video' && selectedTrack.kind !== 'overlay')
+                          return;
+                        const id = crypto.randomUUID();
+                        if (asset.kind === 'video') {
+                          execute({
+                            type: 'insert-video-clip',
+                            id,
+                            trackId: selectedTrack.id,
+                            assetId: asset.id,
+                            startFrame: currentFrame,
+                            durationFrames,
+                            sourceStartFrame: 0,
+                            sourceDurationFrames: durationFrames,
+                          });
+                        } else {
+                          execute({
+                            type: 'insert-image-clip',
+                            id,
+                            trackId: selectedTrack.id,
+                            assetId: asset.id,
+                            startFrame: currentFrame,
+                            durationFrames,
+                          });
+                        }
+                        notify('素材已插入播放头');
+                      }}
+                      type="button"
+                    >
+                      <span className="block truncate">＋ {asset.name}</span>
+                    </button>
+                  );
+                })}
+            </div>
+          </div>
+        ) : null}
+
         {tab === 'timing' && (
           <div className="space-y-5">
             <div className="rounded-2xl bg-[#eef7f5] p-3 text-[11px] leading-5 text-[#3b746c]">
@@ -341,6 +433,266 @@ export function Inspector({
             >
               应用时长
             </button>
+          </div>
+        )}
+
+        {tab === 'timing' && selectedClip ? (
+          <div className="mt-5 space-y-2 border-t border-slate-100 pt-4">
+            <button
+              className="editor-secondary-button w-full"
+              disabled={
+                (selectedClip.kind !== 'video' && selectedClip.kind !== 'image') ||
+                currentFrame <= selectedClip.startFrame ||
+                currentFrame >= selectedClip.startFrame + selectedClip.durationFrames
+              }
+              onClick={() => {
+                if (selectedClip.kind !== 'video' && selectedClip.kind !== 'image') return;
+                execute({
+                  type: 'split-visual-clip',
+                  clipId: selectedClip.id,
+                  atFrame: currentFrame,
+                  newClipId: crypto.randomUUID(),
+                });
+                notify('片段已在播放头拆分');
+              }}
+              type="button"
+            >
+              在播放头拆分片段
+            </button>
+            <button
+              className="editor-secondary-button w-full text-rose-600"
+              onClick={() => {
+                execute({ type: 'delete-clip', clipId: selectedClip.id });
+                notify('片段已删除');
+              }}
+              type="button"
+            >
+              删除当前片段
+            </button>
+          </div>
+        ) : null}
+
+        {tab === 'look' && (
+          <div className="space-y-4">
+            {selectedClip?.kind === 'video' || selectedClip?.kind === 'image' ? (
+              <>
+                <div className="rounded-2xl bg-[#fff7ec] p-3 text-[11px] leading-5 text-[#875b37]">
+                  调色与转场会写入项目时间线，并由最终 Remotion 渲染器真实执行。
+                </div>
+                {[
+                  ['亮度', brightness, setBrightness, -1, 1, 0.05],
+                  ['对比度', contrast, setContrast, 0, 3, 0.05],
+                  ['饱和度', saturation, setSaturation, 0, 3, 0.05],
+                  ['色相', hueRotateDegrees, setHueRotateDegrees, -180, 180, 1],
+                  ['模糊', blurPx, setBlurPx, 0, 40, 0.5],
+                ].map(([label, value, setter, min, max, step]) => (
+                  <label className="editor-field" key={String(label)}>
+                    <span>{String(label)}</span>
+                    <input
+                      aria-label={String(label)}
+                      max={Number(max)}
+                      min={Number(min)}
+                      onChange={(event) =>
+                        (setter as (value: number) => void)(Number(event.target.value))
+                      }
+                      step={Number(step)}
+                      type="range"
+                      value={Number(value)}
+                    />
+                    <strong className="mt-1 block text-right text-xs text-slate-600">
+                      {Number(value).toFixed(2)}
+                    </strong>
+                  </label>
+                ))}
+                <button
+                  className="editor-primary-button w-full"
+                  onClick={() => {
+                    if (
+                      !selectedClip ||
+                      (selectedClip.kind !== 'video' && selectedClip.kind !== 'image')
+                    )
+                      return;
+                    execute({
+                      type: 'update-visual-effects',
+                      clipId: selectedClip.id,
+                      colorAdjustments: {
+                        brightness,
+                        contrast,
+                        saturation,
+                        hueRotateDegrees,
+                        blurPx,
+                      },
+                    });
+                    notify('调色已更新');
+                  }}
+                  type="button"
+                >
+                  应用调色
+                </button>
+                <label className="editor-field">
+                  <span>片段出场转场</span>
+                  <select
+                    aria-label="片段出场转场"
+                    onChange={(event) =>
+                      setTransitionType(event.target.value as typeof transitionType)
+                    }
+                    value={transitionType}
+                  >
+                    <option value="cut">硬切</option>
+                    <option value="dissolve">叠化</option>
+                    <option value="fade">淡入淡出</option>
+                    <option value="wipe">擦除</option>
+                  </select>
+                </label>
+                {transitionType !== 'cut' ? (
+                  <label className="editor-field">
+                    <span>转场时长（帧）</span>
+                    <input
+                      aria-label="转场时长"
+                      min={1}
+                      onChange={(event) => setTransitionDuration(Number(event.target.value))}
+                      type="number"
+                      value={transitionDuration}
+                    />
+                  </label>
+                ) : null}
+                <button
+                  className="editor-secondary-button w-full"
+                  onClick={() => {
+                    if (
+                      !selectedClip ||
+                      (selectedClip.kind !== 'video' && selectedClip.kind !== 'image')
+                    )
+                      return;
+                    execute({
+                      type: 'update-clip-transition',
+                      clipId: selectedClip.id,
+                      edge: 'out',
+                      transition:
+                        transitionType === 'cut'
+                          ? { type: 'cut', durationFrames: 0, easing: 'linear' }
+                          : {
+                              type: transitionType,
+                              durationFrames: transitionDuration,
+                              easing: 'ease-in-out',
+                            },
+                    });
+                    notify('转场已更新');
+                  }}
+                  type="button"
+                >
+                  应用转场
+                </button>
+              </>
+            ) : (
+              <p className="rounded-xl bg-slate-50 p-3 text-[11px] leading-5 text-slate-500">
+                请选择视频或图片片段。
+              </p>
+            )}
+          </div>
+        )}
+
+        {tab === 'motion' && (
+          <div className="space-y-4">
+            {selectedClip && selectedClip.kind !== 'audio' ? (
+              <>
+                <div className="rounded-2xl bg-[#eef7f5] p-3 text-[11px] leading-5 text-[#3b746c]">
+                  在当前播放头位置新增或覆盖关键帧。关键帧控制位置、缩放、旋转和透明度，并在最终渲染中插值。
+                </div>
+                <label className="editor-field">
+                  <span>X 位置</span>
+                  <input
+                    aria-label="关键帧 X 位置"
+                    max={1}
+                    min={0}
+                    onChange={(event) => setKeyframeX(Number(event.target.value))}
+                    step={0.01}
+                    type="range"
+                    value={keyframeX}
+                  />
+                </label>
+                <label className="editor-field">
+                  <span>Y 位置</span>
+                  <input
+                    aria-label="关键帧 Y 位置"
+                    max={1}
+                    min={0}
+                    onChange={(event) => setKeyframeY(Number(event.target.value))}
+                    step={0.01}
+                    type="range"
+                    value={keyframeY}
+                  />
+                </label>
+                <label className="editor-field">
+                  <span>缩放</span>
+                  <input
+                    aria-label="关键帧缩放"
+                    max={4}
+                    min={0.1}
+                    onChange={(event) => setKeyframeScale(Number(event.target.value))}
+                    step={0.01}
+                    type="range"
+                    value={keyframeScale}
+                  />
+                </label>
+                <label className="editor-field">
+                  <span>旋转</span>
+                  <input
+                    aria-label="关键帧旋转"
+                    max={360}
+                    min={-360}
+                    onChange={(event) => setKeyframeRotation(Number(event.target.value))}
+                    step={1}
+                    type="range"
+                    value={keyframeRotation}
+                  />
+                </label>
+                <label className="editor-field">
+                  <span>透明度</span>
+                  <input
+                    aria-label="关键帧透明度"
+                    max={1}
+                    min={0}
+                    onChange={(event) => setKeyframeOpacity(Number(event.target.value))}
+                    step={0.01}
+                    type="range"
+                    value={keyframeOpacity}
+                  />
+                </label>
+                <button
+                  className="editor-primary-button w-full"
+                  disabled={
+                    currentFrame < selectedClip.startFrame ||
+                    currentFrame >= selectedClip.startFrame + selectedClip.durationFrames
+                  }
+                  onClick={() => {
+                    const frame = currentFrame - selectedClip.startFrame;
+                    if (frame < 0 || frame >= selectedClip.durationFrames) return;
+                    execute({
+                      type: 'upsert-transform-keyframe',
+                      clipId: selectedClip.id,
+                      keyframe: {
+                        frame,
+                        x: keyframeX,
+                        y: keyframeY,
+                        scaleX: keyframeScale,
+                        scaleY: keyframeScale,
+                        rotationDegrees: keyframeRotation,
+                        opacity: keyframeOpacity,
+                      },
+                    });
+                    notify('关键帧已保存');
+                  }}
+                  type="button"
+                >
+                  在当前播放头添加关键帧
+                </button>
+              </>
+            ) : (
+              <p className="rounded-xl bg-slate-50 p-3 text-[11px] leading-5 text-slate-500">
+                请选择视频、图片、标题或字幕片段。
+              </p>
+            )}
           </div>
         )}
 
@@ -499,6 +851,30 @@ export function Inspector({
                     />
                   </label>
                 ) : null}
+                {selectedClip.kind === 'audio' ? (
+                  <>
+                    <label className="editor-field">
+                      <span>淡入（帧）</span>
+                      <input
+                        aria-label="淡入帧数"
+                        min={0}
+                        onChange={(event) => setFadeInFrames(Number(event.target.value))}
+                        type="number"
+                        value={fadeInFrames}
+                      />
+                    </label>
+                    <label className="editor-field">
+                      <span>淡出（帧）</span>
+                      <input
+                        aria-label="淡出帧数"
+                        min={0}
+                        onChange={(event) => setFadeOutFrames(Number(event.target.value))}
+                        type="number"
+                        value={fadeOutFrames}
+                      />
+                    </label>
+                  </>
+                ) : null}
                 <button
                   className="editor-primary-button w-full"
                   onClick={() => {
@@ -507,12 +883,22 @@ export function Inspector({
                       (selectedClip.kind !== 'video' && selectedClip.kind !== 'audio')
                     )
                       return;
-                    execute({
-                      type: 'update-clip-volume',
-                      clipId: selectedClip.id,
-                      volume: clipVolume,
-                      ...(selectedClip.kind === 'video' ? { muted: clipMuted } : {}),
-                    });
+                    if (selectedClip.kind === 'audio') {
+                      execute({
+                        type: 'update-audio-mix',
+                        clipId: selectedClip.id,
+                        volume: clipVolume,
+                        fadeInFrames,
+                        fadeOutFrames,
+                      });
+                    } else {
+                      execute({
+                        type: 'update-clip-volume',
+                        clipId: selectedClip.id,
+                        volume: clipVolume,
+                        muted: clipMuted,
+                      });
+                    }
                     notify('片段音量已更新');
                   }}
                   type="button"

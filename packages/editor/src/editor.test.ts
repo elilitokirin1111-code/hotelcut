@@ -190,6 +190,84 @@ describe('M5 editor commands', () => {
     expect(clips.find((clip) => clip.id === music.id)).toMatchObject({ volume: 0.2 });
   });
 
+  it('edits visual effects and keyframes through validated project commands', async () => {
+    const project = await fixtureProject();
+    const visual = project.tracks
+      .flatMap((track) => track.clips)
+      .find((clip): clip is VideoClip => clip.kind === 'video');
+    if (!visual) throw new Error('Fixture must include a video clip');
+
+    const graded = applyEditorCommand(project, {
+      type: 'update-visual-effects',
+      clipId: visual.id,
+      colorAdjustments: {
+        brightness: 0.12,
+        contrast: 1.2,
+        saturation: 0.9,
+        hueRotateDegrees: 6,
+        blurPx: 0,
+      },
+    });
+    const transitioned = applyEditorCommand(graded, {
+      type: 'update-clip-transition',
+      clipId: visual.id,
+      edge: 'out',
+      transition: { type: 'wipe', durationFrames: 8, easing: 'ease-in-out' },
+    });
+    const animated = applyEditorCommand(transitioned, {
+      type: 'upsert-transform-keyframe',
+      clipId: visual.id,
+      keyframe: {
+        frame: 1,
+        x: 0.55,
+        y: 0.45,
+        scaleX: 1.1,
+        scaleY: 1.1,
+        rotationDegrees: 2,
+        opacity: 0.9,
+      },
+    });
+    const edited = animated.tracks
+      .flatMap((track) => track.clips)
+      .find((clip) => clip.id === visual.id);
+    expect(edited).toMatchObject({
+      colorAdjustments: { brightness: 0.12, contrast: 1.2 },
+      transitionOut: { type: 'wipe', durationFrames: 8 },
+      keyframes: [{ frame: 1, scaleX: 1.1 }],
+    });
+  });
+
+  it('splits and deletes visual clips while preserving a valid timeline', async () => {
+    const project = await fixtureProject();
+    const visual = project.tracks
+      .flatMap((track) => track.clips)
+      .find((clip): clip is VideoClip => clip.kind === 'video');
+    if (!visual) throw new Error('Fixture must include a video clip');
+    const splitAt = visual.startFrame + Math.floor(visual.durationFrames / 2);
+    const split = applyEditorCommand(project, {
+      type: 'split-visual-clip',
+      clipId: visual.id,
+      atFrame: splitAt,
+      newClipId: '50000000-0000-4000-8000-000000000001',
+    });
+    const clips = split.tracks.flatMap((track) => track.clips);
+    expect(clips.find((clip) => clip.id === visual.id)?.durationFrames).toBe(
+      splitAt - visual.startFrame,
+    );
+    expect(clips.find((clip) => clip.id === '50000000-0000-4000-8000-000000000001')).toMatchObject({
+      startFrame: splitAt,
+    });
+    const deleted = applyEditorCommand(split, {
+      type: 'delete-clip',
+      clipId: '50000000-0000-4000-8000-000000000001',
+    });
+    expect(
+      deleted.tracks
+        .flatMap((track) => track.clips)
+        .some((clip) => clip.id === '50000000-0000-4000-8000-000000000001'),
+    ).toBe(false);
+  });
+
   it('supports bounded undo, redo and branch replacement', async () => {
     const project = await fixtureProject();
     const caption = project.tracks

@@ -55,6 +55,21 @@ function commandLabel(command: EditorCommand): string {
       return '调整时间线片段时长';
     case 'update-clip-volume':
       return '调整片段音量';
+    case 'update-audio-mix':
+      return '调整音频混音';
+    case 'update-visual-effects':
+      return '调整画面调色';
+    case 'update-clip-transition':
+      return '调整片段转场';
+    case 'upsert-transform-keyframe':
+      return '设置画面关键帧';
+    case 'delete-clip':
+      return '删除片段';
+    case 'split-visual-clip':
+      return '拆分画面片段';
+    case 'insert-video-clip':
+    case 'insert-image-clip':
+      return '插入素材片段';
     case 'update-caption':
       return '修改字幕';
     case 'update-title':
@@ -101,17 +116,31 @@ function assertTimelinePlacement(
   if (!track) {
     throw new EditorCommandError(`Clip ${clipId} was not found`);
   }
+  assertTrackPlacement(project, track, clipId, startFrame, durationFrames);
+}
+
+function assertTrackPlacement(
+  project: HotelVideoProjectV1,
+  track: Track,
+  clipId: string,
+  startFrame: number,
+  durationFrames: number,
+): void {
   if (track.locked) {
     throw new EditorCommandError(`Track ${track.name} is locked`);
   }
   if (startFrame + durationFrames > project.output.durationFrames) {
     throw new EditorCommandError('The clip would end after the project duration');
   }
-  const ordered = track.clips
-    .map((clip) => (clip.id === clipId ? { id: clip.id, startFrame, durationFrames } : clip))
-    .sort((left, right) => left.startFrame - right.startFrame || compareStrings(left.id, right.id));
+  const ordered = track.clips.map((clip) =>
+    clip.id === clipId ? { id: clip.id, startFrame, durationFrames } : clip,
+  );
+  const candidateAlreadyExists = track.clips.some((clip) => clip.id === clipId);
+  const positioned = (
+    candidateAlreadyExists ? ordered : [...ordered, { id: clipId, startFrame, durationFrames }]
+  ).sort((left, right) => left.startFrame - right.startFrame || compareStrings(left.id, right.id));
   let previousEnd = 0;
-  for (const clip of ordered) {
+  for (const clip of positioned) {
     if (clip.startFrame < previousEnd) {
       throw new EditorCommandError('The adjusted clip overlaps another clip on the same track');
     }
@@ -240,6 +269,237 @@ function updateClipVolume(
   });
 }
 
+function updateAudioMix(
+  project: HotelVideoProjectV1,
+  command: Extract<EditorCommand, { type: 'update-audio-mix' }>,
+): HotelVideoProjectV1 {
+  return updateClip(project, command.clipId, (clip) => {
+    if (clip.kind !== 'audio') {
+      throw new EditorCommandError('Only audio clips support fades and mix controls');
+    }
+    if (command.fadeInFrames + command.fadeOutFrames > clip.durationFrames) {
+      throw new EditorCommandError('Audio fades cannot exceed the clip duration');
+    }
+    return {
+      ...clip,
+      volume: command.volume,
+      fadeInFrames: command.fadeInFrames,
+      fadeOutFrames: command.fadeOutFrames,
+      metadata: { ...clip.metadata, editedBy: 'update-audio-mix' },
+    };
+  });
+}
+
+function updateVisualEffects(
+  project: HotelVideoProjectV1,
+  command: Extract<EditorCommand, { type: 'update-visual-effects' }>,
+): HotelVideoProjectV1 {
+  return updateClip(project, command.clipId, (clip) => {
+    if (clip.kind !== 'video' && clip.kind !== 'image') {
+      throw new EditorCommandError('Only video or image clips have editable color adjustments');
+    }
+    return {
+      ...clip,
+      colorAdjustments: command.colorAdjustments,
+      metadata: { ...clip.metadata, editedBy: 'update-visual-effects' },
+    };
+  });
+}
+
+function updateClipTransition(
+  project: HotelVideoProjectV1,
+  command: Extract<EditorCommand, { type: 'update-clip-transition' }>,
+): HotelVideoProjectV1 {
+  return updateClip(project, command.clipId, (clip) => {
+    if (clip.kind === 'audio') {
+      throw new EditorCommandError('Audio clips do not have visual transitions');
+    }
+    return {
+      ...clip,
+      ...(command.edge === 'in'
+        ? { transitionIn: command.transition }
+        : { transitionOut: command.transition }),
+      metadata: { ...clip.metadata, editedBy: 'update-clip-transition' },
+    };
+  });
+}
+
+function upsertTransformKeyframe(
+  project: HotelVideoProjectV1,
+  command: Extract<EditorCommand, { type: 'upsert-transform-keyframe' }>,
+): HotelVideoProjectV1 {
+  return updateClip(project, command.clipId, (clip) => {
+    if (clip.kind === 'audio') {
+      throw new EditorCommandError('Audio clips do not have transform keyframes');
+    }
+    if (command.keyframe.frame >= clip.durationFrames) {
+      throw new EditorCommandError('A keyframe must be inside the clip duration');
+    }
+    const keyframes = [
+      ...clip.keyframes.filter((item) => item.frame !== command.keyframe.frame),
+      command.keyframe,
+    ].sort((left, right) => left.frame - right.frame);
+    return {
+      ...clip,
+      keyframes,
+      metadata: { ...clip.metadata, editedBy: 'upsert-transform-keyframe' },
+    };
+  });
+}
+
+function deleteClip(
+  project: HotelVideoProjectV1,
+  command: Extract<EditorCommand, { type: 'delete-clip' }>,
+): HotelVideoProjectV1 {
+  const track = project.tracks.find((candidate) =>
+    candidate.clips.some((clip) => clip.id === command.clipId),
+  );
+  if (!track) throw new EditorCommandError(`Clip ${command.clipId} was not found`);
+  if (track.locked) throw new EditorCommandError(`Track ${track.name} is locked`);
+  if (project.tracks.reduce((count, candidate) => count + candidate.clips.length, 0) <= 1) {
+    throw new EditorCommandError('A project must keep at least one clip');
+  }
+  return parseHotelVideoProject({
+    ...project,
+    tracks: project.tracks.map((candidate) =>
+      candidate.id === track.id
+        ? { ...candidate, clips: candidate.clips.filter((clip) => clip.id !== command.clipId) }
+        : candidate,
+    ),
+  });
+}
+
+function splitVisualClip(
+  project: HotelVideoProjectV1,
+  command: Extract<EditorCommand, { type: 'split-visual-clip' }>,
+): HotelVideoProjectV1 {
+  const track = project.tracks.find((candidate) =>
+    candidate.clips.some((clip) => clip.id === command.clipId),
+  );
+  const clip = track?.clips.find((candidate) => candidate.id === command.clipId);
+  if (!track || !clip) throw new EditorCommandError(`Clip ${command.clipId} was not found`);
+  if (track.locked) throw new EditorCommandError(`Track ${track.name} is locked`);
+  if (clip.kind !== 'video' && clip.kind !== 'image') {
+    throw new EditorCommandError('Only video or image clips can be split');
+  }
+  if (
+    command.newClipId === clip.id ||
+    project.tracks.some((candidate) =>
+      candidate.clips.some((item) => item.id === command.newClipId),
+    )
+  ) {
+    throw new EditorCommandError('The new clip id is already in use');
+  }
+  if (
+    command.atFrame <= clip.startFrame ||
+    command.atFrame >= clip.startFrame + clip.durationFrames
+  ) {
+    throw new EditorCommandError('Split point must be inside the selected clip');
+  }
+  const firstDuration = command.atFrame - clip.startFrame;
+  const secondDuration = clip.durationFrames - firstDuration;
+  const firstKeyframes = clip.keyframes.filter((keyframe) => keyframe.frame < firstDuration);
+  const secondKeyframes = clip.keyframes
+    .filter((keyframe) => keyframe.frame >= firstDuration)
+    .map((keyframe) => ({ ...keyframe, frame: keyframe.frame - firstDuration }));
+  const first = {
+    ...clip,
+    durationFrames: firstDuration,
+    transitionOut: null,
+    keyframes: firstKeyframes,
+    metadata: { ...clip.metadata, editedBy: 'split-visual-clip' },
+  };
+  const secondBase = {
+    ...clip,
+    id: command.newClipId,
+    startFrame: command.atFrame,
+    durationFrames: secondDuration,
+    transitionIn: null,
+    keyframes: secondKeyframes,
+    metadata: { ...clip.metadata, editedBy: 'split-visual-clip' },
+  };
+  const second =
+    clip.kind === 'video'
+      ? (() => {
+          const firstSourceDuration = Math.max(1, Math.round(firstDuration * clip.playbackRate));
+          const sourceDurationFrames = clip.sourceDurationFrames - firstSourceDuration;
+          if (sourceDurationFrames <= 0) {
+            throw new EditorCommandError('The source range is too short to split at this frame');
+          }
+          return {
+            ...secondBase,
+            sourceStartFrame: clip.sourceStartFrame + firstSourceDuration,
+            sourceDurationFrames,
+          };
+        })()
+      : secondBase;
+  return parseHotelVideoProject({
+    ...project,
+    tracks: project.tracks.map((candidate) =>
+      candidate.id === track.id
+        ? {
+            ...candidate,
+            clips: candidate.clips.flatMap((item) =>
+              item.id === clip.id ? [first, second] : [item],
+            ),
+          }
+        : candidate,
+    ),
+  });
+}
+
+function insertVisualClip(
+  project: HotelVideoProjectV1,
+  command: Extract<EditorCommand, { type: 'insert-video-clip' | 'insert-image-clip' }>,
+): HotelVideoProjectV1 {
+  const track = project.tracks.find((candidate) => candidate.id === command.trackId);
+  if (!track) throw new EditorCommandError(`Track ${command.trackId} was not found`);
+  if (track.locked) throw new EditorCommandError(`Track ${track.name} is locked`);
+  if (track.kind !== 'video' && track.kind !== 'overlay') {
+    throw new EditorCommandError('Visual clips can only be inserted on video or overlay tracks');
+  }
+  if (track.kind === 'video' && command.type !== 'insert-video-clip') {
+    throw new EditorCommandError('Only video clips can be inserted on a video track');
+  }
+  if (track.kind === 'overlay' && command.type !== 'insert-image-clip') {
+    throw new EditorCommandError('Only image clips can be inserted on an overlay track');
+  }
+  if (project.tracks.some((candidate) => candidate.clips.some((clip) => clip.id === command.id))) {
+    throw new EditorCommandError('The new clip id is already in use');
+  }
+  assertTrackPlacement(project, track, command.id, command.startFrame, command.durationFrames);
+  const visualBase = {
+    id: command.id,
+    assetId: command.assetId,
+    startFrame: command.startFrame,
+    durationFrames: command.durationFrames,
+    transform: {},
+    transitionIn: null,
+    transitionOut: null,
+    colorAdjustments: {},
+    keyframes: [],
+    metadata: { editedBy: 'insert-visual-clip' },
+  };
+  const clip =
+    command.type === 'insert-video-clip'
+      ? {
+          ...visualBase,
+          kind: 'video' as const,
+          sourceStartFrame: command.sourceStartFrame,
+          sourceDurationFrames: command.sourceDurationFrames,
+          volume: 1,
+          muted: true,
+          playbackRate: command.sourceDurationFrames / command.durationFrames,
+        }
+      : { ...visualBase, kind: 'image' as const };
+  return parseHotelVideoProject({
+    ...project,
+    tracks: project.tracks.map((candidate) =>
+      candidate.id === track.id ? { ...candidate, clips: [...candidate.clips, clip] } : candidate,
+    ),
+  });
+}
+
 function updateCaption(
   project: HotelVideoProjectV1,
   command: Extract<EditorCommand, { type: 'update-caption' }>,
@@ -359,6 +619,21 @@ export function applyEditorCommand(
       return resizeClip(validatedProject, command);
     case 'update-clip-volume':
       return updateClipVolume(validatedProject, command);
+    case 'update-audio-mix':
+      return updateAudioMix(validatedProject, command);
+    case 'update-visual-effects':
+      return updateVisualEffects(validatedProject, command);
+    case 'update-clip-transition':
+      return updateClipTransition(validatedProject, command);
+    case 'upsert-transform-keyframe':
+      return upsertTransformKeyframe(validatedProject, command);
+    case 'delete-clip':
+      return deleteClip(validatedProject, command);
+    case 'split-visual-clip':
+      return splitVisualClip(validatedProject, command);
+    case 'insert-video-clip':
+    case 'insert-image-clip':
+      return insertVisualClip(validatedProject, command);
     case 'update-caption':
       return updateCaption(validatedProject, command);
     case 'update-title':
