@@ -67,6 +67,17 @@ const defaultTransform = {
   fit: 'cover' as const,
 };
 
+const defaultVisualEffects = {
+  colorAdjustments: {
+    brightness: 0,
+    contrast: 1,
+    saturation: 1,
+    hueRotateDegrees: 0,
+    blurPx: 0,
+  },
+  keyframes: [],
+};
+
 function compareStrings(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
@@ -196,6 +207,7 @@ function createVisualClip(
       startFrame: slot.startFrame,
       durationFrames: slot.durationFrames,
       transform: defaultTransform,
+      ...defaultVisualEffects,
       transitionIn: transitionForSlot(slot, 'in'),
       transitionOut: transitionForSlot(slot, 'out'),
       metadata,
@@ -210,6 +222,7 @@ function createVisualClip(
     sourceStartFrame: deterministicSourceStart(source, slot.durationFrames, seed, slot.id),
     sourceDurationFrames: slot.durationFrames,
     transform: defaultTransform,
+    ...defaultVisualEffects,
     transitionIn: transitionForSlot(slot, 'in'),
     transitionOut: transitionForSlot(slot, 'out'),
     volume: slot.audioPolicy === 'keep' ? 1 : 0,
@@ -389,6 +402,7 @@ function createCaptionClips(
         },
         safeAreaId: layout.safeAreaId,
         transform: defaultTransform,
+        ...defaultVisualEffects,
         transitionIn: null,
         transitionOut: null,
         metadata: {
@@ -437,6 +451,7 @@ function createTitleClip(
     },
     ...(template.title.safeAreaId ? { safeAreaId: template.title.safeAreaId } : {}),
     transform: defaultTransform,
+    ...defaultVisualEffects,
     transitionIn: {
       type: 'fade',
       durationFrames: Math.min(12, Math.max(1, Math.floor(range.durationFrames / 3))),
