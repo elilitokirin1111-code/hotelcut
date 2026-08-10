@@ -161,6 +161,7 @@ export interface WorkspaceApi {
     projectId: string,
     signal?: AbortSignal,
   ): Promise<CreativeVideoVersion[]>;
+  selectCreativeVideoVersion(projectId: string, versionId: string): Promise<CreativeProject>;
   createReferenceVideoProfile(projectId: string, assetId: string): Promise<ReferenceVideoProfile>;
   listReferenceVideoProfiles(
     projectId: string,
@@ -511,6 +512,18 @@ export function createWorkspaceApi(baseUrl = '/api'): WorkspaceApi {
         `/v1/creative-projects/${encodeURIComponent(projectId)}/video-versions`,
         creativeVideoVersionSchema.array(),
         signal ? { signal } : undefined,
+      );
+    },
+
+    async selectCreativeVideoVersion(projectId, versionId) {
+      return request(
+        `/v1/creative-projects/${encodeURIComponent(projectId)}/select-video-version`,
+        creativeProjectSchema,
+        {
+          body: JSON.stringify({ id: versionId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+        },
       );
     },
 

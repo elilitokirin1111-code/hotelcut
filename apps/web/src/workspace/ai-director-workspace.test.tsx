@@ -4,11 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type {
   Asset,
-  AssetRequirement,
   CreativeBriefRevision,
   CreativeProject,
   CreativeVideoVersion,
-  EditBlueprint,
   ReferenceVideoProfile,
   ScriptPackage,
 } from '@hotelcut/schemas';
@@ -17,38 +15,192 @@ import { AiDirectorWorkspace } from './ai-director-workspace';
 import type { WorkspaceApi } from './workspace-api';
 
 const hotelId = '30000000-0000-4000-8000-000000000001';
-const creativeProject: CreativeProject = {
-  createdAt: '2026-08-05T02:00:00.000Z',
-  createdByUserId: '20000000-0000-4000-8000-000000000001',
-  deletedAt: null,
-  hotelId,
-  id: '91000000-0000-4000-8000-000000000001',
-  metadata: {},
-  mode: 'script',
-  selectedBlueprintId: null,
-  selectedBriefRevisionId: null,
-  selectedScriptRevisionId: null,
-  selectedVideoProjectId: null,
-  status: 'draft',
-  title: '前台反差短片',
-  updatedAt: '2026-08-05T02:00:00.000Z',
-};
+const projectId = '91000000-0000-4000-8000-000000000001';
+const videoProjectId = '94000000-0000-4000-8000-000000000001';
 
-function createApi(aiDirectorEnabled = true) {
+function project(input: Partial<CreativeProject> = {}): CreativeProject {
+  return {
+    createdAt: '2026-08-05T02:00:00.000Z',
+    createdByUserId: '20000000-0000-4000-8000-000000000001',
+    deletedAt: null,
+    hotelId,
+    id: projectId,
+    metadata: {},
+    mode: 'idea',
+    selectedBlueprintId: null,
+    selectedBriefRevisionId: null,
+    selectedScriptRevisionId: null,
+    selectedVideoProjectId: null,
+    status: 'draft',
+    title: '前台反差短片',
+    updatedAt: '2026-08-05T02:00:00.000Z',
+    ...input,
+  };
+}
+
+const brief = {
+  id: '95000000-0000-4000-8000-000000000001',
+  creativeProjectId: projectId,
+  revision: 1,
+  direction: null,
+  rawIdea: '前台反差视频',
+  objective: '突出服务反差',
+  platform: 'douyin',
+  durationSeconds: 16,
+  targetAudience: null,
+  tone: ['专业'],
+  hotelSellingPoints: ['服务'],
+  hardConstraints: [],
+  userPrompt: null,
+  createdBy: 'user',
+  modelName: null,
+  promptVersion: null,
+  generationParameters: {},
+  inputSummary: null,
+  createdAt: '2026-08-05T03:00:00.000Z',
+} as CreativeBriefRevision;
+
+const direction = {
+  ...brief,
+  id: '95000000-0000-4000-8000-000000000002',
+  revision: 2,
+  direction: '强钩子爆点版',
+  createdBy: 'ai',
+} as CreativeBriefRevision;
+
+const script = {
+  id: '96000000-0000-4000-8000-000000000001',
+  creativeProjectId: projectId,
+  revision: 1,
+  modelName: 'qwen-plus',
+  promptVersion: 'script-v1',
+  generationParameters: {},
+  inputSummary: '前台反差视频',
+  createdAt: '2026-08-05T03:10:00.000Z',
+  title: '十六秒酒店前台反差',
+  hook: '前台也能带来惊喜',
+  storySummary: '从普通接待到超预期服务',
+  narrativePattern: '反差叙事',
+  voiceoverScript: null,
+  dialogue: [],
+  captions: [],
+  callToAction: '立即预订',
+  filmingTips: [],
+  requiredAssets: ['前台'],
+  totalDurationMs: 16_000,
+  scenes: [],
+  shotList: [],
+} as ScriptPackage;
+
+const version = {
+  id: '92000000-0000-4000-8000-000000000001',
+  creativeProjectId: projectId,
+  editBlueprintId: '93000000-0000-4000-8000-000000000001',
+  videoProjectId,
+  variant: 'B',
+  seed: 202,
+  scoreBasisPoints: 8_400,
+  hookScoreBasisPoints: 8_800,
+  sellingPointCoverageBasisPoints: 8_100,
+  paceScoreBasisPoints: 8_600,
+  usedAssetIds: [],
+  repeatedAssetCount: 0,
+  recommendationReason: '强化前三秒和快切节奏。',
+  createdAt: '2026-08-05T03:30:00.000Z',
+} as CreativeVideoVersion;
+
+const referenceAsset = {
+  id: '99000000-0000-4000-8000-000000000001',
+  hotelId,
+  kind: 'video',
+  originalFilename: '参考短片.mp4',
+  purpose: 'reference_video',
+  status: 'ready',
+} as Asset;
+
+const profile = {
+  id: '99100000-0000-4000-8000-000000000001',
+  creativeProjectId: projectId,
+  assetId: referenceAsset.id,
+  revision: 1,
+  durationMs: 16_000,
+  averageShotDurationMs: 2_000,
+  shotCount: 8,
+  narrativePattern: '反差叙事',
+  hookDurationMs: 2_000,
+  paceCurve: [],
+  shotTypeDistribution: {},
+  transitionProfile: {},
+  captionProfile: {},
+  audioProfile: {},
+  emotionalCurve: [],
+  reusableStyleRules: ['前三秒强钩子'],
+  analysisSummary: '先建立期待，再用服务细节制造反差。',
+  modelName: 'qwen-vl-max',
+  promptVersion: 'reference-v1',
+  generationParameters: {},
+  inputSummary: '参考短片.mp4',
+  seed: 1,
+  createdAt: '2026-08-05T03:20:00.000Z',
+} as ReferenceVideoProfile;
+
+function createApi(initialProjects: CreativeProject[] = []) {
+  let storedProjects = [...initialProjects];
   const createCreativeProject = vi
     .fn<WorkspaceApi['createCreativeProject']>()
-    .mockResolvedValue(creativeProject);
+    .mockImplementation((_hotelId, input) => {
+      const created = project({ mode: input.mode, title: input.title });
+      storedProjects = [created, ...storedProjects];
+      return Promise.resolve(created);
+    });
+  const getCreativeProject = vi
+    .fn<WorkspaceApi['getCreativeProject']>()
+    .mockImplementation((id) => Promise.resolve(storedProjects.find((item) => item.id === id)!));
+  const updateCreativeProject = vi
+    .fn<WorkspaceApi['updateCreativeProject']>()
+    .mockImplementation((id, input) => {
+      const current = storedProjects.find((item) => item.id === id)!;
+      const updated = project({ ...current, status: input.status ?? current.status });
+      storedProjects = storedProjects.map((item) => (item.id === id ? updated : item));
+      return Promise.resolve(updated);
+    });
+  const selectCreativeVideoVersion = vi
+    .fn<WorkspaceApi['selectCreativeVideoVersion']>()
+    .mockImplementation((id) => {
+      const current = storedProjects.find((item) => item.id === id)!;
+      const updated = project({
+        ...current,
+        selectedBlueprintId: version.editBlueprintId,
+        selectedVideoProjectId: videoProjectId,
+        status: 'generated',
+      });
+      storedProjects = storedProjects.map((item) => (item.id === id ? updated : item));
+      return Promise.resolve(updated);
+    });
+  const generateScript = vi.fn<WorkspaceApi['generateScript']>().mockResolvedValue(script);
+
   const api = {
     createCreativeProject,
+    createCreativeBriefRevision: vi
+      .fn<WorkspaceApi['createCreativeBriefRevision']>()
+      .mockResolvedValue(brief),
+    expandIdea: vi.fn<WorkspaceApi['expandIdea']>().mockResolvedValue([direction]),
+    generateScript,
     getAiDirectorFeatures: vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
-      aiDirectorEnabled,
-      aiReviewEnabled: false,
-      dynamicBlueprintEnabled: false,
-      referenceAnalysisEnabled: false,
+      aiDirectorEnabled: true,
+      aiReviewEnabled: true,
+      dynamicBlueprintEnabled: true,
+      referenceAnalysisEnabled: true,
     }),
-    listCreativeProjects: vi.fn<WorkspaceApi['listCreativeProjects']>().mockResolvedValue([]),
+    getCreativeProject,
     listAssets: vi.fn<WorkspaceApi['listAssets']>().mockResolvedValue([]),
     listAssetRequirements: vi.fn<WorkspaceApi['listAssetRequirements']>().mockResolvedValue([]),
+    listCreativeBriefRevisions: vi
+      .fn<WorkspaceApi['listCreativeBriefRevisions']>()
+      .mockResolvedValue([]),
+    listCreativeProjects: vi
+      .fn<WorkspaceApi['listCreativeProjects']>()
+      .mockImplementation(() => Promise.resolve(storedProjects)),
     listCreativeVideoVersions: vi
       .fn<WorkspaceApi['listCreativeVideoVersions']>()
       .mockResolvedValue([]),
@@ -56,17 +208,27 @@ function createApi(aiDirectorEnabled = true) {
     listReferenceVideoProfiles: vi
       .fn<WorkspaceApi['listReferenceVideoProfiles']>()
       .mockResolvedValue([]),
+    listScriptPackages: vi.fn<WorkspaceApi['listScriptPackages']>().mockResolvedValue([]),
+    selectCreativeVideoVersion,
+    updateCreativeProject,
   } as unknown as WorkspaceApi;
-  return { api, createCreativeProject };
+
+  return {
+    api,
+    createCreativeProject,
+    generateScript,
+    selectCreativeVideoVersion,
+    updateCreativeProject,
+  };
 }
 
-describe('AI Director workspace foundation', () => {
-  it('creates a real creative project from one of the four entry modes', async () => {
+describe('AI production workflow', () => {
+  it('creates a real project from the selected entry mode', async () => {
     const { api, createCreativeProject } = createApi();
     render(<AiDirectorWorkspace api={api} hotelId={hotelId} />);
 
     expect(await screen.findByRole('heading', { name: '创建专属剪辑方案' })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /从脚本开始/ }));
+    fireEvent.click(screen.getByRole('button', { name: /从创意开始/ }));
     fireEvent.change(screen.getByRole('textbox', { name: '创作项目标题' }), {
       target: { value: '前台反差短片' },
     });
@@ -74,424 +236,109 @@ describe('AI Director workspace foundation', () => {
 
     await waitFor(() =>
       expect(createCreativeProject).toHaveBeenCalledWith(hotelId, {
-        mode: 'script',
+        mode: 'idea',
         title: '前台反差短片',
       }),
     );
-    expect(await screen.findByText('前台反差短片')).toBeInTheDocument();
+    expect((await screen.findAllByText('前台反差短片')).length).toBeGreaterThan(0);
   });
 
   it('keeps the workspace gated when AI Director is disabled', async () => {
-    const { api } = createApi(false);
+    const { api } = createApi();
+    api.getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
+      aiDirectorEnabled: false,
+      aiReviewEnabled: false,
+      dynamicBlueprintEnabled: false,
+      referenceAnalysisEnabled: false,
+    });
     render(<AiDirectorWorkspace api={api} hotelId={hotelId} />);
-
     expect(await screen.findByRole('heading', { name: 'AI 导演功能未启用' })).toBeInTheDocument();
   });
 
-  it('offers a quick path into the production editing workflow', async () => {
-    const { api } = createApi();
-    const onQuickEdit = vi.fn();
-    render(<AiDirectorWorkspace api={api} hotelId={hotelId} onQuickEdit={onQuickEdit} />);
+  it('generates creative directions and restores them as the script stage', async () => {
+    const current = project({ mode: 'idea' });
+    const { api } = createApi([current]);
+    render(<AiDirectorWorkspace api={api} hotelId={hotelId} />);
 
-    await screen.findByRole('heading', { name: '创建专属剪辑方案' });
-    fireEvent.click(screen.getByRole('button', { name: '直接开始剪辑（素材自动成片）' }));
-
-    expect(onQuickEdit).toHaveBeenCalledTimes(1);
-  });
-
-  it('opens a generated A/B/C video version directly in Studio', async () => {
-    const videoVersion: CreativeVideoVersion = {
-      id: '92000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      editBlueprintId: '93000000-0000-4000-8000-000000000001',
-      videoProjectId: '94000000-0000-4000-8000-000000000001',
-      variant: 'A',
-      seed: 101,
-      scoreBasisPoints: 8_000,
-      hookScoreBasisPoints: 7_500,
-      sellingPointCoverageBasisPoints: 8_500,
-      paceScoreBasisPoints: 7_000,
-      usedAssetIds: [],
-      repeatedAssetCount: 0,
-      recommendationReason: '严格遵循脚本段落与原始镜头节奏。',
-      createdAt: '2026-08-05T02:30:00.000Z',
-    };
-    const { api, createCreativeProject } = createApi();
-    api.listCreativeVideoVersions = vi
-      .fn<WorkspaceApi['listCreativeVideoVersions']>()
-      .mockResolvedValue([videoVersion]);
-    api.getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
-      aiDirectorEnabled: true,
-      aiReviewEnabled: false,
-      dynamicBlueprintEnabled: true,
-      referenceAnalysisEnabled: false,
+    fireEvent.click(await screen.findByRole('button', { name: /前台反差短片/ }));
+    fireEvent.change(await screen.findByRole('textbox', { name: '创意输入' }), {
+      target: { value: '用服务反差展示酒店前台' },
     });
-    const onOpenVideoProject = vi.fn();
-    render(
-      <AiDirectorWorkspace api={api} hotelId={hotelId} onOpenVideoProject={onOpenVideoProject} />,
-    );
-
-    await screen.findByRole('heading', { name: '创建专属剪辑方案' });
-    fireEvent.click(screen.getByRole('button', { name: /从脚本开始/ }));
-    fireEvent.change(screen.getByRole('textbox', { name: '创作项目标题' }), {
-      target: { value: '前台反差短片' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '创建 AI 创作项目' }));
-
-    await waitFor(() => expect(createCreativeProject).toHaveBeenCalled());
-    fireEvent.click(await screen.findByRole('button', { name: '在 Studio 中打开成片' }));
-    expect(onOpenVideoProject).toHaveBeenCalledWith(videoVersion.videoProjectId);
-  });
-
-  it('guides through the full creation flow from script to Studio', async () => {
-    const brief: CreativeBriefRevision = {
-      id: '95000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      revision: 1,
-      direction: null,
-      rawIdea: '前台反差视频',
-      objective: null,
-      platform: 'douyin',
-      durationSeconds: 16,
-      targetAudience: null,
-      tone: [],
-      hotelSellingPoints: [],
-      hardConstraints: [],
-      userPrompt: null,
-      createdBy: 'user',
-      modelName: null,
-      promptVersion: null,
-      generationParameters: {},
-      inputSummary: null,
-      createdAt: '2026-08-05T03:00:00.000Z',
-    };
-    const direction: CreativeBriefRevision = {
-      ...brief,
-      id: '95000000-0000-4000-8000-000000000002',
-      revision: 2,
-      direction: '稳定转化版',
-      objective: '突出酒店核心服务',
-      tone: ['专业'],
-      createdBy: 'ai',
-    };
-    const script: ScriptPackage = {
-      id: '96000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      revision: 1,
-      modelName: null,
-      promptVersion: null,
-      generationParameters: {},
-      inputSummary: null,
-      createdAt: '2026-08-05T03:10:00.000Z',
-      title: '十六秒酒店前台反差',
-      hook: '前台也能带来惊喜',
-      storySummary: '从普通前台到惊喜服务',
-      narrativePattern: '反差叙事',
-      voiceoverScript: null,
-      dialogue: [],
-      captions: [],
-      callToAction: '联系酒店',
-      filmingTips: [],
-      requiredAssets: ['前台'],
-      totalDurationMs: 16_000,
-      scenes: [],
-      shotList: [],
-    };
-    const requirement: AssetRequirement = {
-      id: '97000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      scriptSceneId: null,
-      description: '前台服务镜头',
-      requiredTags: ['service'],
-      preferredShotType: 'medium',
-      preferredMotionType: 'static',
-      preferredDurationMs: 4_000,
-      required: true,
-      matchedAssetIds: [],
-      candidateMatches: [],
-      status: 'missing',
-      filmingInstruction: '补拍：前台服务',
-      createdAt: '2026-08-05T03:20:00.000Z',
-      updatedAt: '2026-08-05T03:20:00.000Z',
-    };
-    const blueprint: EditBlueprint = {
-      id: '98000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      revision: 1,
-      durationSeconds: 16,
-      frameRate: 30,
-      aspectRatio: '9:16',
-      style: {
-        pace: 'medium',
-        visualTone: 'warm',
-        transitionDensity: 'low',
-        captionDensity: 'medium',
-        beatSyncStrength: 50,
-        referenceStrength: 0,
-        aiFreedom: 50,
-      },
-      beats: [],
-      music: {},
-      captionStyle: {},
-      globalRules: [],
-      seed: 1,
-      compilerVersion: '1.0.0',
-      sourceAssetIds: [],
-      referenceProfileIds: [],
-      modelName: null,
-      promptVersion: null,
-      generationParameters: {},
-      inputSummary: null,
-      createdAt: '2026-08-05T03:30:00.000Z',
-    };
-    const version: CreativeVideoVersion = {
-      id: '99000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      editBlueprintId: blueprint.id,
-      videoProjectId: '9a000000-0000-4000-8000-000000000001',
-      variant: 'A',
-      seed: 102,
-      scoreBasisPoints: 8_000,
-      hookScoreBasisPoints: 7_500,
-      sellingPointCoverageBasisPoints: 8_500,
-      paceScoreBasisPoints: 7_000,
-      usedAssetIds: [],
-      repeatedAssetCount: 0,
-      recommendationReason: '严格遵循脚本段落与原始镜头节奏。',
-      createdAt: '2026-08-05T03:40:00.000Z',
-    };
-
-    const { api, createCreativeProject } = createApi();
-    api.getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
-      aiDirectorEnabled: true,
-      aiReviewEnabled: false,
-      dynamicBlueprintEnabled: true,
-      referenceAnalysisEnabled: false,
-    });
-    api.createCreativeBriefRevision = vi
-      .fn<WorkspaceApi['createCreativeBriefRevision']>()
-      .mockResolvedValue(brief);
-    const expandIdea = vi.fn<WorkspaceApi['expandIdea']>().mockResolvedValue([direction]);
-    const generateScript = vi.fn<WorkspaceApi['generateScript']>().mockResolvedValue(script);
-    const selectScript = vi.fn<WorkspaceApi['selectScript']>().mockResolvedValue(creativeProject);
-    const generateAssetRequirements = vi
-      .fn<WorkspaceApi['generateAssetRequirements']>()
-      .mockResolvedValue([requirement]);
-    const generateEditBlueprint = vi
-      .fn<WorkspaceApi['generateEditBlueprint']>()
-      .mockResolvedValue(blueprint);
-    const generateVideoVersions = vi
-      .fn<WorkspaceApi['generateVideoVersions']>()
-      .mockResolvedValue({ versions: [version], recommendedVariant: 'A' });
-    api.expandIdea = expandIdea;
-    api.generateScript = generateScript;
-    api.selectScript = selectScript;
-    api.generateAssetRequirements = generateAssetRequirements;
-    api.generateEditBlueprint = generateEditBlueprint;
-    api.generateVideoVersions = generateVideoVersions;
-    const onOpenVideoProject = vi.fn();
-    render(
-      <AiDirectorWorkspace api={api} hotelId={hotelId} onOpenVideoProject={onOpenVideoProject} />,
-    );
-
-    await screen.findByRole('heading', { name: '创建专属剪辑方案' });
-    fireEvent.click(screen.getByRole('button', { name: /从脚本开始/ }));
-    fireEvent.change(screen.getByRole('textbox', { name: '创作项目标题' }), {
-      target: { value: '前台反差短片' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '创建 AI 创作项目' }));
-    await waitFor(() => expect(createCreativeProject).toHaveBeenCalled());
-
-    expect(screen.getByText(/下一步：先在下方输入一句创意/)).toBeInTheDocument();
-    fireEvent.change(screen.getByRole('textbox', { name: '创意输入' }), {
-      target: { value: '前台反差视频' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '生成三套创意与完整脚本' }));
-    await waitFor(() => expect(generateScript).toHaveBeenCalled());
-    expect(await screen.findByText('选为后续蓝图脚本')).toBeInTheDocument();
-    expect(screen.getByText(/下一步：在生成的脚本卡片上点击/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /生成三套创意方向与脚本/ }));
 
     expect(
-      screen.queryByRole('button', { name: '生成已校验 EditBlueprint' }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '选为后续蓝图脚本' }));
-    await waitFor(() => expect(selectScript).toHaveBeenCalled());
-    expect(
-      await screen.findByRole('button', { name: '生成已校验 EditBlueprint' }),
+      await screen.findByRole('heading', { name: '确认剪辑思路、脚本和分镜' }),
     ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: '生成已校验 EditBlueprint' }));
-    await waitFor(() => expect(generateEditBlueprint).toHaveBeenCalled());
-    expect(await screen.findByRole('button', { name: '生成 A/B/C 成片' })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: '生成 A/B/C 成片' }));
-    await waitFor(() => expect(generateVideoVersions).toHaveBeenCalled());
-    fireEvent.click(await screen.findByRole('button', { name: '在 Studio 中打开成片' }));
-    expect(onOpenVideoProject).toHaveBeenCalledWith(version.videoProjectId);
+    expect(screen.getByText('十六秒酒店前台反差')).toBeInTheDocument();
   });
 
-  it('generates a script from a reference video profile and auto-matches assets', async () => {
-    const projectId = creativeProject.id;
-    const referenceAsset: Asset = {
-      id: '9c000000-0000-4000-8000-000000000001',
-      hotelId,
-      kind: 'video',
-      status: 'ready',
-      purpose: 'reference_video',
-      originalFilename: '前台反差参考片.mp4',
-      contentType: 'video/mp4',
-      byteSize: 20_000_000,
-      storageBucket: 'hotelcut-local',
-      storageKey: 'hotels/demo/reference.mp4',
-      checksumSha256: 'd'.repeat(64),
-      metadata: {},
-      createdAt: '2026-08-05T04:00:00.000Z',
-      updatedAt: '2026-08-05T04:00:00.000Z',
-    };
-    const profile: ReferenceVideoProfile = {
-      id: '9b000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      assetId: referenceAsset.id,
-      revision: 1,
-      durationMs: 16_000,
-      averageShotDurationMs: 4_000,
-      shotCount: 4,
-      modelName: null,
-      promptVersion: null,
-      generationParameters: {},
-      inputSummary: null,
-      createdAt: '2026-08-05T04:10:00.000Z',
-      analysisSummary: '前台反差参考片：专业形象展示与反差幽默结合',
-      narrativePattern: '专业形象展示与反差幽默结合',
-      hookDurationMs: 2_000,
-      paceCurve: [
-        { startMs: 0, endMs: 2_000, label: '引入' },
-        { startMs: 2_000, endMs: 16_000, label: '展示' },
-      ],
-      shotTypeDistribution: { medium: 2, closeup: 2 },
-      transitionProfile: { density: 'low' },
-      captionProfile: { density: 'medium' },
-      audioProfile: { style: '轻快' },
-      emotionalCurve: [{ startMs: 0, endMs: 16_000, label: '惊喜' }],
-      reusableStyleRules: ['前台服务开场', '快节奏转场'],
-    };
-    const brief: CreativeBriefRevision = {
-      id: '9d000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      revision: 1,
-      direction: null,
-      rawIdea: '参考《前台反差参考片.mp4》的剪辑风格制作成片',
-      objective: null,
-      platform: 'douyin',
-      durationSeconds: 16,
-      targetAudience: null,
-      tone: [],
-      hotelSellingPoints: [],
-      hardConstraints: [],
-      userPrompt: null,
-      createdBy: 'user',
-      modelName: null,
-      promptVersion: null,
-      generationParameters: {},
-      inputSummary: null,
-      createdAt: '2026-08-05T04:20:00.000Z',
-    };
-    const script: ScriptPackage = {
-      id: '9e000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      revision: 1,
-      modelName: null,
-      promptVersion: null,
-      generationParameters: {},
-      inputSummary: null,
-      createdAt: '2026-08-05T04:30:00.000Z',
-      title: '前台反差短片（参考风格）',
-      hook: '前台也能带来惊喜',
-      storySummary: '按参考片的叙事节奏编排',
-      narrativePattern: '专业形象展示与反差幽默结合',
-      voiceoverScript: null,
-      dialogue: [],
-      captions: [],
-      callToAction: '联系酒店',
-      filmingTips: [],
-      requiredAssets: ['前台'],
-      totalDurationMs: 16_000,
-      scenes: [],
-      shotList: [],
-    };
-    const requirement: AssetRequirement = {
-      id: '9f000000-0000-4000-8000-000000000001',
-      creativeProjectId: creativeProject.id,
-      scriptSceneId: null,
-      description: '前台服务镜头',
-      requiredTags: ['service'],
-      preferredShotType: 'medium',
-      preferredMotionType: 'static',
-      preferredDurationMs: 4_000,
-      required: true,
-      matchedAssetIds: [],
-      candidateMatches: [],
-      status: 'missing',
-      filmingInstruction: '补拍：前台服务',
-      createdAt: '2026-08-05T04:40:00.000Z',
-      updatedAt: '2026-08-05T04:40:00.000Z',
-    };
-
-    const { api, createCreativeProject } = createApi();
-    createCreativeProject.mockResolvedValue({
-      ...creativeProject,
-      mode: 'reference',
-    });
-    api.getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
-      aiDirectorEnabled: true,
-      aiReviewEnabled: false,
-      dynamicBlueprintEnabled: true,
-      referenceAnalysisEnabled: true,
-    });
+  it('turns a reference analysis into an original script', async () => {
+    const current = project({ mode: 'reference', title: '参考风格成片' });
+    const { api, generateScript } = createApi([current]);
     api.listAssets = vi.fn<WorkspaceApi['listAssets']>().mockResolvedValue([referenceAsset]);
     api.listReferenceVideoProfiles = vi
       .fn<WorkspaceApi['listReferenceVideoProfiles']>()
       .mockResolvedValue([profile]);
-    const createBrief = vi
-      .fn<WorkspaceApi['createCreativeBriefRevision']>()
-      .mockResolvedValue(brief);
-    const generateScript = vi.fn<WorkspaceApi['generateScript']>().mockResolvedValue(script);
-    const selectScript = vi.fn<WorkspaceApi['selectScript']>().mockResolvedValue(creativeProject);
-    const generateAssetRequirements = vi
-      .fn<WorkspaceApi['generateAssetRequirements']>()
-      .mockResolvedValue([requirement]);
-    api.createCreativeBriefRevision = createBrief;
-    api.generateScript = generateScript;
-    api.selectScript = selectScript;
-    api.generateAssetRequirements = generateAssetRequirements;
     render(<AiDirectorWorkspace api={api} hotelId={hotelId} />);
 
-    await screen.findByRole('heading', { name: '创建专属剪辑方案' });
-    fireEvent.click(screen.getByRole('button', { name: /模仿参考视频结构/ }));
-    fireEvent.change(screen.getByRole('textbox', { name: '创作项目标题' }), {
-      target: { value: '参考风格成片' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: '创建 AI 创作项目' }));
-    await waitFor(() => expect(createCreativeProject).toHaveBeenCalled());
+    fireEvent.click(await screen.findByRole('button', { name: /参考风格成片/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '生成原创剪辑思路与脚本' }));
 
-    fireEvent.click(await screen.findByRole('button', { name: '基于该参考生成脚本' }));
-    await waitFor(() => expect(createBrief).toHaveBeenCalled());
-    expect(createBrief).toHaveBeenCalledWith(projectId, {
-      durationSeconds: 16,
-      platform: 'douyin',
-      rawIdea: '参考《前台反差参考片.mp4》的剪辑风格制作成片',
-    });
     await waitFor(() =>
       expect(generateScript).toHaveBeenCalledWith(projectId, brief.id, {
         referenceProfileId: profile.id,
       }),
     );
-    await waitFor(() => expect(selectScript).toHaveBeenCalledWith(projectId, script.id));
-    await waitFor(() =>
-      expect(generateAssetRequirements).toHaveBeenCalledWith(projectId, script.id),
-    );
     expect(
-      await screen.findByRole('button', { name: '生成已校验 EditBlueprint' }),
+      await screen.findByRole('heading', { name: '确认剪辑思路、脚本和分镜' }),
     ).toBeInTheDocument();
+  });
+
+  it('selects a real AI video project before opening Studio', async () => {
+    const current = project({ status: 'blueprint_ready' });
+    const { api, selectCreativeVideoVersion } = createApi([current]);
+    api.listCreativeVideoVersions = vi
+      .fn<WorkspaceApi['listCreativeVideoVersions']>()
+      .mockResolvedValue([version]);
+    const onOpenVideoProject = vi.fn();
+    render(
+      <AiDirectorWorkspace api={api} hotelId={hotelId} onOpenVideoProject={onOpenVideoProject} />,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /前台反差短片/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /选定并进入人工微调/ }));
+
+    await waitFor(() =>
+      expect(selectCreativeVideoVersion).toHaveBeenCalledWith(projectId, version.id),
+    );
+    expect(onOpenVideoProject).toHaveBeenCalledWith(videoProjectId);
+  });
+
+  it('marks the refined Studio project as completed in the editing library', async () => {
+    const current = project({
+      selectedVideoProjectId: videoProjectId,
+      status: 'generated',
+    });
+    const { api, updateCreativeProject } = createApi([current]);
+    api.listCreativeVideoVersions = vi
+      .fn<WorkspaceApi['listCreativeVideoVersions']>()
+      .mockResolvedValue([version]);
+    render(<AiDirectorWorkspace api={api} hotelId={hotelId} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /前台反差短片/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '已完成微调，保存到剪辑库' }));
+
+    await waitFor(() =>
+      expect(updateCreativeProject).toHaveBeenCalledWith(projectId, { status: 'completed' }),
+    );
+    expect(await screen.findByRole('heading', { name: '项目已保存到剪辑库' })).toBeInTheDocument();
+  });
+
+  it('offers the existing quick-edit path without bypassing the new workflow', async () => {
+    const { api } = createApi();
+    const onQuickEdit = vi.fn();
+    render(<AiDirectorWorkspace api={api} hotelId={hotelId} onQuickEdit={onQuickEdit} />);
+    fireEvent.click(await screen.findByRole('button', { name: '直接开始剪辑（素材自动成片）' }));
+    expect(onQuickEdit).toHaveBeenCalledTimes(1);
   });
 });

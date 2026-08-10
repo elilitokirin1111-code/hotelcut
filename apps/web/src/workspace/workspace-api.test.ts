@@ -647,4 +647,41 @@ describe('workspace API client', () => {
       }),
     );
   });
+
+  it('selects an AI video version as the Studio and editing-library project', async () => {
+    const creativeProjectId = '91000000-0000-4000-8000-000000000001';
+    const versionId = '92000000-0000-4000-8000-000000000001';
+    const selected = {
+      id: creativeProjectId,
+      hotelId: '30000000-0000-4000-8000-000000000001',
+      title: '前台反差短片',
+      mode: 'idea' as const,
+      status: 'generated' as const,
+      selectedBriefRevisionId: null,
+      selectedScriptRevisionId: '96000000-0000-4000-8000-000000000001',
+      selectedBlueprintId: '93000000-0000-4000-8000-000000000001',
+      selectedVideoProjectId: '94000000-0000-4000-8000-000000000001',
+      createdByUserId: '20000000-0000-4000-8000-000000000001',
+      metadata: {},
+      deletedAt: null,
+      createdAt: '2026-08-05T02:00:00.000Z',
+      updatedAt: '2026-08-05T03:30:00.000Z',
+    };
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(JSON.stringify(selected), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      createWorkspaceApi('/api').selectCreativeVideoVersion(creativeProjectId, versionId),
+    ).resolves.toEqual(selected);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/v1/creative-projects/${creativeProjectId}/select-video-version`,
+      expect.objectContaining({
+        body: JSON.stringify({ id: versionId }),
+        credentials: 'include',
+        method: 'POST',
+      }),
+    );
+  });
 });

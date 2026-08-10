@@ -566,6 +566,9 @@ function createApi(initialSession: AuthSession | null): {
       saveBrandKit,
       saveModelProviderSettings,
       saveProjectRevision,
+      selectCreativeVideoVersion: vi
+        .fn<WorkspaceApi['selectCreativeVideoVersion']>()
+        .mockRejectedValue(new Error('test fixture does not select creative video versions')),
       selectScript,
       testModelProvider,
       updateCreativeProject,
