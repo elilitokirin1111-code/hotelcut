@@ -262,6 +262,53 @@ function createApi(initialSession: AuthSession | null): {
   uploadVideo: ReturnType<typeof vi.fn<WorkspaceApi['uploadVideo']>>;
 } {
   const getSession = vi.fn<WorkspaceApi['getSession']>().mockResolvedValue(initialSession);
+  const getAiDirectorFeatures = vi.fn<WorkspaceApi['getAiDirectorFeatures']>().mockResolvedValue({
+    aiDirectorEnabled: true,
+    aiReviewEnabled: true,
+    dynamicBlueprintEnabled: true,
+    referenceAnalysisEnabled: true,
+  });
+  const listCreativeProjects = vi.fn<WorkspaceApi['listCreativeProjects']>().mockResolvedValue([]);
+  const createCreativeProject = vi
+    .fn<WorkspaceApi['createCreativeProject']>()
+    .mockRejectedValue(new Error('Creative project creation is not configured in this test'));
+  const getCreativeProject = vi
+    .fn<WorkspaceApi['getCreativeProject']>()
+    .mockRejectedValue(new Error('Creative project lookup is not configured in this test'));
+  const updateCreativeProject = vi
+    .fn<WorkspaceApi['updateCreativeProject']>()
+    .mockRejectedValue(new Error('Creative project updates are not configured in this test'));
+  const createCreativeBriefRevision = vi
+    .fn<WorkspaceApi['createCreativeBriefRevision']>()
+    .mockRejectedValue(new Error('Creative brief creation is not configured in this test'));
+  const listCreativeBriefRevisions = vi
+    .fn<WorkspaceApi['listCreativeBriefRevisions']>()
+    .mockResolvedValue([]);
+  const expandIdea = vi
+    .fn<WorkspaceApi['expandIdea']>()
+    .mockRejectedValue(new Error('Creative expansion is not configured in this test'));
+  const generateScript = vi
+    .fn<WorkspaceApi['generateScript']>()
+    .mockRejectedValue(new Error('Script generation is not configured in this test'));
+  const listScriptPackages = vi.fn<WorkspaceApi['listScriptPackages']>().mockResolvedValue([]);
+  const selectScript = vi
+    .fn<WorkspaceApi['selectScript']>()
+    .mockRejectedValue(new Error('Script selection is not configured in this test'));
+  const createReferenceVideoProfile = vi
+    .fn<WorkspaceApi['createReferenceVideoProfile']>()
+    .mockRejectedValue(new Error('Reference profiling is not configured in this test'));
+  const listReferenceVideoProfiles = vi
+    .fn<WorkspaceApi['listReferenceVideoProfiles']>()
+    .mockResolvedValue([]);
+  const listAssetRequirements = vi
+    .fn<WorkspaceApi['listAssetRequirements']>()
+    .mockResolvedValue([]);
+  const generateAssetRequirements = vi
+    .fn<WorkspaceApi['generateAssetRequirements']>()
+    .mockRejectedValue(new Error('Asset matching is not configured in this test'));
+  const assignAssetRequirement = vi
+    .fn<WorkspaceApi['assignAssetRequirement']>()
+    .mockRejectedValue(new Error('Asset assignment is not configured in this test'));
   const loadHotelConfiguration = vi
     .fn<WorkspaceApi['loadHotelConfiguration']>()
     .mockImplementation((hotelId) => {
@@ -459,33 +506,73 @@ function createApi(initialSession: AuthSession | null): {
   });
   return {
     api: {
+      assignAssetRequirement,
       cancelRenderJob,
+      createCreativeBriefRevision,
+      createCreativeProject,
+      createReferenceVideoProfile,
+      deleteAiTemplate: vi.fn<WorkspaceApi['deleteAiTemplate']>().mockResolvedValue(),
+      deleteAiTemplates: vi.fn<WorkspaceApi['deleteAiTemplates']>().mockResolvedValue(),
+      deleteAsset: vi.fn<WorkspaceApi['deleteAsset']>().mockResolvedValue(),
+      deleteAssets: vi.fn<WorkspaceApi['deleteAssets']>().mockResolvedValue(),
+      deleteRenderJobs: vi.fn<WorkspaceApi['deleteRenderJobs']>().mockResolvedValue(),
+      deleteVideoProjects: vi.fn<WorkspaceApi['deleteVideoProjects']>().mockResolvedValue(),
+      generateEditBlueprint: vi
+        .fn<WorkspaceApi['generateEditBlueprint']>()
+        .mockRejectedValue(new Error('test fixture does not generate blueprints')),
+      generateAssetRequirements,
       createRenderJob,
       createManualSegment,
       createVideoBrief,
       generateAiEditPlan,
+      generateScript,
       generateVideoProject,
+      generateVideoVersions: vi
+        .fn<WorkspaceApi['generateVideoVersions']>()
+        .mockRejectedValue(new Error('test fixture does not generate video versions')),
       getAssetDerivativeDownload,
       getAssetDetail,
+      getAiDirectorFeatures,
+      getCreativeProject,
       getRenderArtifactDownload,
       getRenderJob,
       getSession,
       getModelProviderSettings,
       getVideoProject,
       listAssets,
+      listCreativeBriefRevisions,
+      listCreativeProjects,
+      listCreativeVideoVersions: vi
+        .fn<WorkspaceApi['listCreativeVideoVersions']>()
+        .mockResolvedValue([]),
+      listEditBlueprints: vi.fn<WorkspaceApi['listEditBlueprints']>().mockResolvedValue([]),
+      listAiTemplates: vi.fn<WorkspaceApi['listAiTemplates']>().mockResolvedValue([]),
       listProjectTemplates,
+      generateAiTemplate: vi
+        .fn<WorkspaceApi['generateAiTemplate']>()
+        .mockRejectedValue(new Error('AI template generation is not configured in this test')),
       listRenderJobs,
+      listReferenceVideoProfiles,
+      listAssetRequirements,
+      listScriptPackages,
       listVideoProjects,
       loadHotelConfiguration,
       loadWorkspace,
       login,
       logout,
+      organizeAssets: vi.fn<WorkspaceApi['organizeAssets']>().mockResolvedValue([]),
       retryAssetAnalysis,
       retryRenderJob,
       saveBrandKit,
       saveModelProviderSettings,
       saveProjectRevision,
+      selectCreativeVideoVersion: vi
+        .fn<WorkspaceApi['selectCreativeVideoVersion']>()
+        .mockRejectedValue(new Error('test fixture does not select creative video versions')),
+      selectScript,
       testModelProvider,
+      updateCreativeProject,
+      expandIdea,
       updateHotel,
       uploadVideo,
     },
@@ -533,9 +620,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     } = createApi(null);
     render(<WorkspaceApp api={api} />);
 
-    expect(
-      await screen.findByRole('heading', { name: '下午好，今天继续产出好内容。' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '创建专属剪辑方案' })).toBeInTheDocument();
     expect(getSession).not.toHaveBeenCalled();
     expect(loadWorkspace).toHaveBeenCalledWith(expect.any(AbortSignal));
 
@@ -595,7 +680,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       target: { value: '黄山' },
     });
     expect(screen.queryByText('云栖湖畔酒店（虚构）')).not.toBeInTheDocument();
-    expect(screen.getByText('云栖山居酒店（虚构）')).toBeInTheDocument();
+    expect(await screen.findByText('云栖山居酒店（虚构）')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '进入 云栖山居酒店（虚构）' }));
     expect(screen.getByRole('heading', { name: '云栖山居酒店（虚构）' })).toBeInTheDocument();
@@ -678,6 +763,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       api,
       createManualSegment,
       getAssetDetail,
+      getAssetDerivativeDownload,
       listAssets,
       retryAssetAnalysis,
       uploadVideo,
@@ -692,8 +778,15 @@ describe('M7 email-authenticated hotel workspace', () => {
       expect(listAssets).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal)),
     );
     expect(
-      await within(screen.getByLabelText('素材列表')).findByText('湖景房介绍.mp4'),
+      await within(screen.getByLabelText('素材列表')).findByText('明亮整洁的湖景客房'),
     ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(getAssetDerivativeDownload).toHaveBeenCalledWith(
+        assets[0]!.id,
+        'thumbnail',
+        expect.any(AbortSignal),
+      ),
+    );
     await waitFor(() =>
       expect(getAssetDetail).toHaveBeenCalledWith(assets[0]!.id, expect.anything()),
     );
@@ -702,7 +795,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     );
     expect(screen.getByText('明亮整洁的湖景客房，适合展示空间与窗景。')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材文件名' }), {
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材' }), {
       target: { value: '大堂' },
     });
     expect(
@@ -712,7 +805,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     fireEvent.click(await screen.findByRole('button', { name: '重新分析' }));
     await waitFor(() => expect(retryAssetAnalysis).toHaveBeenCalledWith(assets[1]!.id));
 
-    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材文件名' }), {
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜索素材' }), {
       target: { value: '湖景' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /湖景房介绍\.mp4/ }));
@@ -741,6 +834,22 @@ describe('M7 email-authenticated hotel workspace', () => {
     expect(await screen.findByText('2 个素材上传完成，已进入自动分析队列')).toBeInTheDocument();
   });
 
+  it('routes from a ready asset library into AI creation', async () => {
+    const { api, listAssets } = createApi(session);
+    render(<WorkspaceApp api={api} guestMode={false} />);
+    await screen.findByRole('heading', { name: '选择酒店' });
+
+    fireEvent.click(await screen.findByRole('button', { name: '进入 云栖湖畔酒店（虚构）' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开素材库' }));
+    await screen.findByRole('heading', { name: '生产素材库' });
+    await waitFor(() =>
+      expect(listAssets).toHaveBeenCalledWith(hotels[0]!.id, expect.any(AbortSignal)),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: '用素材开始创作' }));
+    expect(await screen.findByRole('heading', { name: '创建专属剪辑方案' })).toBeInTheDocument();
+  });
+
   it('refreshes selected asset detail when analysis changes the list status', async () => {
     const { api, getAssetDetail, listAssets } = createApi(session);
     const uploadedAsset: Asset = {
@@ -753,10 +862,7 @@ describe('M7 email-authenticated hotel workspace', () => {
       status: 'ready',
       updatedAt: '2026-07-29T08:01:00.000Z',
     };
-    listAssets
-      .mockResolvedValueOnce([uploadedAsset])
-      .mockResolvedValueOnce([uploadedAsset])
-      .mockResolvedValue([readyAsset]);
+    listAssets.mockResolvedValueOnce([uploadedAsset]).mockResolvedValue([readyAsset]);
     getAssetDetail
       .mockResolvedValueOnce(detailFor(uploadedAsset))
       .mockResolvedValue(detailFor(readyAsset));
@@ -901,6 +1007,7 @@ describe('M7 email-authenticated hotel workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '进入 Studio 编辑' }));
 
     expect(await screen.findByRole('heading', { name: 'HotelCut Studio' })).toBeInTheDocument();
+    expect(screen.getAllByText('欢迎来到云栖湖畔酒店').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: '文案' }));
     fireEvent.change(screen.getByLabelText('字幕文本'), {
       target: { value: '湖畔周末，慢下来住一晚' },

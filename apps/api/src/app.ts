@@ -28,11 +28,16 @@ import {
   updateHotelSchema,
   upsertBrandKitSchema,
   videoBriefSchema,
+  type AiDirectorFeatureFlags,
 } from '@hotelcut/schemas';
 import type { MultipartObjectStorage } from '@hotelcut/storage';
 
 import { assetRoutes } from './asset-routes.js';
+import { aiReviewRoutes } from './ai-review-routes.js';
+import { aiTemplateRoutes } from './ai-template-routes.js';
 import { configureAuthentication } from './authentication.js';
+import { creativeProjectRoutes } from './creative-project-routes.js';
+import { feedbackRoutes } from './feedback-routes.js';
 import { modelProviderRoutes } from './model-provider-routes.js';
 import { projectRoutes } from './project-routes.js';
 import { renderRoutes } from './render-routes.js';
@@ -40,6 +45,7 @@ import { renderRoutes } from './render-routes.js';
 interface BuildAppOptions {
   allowDevelopmentIdentity?: boolean;
   analysisQueue?: AnalysisQueue;
+  aiDirectorFeatureFlags?: AiDirectorFeatureFlags;
   authRepository?: AuthRepository;
   downloadUrlTtlSeconds?: number;
   guestUserId?: string;
@@ -365,8 +371,34 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     fetchProvider: options.modelProviderFetch,
     repository: options.repository,
   });
+  await app.register(creativeProjectRoutes, {
+    featureFlags: options.aiDirectorFeatureFlags ?? {
+      aiDirectorEnabled: false,
+      referenceAnalysisEnabled: false,
+      dynamicBlueprintEnabled: false,
+      aiReviewEnabled: false,
+    },
+    configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
+    ...(options.modelProviderFetch ? { fetchProvider: options.modelProviderFetch } : {}),
+    ...(options.repository ? { repository: options.repository } : {}),
+  });
+  await app.register(aiTemplateRoutes, {
+    featureFlags: options.aiDirectorFeatureFlags ?? { aiDirectorEnabled: false },
+    configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
+    ...(options.modelProviderFetch ? { fetchProvider: options.modelProviderFetch } : {}),
+    ...(options.repository ? { repository: options.repository } : {}),
+  });
   await app.register(projectRoutes, {
     repository: options.repository,
+  });
+  await app.register(aiReviewRoutes, {
+    configSecret: options.modelApiConfigSecret ?? 'hotelcut-local-model-secret',
+    featureFlags: options.aiDirectorFeatureFlags ?? { aiReviewEnabled: false },
+    ...(options.modelProviderFetch ? { fetchProvider: options.modelProviderFetch } : {}),
+    ...(options.repository ? { repository: options.repository } : {}),
+  });
+  await app.register(feedbackRoutes, {
+    ...(options.repository ? { repository: options.repository } : {}),
   });
   await app.register(renderRoutes, {
     downloadUrlTtlSeconds: options.downloadUrlTtlSeconds ?? 900,

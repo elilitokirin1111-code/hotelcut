@@ -575,12 +575,30 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
       },
     });
   });
+  await page.route('**/api/v1/ai-director/features', async (route) => {
+    await route.fulfill({
+      status: 200,
+      json: {
+        aiDirectorEnabled: true,
+        referenceAnalysisEnabled: true,
+        dynamicBlueprintEnabled: true,
+        aiReviewEnabled: true,
+      },
+    });
+  });
+  await page.route('**/api/v1/hotels/*/creative-projects', async (route) => {
+    await route.fulfill({ status: 200, json: [] });
+  });
+  await page.route('**/api/v1/hotels/*/ai-templates', async (route) => {
+    await route.fulfill({ status: 200, json: [] });
+  });
 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: '云栖湖畔酒店（虚构）' })).toBeVisible();
   await expect(page.getByLabel('酒店工作空间模块')).toBeVisible();
-  await expect(page.getByRole('heading', { name: '下午好，今天继续产出好内容。' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '创建专属剪辑方案' })).toBeVisible();
 
+  await page.getByRole('button', { name: '打开更多菜单' }).click();
   await page.getByRole('button', { name: '打开设置' }).click();
   await expect(page.getByRole('heading', { name: '大模型 API 配置' })).toBeVisible();
   await page.getByLabel('服务类型').selectOption('aliyun-bailian');
@@ -596,12 +614,12 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
   await expect(page.getByRole('heading', { name: '生产素材库' })).toBeVisible();
   await expect(page.getByRole('button', { name: /湖景房介绍\.mp4/ })).toBeVisible();
 
-  await page.getByRole('searchbox', { name: '搜索素材文件名' }).fill('大堂');
+  await page.getByRole('searchbox', { name: '搜索素材' }).fill('大堂');
   await page.getByRole('button', { name: /大堂口播\.mp4/ }).click();
   await page.getByRole('button', { name: '重新分析' }).click();
   await expect.poll(() => analysisRetried).toBe(true);
 
-  await page.getByRole('searchbox', { name: '搜索素材文件名' }).fill('湖景');
+  await page.getByRole('searchbox', { name: '搜索素材' }).fill('湖景');
   await page.getByRole('button', { name: /湖景房介绍\.mp4/ }).click();
   await expect(page.getByAltText('湖景房介绍.mp4 缩略图')).toBeVisible();
   await page.getByRole('textbox', { exact: true, name: '标签' }).fill('湖景房');
@@ -618,6 +636,7 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
   await expect(page.getByText('1 个素材上传完成，已进入自动分析队列')).toBeVisible();
   expect(uploadCompleted).toBe(true);
 
+  await page.getByRole('button', { name: '打开更多菜单' }).click();
   await page.getByRole('button', { name: '打开酒店配置' }).click();
   await expect(page.getByRole('heading', { name: '酒店资料与品牌配置' })).toBeVisible();
 
@@ -637,6 +656,7 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
     logoAssetId: null,
   });
 
+  await page.getByRole('button', { name: '打开更多菜单' }).click();
   await page.getByRole('button', { name: '打开视频项目' }).click();
   await expect(page.getByRole('heading', { name: '创建自动剪辑项目' })).toBeVisible();
   await page.getByText('酒店活动推广', { exact: true }).click();
@@ -672,6 +692,7 @@ test('runs the guest workbench, model setup and asset-production workflow', asyn
   await page.getByRole('button', { name: '返回项目列表' }).click();
   await expect(page.getByRole('heading', { name: '创建自动剪辑项目' })).toBeVisible();
 
+  await page.getByRole('button', { name: '打开更多菜单' }).click();
   await page.getByRole('button', { name: '打开渲染中心' }).click();
   await expect(page.getByRole('heading', { name: '渲染中心', level: 2 })).toBeVisible();
   await page.getByRole('button', { name: '渲染当前修订 2' }).click();

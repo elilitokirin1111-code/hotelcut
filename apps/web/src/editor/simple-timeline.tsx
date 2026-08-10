@@ -1,4 +1,5 @@
 import type { Clip, HotelVideoProjectV1 } from '@hotelcut/timeline';
+import { useState } from 'react';
 
 import { findEditorAsset, type EditorAsset } from './editor-asset';
 
@@ -9,6 +10,7 @@ interface SimpleTimelineProps {
   selectedClipId: string | null;
   onSelectClip: (clip: Clip) => void;
   onScrub: (frame: number) => void;
+  onMoveClip?: (clip: Clip, startFrame: number) => void;
 }
 
 function clipLabel(clip: Clip, assets: readonly EditorAsset[]): string {
@@ -41,8 +43,40 @@ export function SimpleTimeline({
   selectedClipId,
   onSelectClip,
   onScrub,
+  onMoveClip,
 }: SimpleTimelineProps) {
   const visibleTracks = project.tracks.filter((track) => track.enabled);
+  const [dragged, setDragged] = useState<{
+    clipId: string;
+    startFrame: number;
+    grabOffsetFrames: number;
+  } | null>(null);
+
+  const frameAtPointer = (clientX: number, lane: HTMLElement) => {
+    const bounds = lane.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - bounds.left) / bounds.width));
+    return Math.round(ratio * project.output.durationFrames);
+  };
+
+  const commitMove = (clip: Clip, lane: HTMLElement, clientX: number, grabOffsetFrames: number) => {
+    const track = visibleTracks.find((candidate) =>
+      candidate.clips.some((item) => item.id === clip.id),
+    );
+    if (!track || !onMoveClip) return;
+    const startFrame = Math.min(
+      project.output.durationFrames - clip.durationFrames,
+      Math.max(0, frameAtPointer(clientX, lane) - grabOffsetFrames),
+    );
+    const overlaps = track.clips.some(
+      (other) =>
+        other.id !== clip.id &&
+        startFrame < other.startFrame + other.durationFrames &&
+        startFrame + clip.durationFrames > other.startFrame,
+    );
+    if (!overlaps && startFrame !== clip.startFrame) {
+      onMoveClip(clip, startFrame);
+    }
+  };
 
   return (
     <section aria-label="简化时间线" className="studio-timeline rounded-[16px] px-4 pb-4 pt-3">
@@ -82,24 +116,64 @@ export function SimpleTimeline({
               <span className="truncate">{track.name}</span>
             </div>
             <div className="relative h-8 overflow-hidden rounded-lg bg-slate-100/80 ring-1 ring-inset ring-slate-200/70">
-              {track.clips.map((clip) => (
-                <button
-                  aria-label={`编辑片段 ${clipLabel(clip, assets)}`}
-                  className={`absolute top-1 h-6 overflow-hidden rounded-md bg-gradient-to-r px-2 text-left text-[9px] font-semibold text-white shadow-sm transition hover:brightness-110 ${clipColor(
-                    clip,
-                  )} ${selectedClipId === clip.id ? 'ring-2 ring-[#24343c] ring-offset-1' : ''}`}
-                  key={clip.id}
-                  onClick={() => onSelectClip(clip)}
-                  style={{
-                    left: `${(clip.startFrame / project.output.durationFrames) * 100}%`,
-                    width: `${(clip.durationFrames / project.output.durationFrames) * 100}%`,
-                  }}
-                  title={clipLabel(clip, assets)}
-                  type="button"
-                >
-                  <span className="block truncate">{clipLabel(clip, assets)}</span>
-                </button>
-              ))}
+              {track.clips.map((clip) => {
+                const isDragged = dragged?.clipId === clip.id;
+                const startFrame = isDragged ? dragged.startFrame : clip.startFrame;
+                return (
+                  <button
+                    aria-label={`编辑片段 ${clipLabel(clip, assets)}`}
+                    className={`absolute top-1 h-6 overflow-hidden rounded-md bg-gradient-to-r px-2 text-left text-[9px] font-semibold text-white shadow-sm transition hover:brightness-110 ${clipColor(
+                      clip,
+                    )} ${selectedClipId === clip.id ? 'ring-2 ring-[#24343c] ring-offset-1' : ''}`}
+                    key={clip.id}
+                    onClick={() => onSelectClip(clip)}
+                    onPointerCancel={() => setDragged(null)}
+                    onPointerDown={(event) => {
+                      if (!onMoveClip) return;
+                      const lane = event.currentTarget.parentElement;
+                      if (!lane) return;
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      onSelectClip(clip);
+                      setDragged({
+                        clipId: clip.id,
+                        startFrame: clip.startFrame,
+                        grabOffsetFrames: frameAtPointer(event.clientX, lane) - clip.startFrame,
+                      });
+                    }}
+                    onPointerMove={(event) => {
+                      if (!onMoveClip || dragged?.clipId !== clip.id) return;
+                      const lane = event.currentTarget.parentElement;
+                      if (!lane) return;
+                      setDragged({
+                        clipId: clip.id,
+                        startFrame: Math.min(
+                          project.output.durationFrames - clip.durationFrames,
+                          Math.max(
+                            0,
+                            frameAtPointer(event.clientX, lane) - dragged.grabOffsetFrames,
+                          ),
+                        ),
+                        grabOffsetFrames: dragged.grabOffsetFrames,
+                      });
+                    }}
+                    onPointerUp={(event) => {
+                      const lane = event.currentTarget.parentElement;
+                      if (lane) {
+                        commitMove(clip, lane, event.clientX, dragged?.grabOffsetFrames ?? 0);
+                      }
+                      setDragged(null);
+                    }}
+                    style={{
+                      left: `${(startFrame / project.output.durationFrames) * 100}%`,
+                      width: `${(clip.durationFrames / project.output.durationFrames) * 100}%`,
+                    }}
+                    title={clipLabel(clip, assets)}
+                    type="button"
+                  >
+                    <span className="block truncate">{clipLabel(clip, assets)}</span>
+                  </button>
+                );
+              })}
               <div
                 className="pointer-events-none absolute bottom-0 top-0 z-20 w-px bg-[#e36d50] shadow-[0_0_0_1px_rgba(255,255,255,.7)]"
                 style={{ left: `${(currentFrame / project.output.durationFrames) * 100}%` }}

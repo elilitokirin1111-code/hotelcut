@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
   check,
   index,
@@ -75,6 +76,45 @@ export const renderArtifactKind = pgEnum('render_artifact_kind', [
   'manifest',
 ]);
 export const qualityReportStatus = pgEnum('quality_report_status', ['passed', 'warning', 'failed']);
+export const assetPurpose = pgEnum('asset_purpose', ['production_asset', 'reference_video']);
+export const creativeProjectMode = pgEnum('creative_project_mode', [
+  'idea',
+  'script',
+  'reference',
+  'assets',
+]);
+export const creativeProjectStatus = pgEnum('creative_project_status', [
+  'draft',
+  'planning',
+  'script_ready',
+  'waiting_assets',
+  'blueprint_ready',
+  'generated',
+  'completed',
+]);
+export const creativeRevisionAuthor = pgEnum('creative_revision_author', ['user', 'ai']);
+export const assetRequirementStatus = pgEnum('asset_requirement_status', [
+  'missing',
+  'weak_match',
+  'matched',
+]);
+export const aiReviewStatus = pgEnum('ai_review_status', [
+  'generated',
+  'partially_applied',
+  'applied',
+  'dismissed',
+]);
+export const aiEditCommandStatus = pgEnum('ai_edit_command_status', [
+  'pending',
+  'applied',
+  'dismissed',
+  'reverted',
+]);
+export const aiGenerationStatus = pgEnum('ai_generation_status', [
+  'pending',
+  'succeeded',
+  'failed',
+]);
 
 export const organizations = pgTable(
   'organizations',
@@ -208,6 +248,7 @@ export const assets = pgTable(
       .notNull()
       .references(() => hotels.id, { onDelete: 'cascade' }),
     kind: assetKind('kind').notNull(),
+    purpose: assetPurpose('purpose').default('production_asset').notNull(),
     status: assetStatus('status').default('registered').notNull(),
     originalFilename: varchar('original_filename', { length: 260 }).notNull(),
     contentType: varchar('content_type', { length: 120 }).notNull(),
@@ -215,6 +256,7 @@ export const assets = pgTable(
     storageBucket: varchar('storage_bucket', { length: 120 }).notNull(),
     storageKey: varchar('storage_key', { length: 500 }).notNull(),
     checksumSha256: varchar('checksum_sha256', { length: 64 }),
+    folder: varchar('folder', { length: 80 }),
     metadata: jsonb('metadata')
       .default(sql`'{}'::jsonb`)
       .notNull(),
@@ -368,6 +410,516 @@ export const videoBriefs = pgTable(
   ],
 );
 
+export const creativeProjects = pgTable(
+  'creative_projects',
+  {
+    id: uuid('id').primaryKey(),
+    hotelId: uuid('hotel_id')
+      .notNull()
+      .references(() => hotels.id, { onDelete: 'cascade' }),
+    title: varchar('title', { length: 160 }).notNull(),
+    mode: creativeProjectMode('mode').notNull(),
+    status: creativeProjectStatus('status').default('draft').notNull(),
+    selectedBriefRevisionId: uuid('selected_brief_revision_id'),
+    selectedScriptRevisionId: uuid('selected_script_revision_id'),
+    selectedBlueprintId: uuid('selected_blueprint_id'),
+    selectedVideoProjectId: uuid('selected_video_project_id'),
+    createdByUserId: uuid('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    metadata: jsonb('metadata')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index('creative_projects_hotel_idx').on(table.hotelId),
+    index('creative_projects_status_idx').on(table.status),
+  ],
+);
+
+export const creativeBriefRevisions = pgTable(
+  'creative_brief_revisions',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    revision: integer('revision').notNull(),
+    direction: varchar('direction', { length: 40 }),
+    rawIdea: text('raw_idea').notNull(),
+    objective: varchar('objective', { length: 300 }),
+    platform: videoPlatform('platform').notNull(),
+    durationSeconds: integer('duration_seconds').notNull(),
+    targetAudience: varchar('target_audience', { length: 200 }),
+    tone: jsonb('tone')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    hotelSellingPoints: jsonb('hotel_selling_points')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    hardConstraints: jsonb('hard_constraints')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    userPrompt: text('user_prompt'),
+    createdBy: creativeRevisionAuthor('created_by').notNull(),
+    modelName: varchar('model_name', { length: 120 }),
+    promptVersion: varchar('prompt_version', { length: 80 }),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('creative_brief_revisions_project_revision_unique').on(
+      table.creativeProjectId,
+      table.revision,
+    ),
+    check('creative_brief_revisions_revision_positive', sql`${table.revision} > 0`),
+    check(
+      'creative_brief_revisions_duration_range',
+      sql`${table.durationSeconds} >= 5 and ${table.durationSeconds} <= 180`,
+    ),
+  ],
+);
+
+export const scriptPackages = pgTable(
+  'script_packages',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    revision: integer('revision').notNull(),
+    title: varchar('title', { length: 160 }).notNull(),
+    hook: varchar('hook', { length: 300 }).notNull(),
+    storySummary: text('story_summary').notNull(),
+    narrativePattern: varchar('narrative_pattern', { length: 160 }).notNull(),
+    voiceoverScript: text('voiceover_script'),
+    dialogue: jsonb('dialogue')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    captions: jsonb('captions')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    callToAction: varchar('call_to_action', { length: 300 }),
+    filmingTips: jsonb('filming_tips')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    requiredAssets: jsonb('required_assets')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    totalDurationMs: integer('total_duration_ms').notNull(),
+    modelName: varchar('model_name', { length: 120 }),
+    promptVersion: varchar('prompt_version', { length: 80 }),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('script_packages_project_revision_unique').on(
+      table.creativeProjectId,
+      table.revision,
+    ),
+    check('script_packages_revision_positive', sql`${table.revision} > 0`),
+    check('script_packages_duration_positive', sql`${table.totalDurationMs} > 0`),
+  ],
+);
+
+export const scriptScenes = pgTable(
+  'script_scenes',
+  {
+    id: uuid('id').primaryKey(),
+    scriptPackageId: uuid('script_package_id')
+      .notNull()
+      .references(() => scriptPackages.id, { onDelete: 'cascade' }),
+    sequence: integer('sequence').notNull(),
+    title: varchar('title', { length: 160 }).notNull(),
+    purpose: varchar('purpose', { length: 240 }).notNull(),
+    visual: text('visual').notNull(),
+    action: text('action').notNull(),
+    narration: text('narration'),
+    dialogue: text('dialogue'),
+    caption: text('caption'),
+    durationMs: integer('duration_ms').notNull(),
+    shotType: varchar('shot_type', { length: 40 }),
+    motionType: varchar('motion_type', { length: 40 }),
+    filmingInstruction: text('filming_instruction'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('script_scenes_package_sequence_unique').on(table.scriptPackageId, table.sequence),
+    check('script_scenes_sequence_positive', sql`${table.sequence} > 0`),
+    check('script_scenes_duration_positive', sql`${table.durationMs} > 0`),
+  ],
+);
+
+export const shotRequirements = pgTable(
+  'shot_requirements',
+  {
+    id: uuid('id').primaryKey(),
+    scriptPackageId: uuid('script_package_id')
+      .notNull()
+      .references(() => scriptPackages.id, { onDelete: 'cascade' }),
+    scriptSceneId: uuid('script_scene_id').references(() => scriptScenes.id, {
+      onDelete: 'set null',
+    }),
+    sequence: integer('sequence').notNull(),
+    description: text('description').notNull(),
+    requiredTags: jsonb('required_tags')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    preferredShotType: varchar('preferred_shot_type', { length: 40 }),
+    preferredMotionType: varchar('preferred_motion_type', { length: 40 }),
+    preferredDurationMs: integer('preferred_duration_ms').notNull(),
+    required: boolean('required').default(true).notNull(),
+    filmingInstruction: text('filming_instruction'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('shot_requirements_package_sequence_unique').on(
+      table.scriptPackageId,
+      table.sequence,
+    ),
+    check('shot_requirements_duration_positive', sql`${table.preferredDurationMs} > 0`),
+  ],
+);
+
+export const referenceVideoProfiles = pgTable(
+  'reference_video_profiles',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    assetId: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'restrict' }),
+    revision: integer('revision').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    narrativePattern: varchar('narrative_pattern', { length: 200 }).notNull(),
+    hookDurationMs: integer('hook_duration_ms').notNull(),
+    averageShotDurationMs: integer('average_shot_duration_ms').notNull(),
+    shotCount: integer('shot_count').notNull(),
+    paceCurve: jsonb('pace_curve')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    shotTypeDistribution: jsonb('shot_type_distribution')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    transitionProfile: jsonb('transition_profile')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    captionProfile: jsonb('caption_profile')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    audioProfile: jsonb('audio_profile')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    emotionalCurve: jsonb('emotional_curve')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    reusableStyleRules: jsonb('reusable_style_rules')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    analysisSummary: text('analysis_summary').notNull(),
+    modelName: varchar('model_name', { length: 120 }),
+    promptVersion: varchar('prompt_version', { length: 80 }),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('reference_video_profiles_project_asset_revision_unique').on(
+      table.creativeProjectId,
+      table.assetId,
+      table.revision,
+    ),
+    check('reference_video_profiles_duration_positive', sql`${table.durationMs} > 0`),
+    check('reference_video_profiles_shot_count_nonnegative', sql`${table.shotCount} >= 0`),
+  ],
+);
+
+export const editBlueprints = pgTable(
+  'edit_blueprints',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    revision: integer('revision').notNull(),
+    durationSeconds: integer('duration_seconds').notNull(),
+    frameRate: integer('frame_rate').notNull(),
+    aspectRatio: varchar('aspect_ratio', { length: 10 }).default('9:16').notNull(),
+    style: jsonb('style').notNull(),
+    music: jsonb('music').notNull(),
+    captionStyle: jsonb('caption_style').notNull(),
+    globalRules: jsonb('global_rules')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    seed: bigint('seed', { mode: 'number' }).notNull(),
+    compilerVersion: varchar('compiler_version', { length: 40 }).notNull(),
+    sourceAssetIds: jsonb('source_asset_ids')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    referenceProfileIds: jsonb('reference_profile_ids')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    modelName: varchar('model_name', { length: 120 }),
+    promptVersion: varchar('prompt_version', { length: 80 }),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('edit_blueprints_project_revision_unique').on(
+      table.creativeProjectId,
+      table.revision,
+    ),
+    check('edit_blueprints_revision_positive', sql`${table.revision} > 0`),
+    check('edit_blueprints_duration_range', sql`${table.durationSeconds} >= 5`),
+    check('edit_blueprints_frame_rate_positive', sql`${table.frameRate} > 0`),
+    check('edit_blueprints_vertical_aspect', sql`${table.aspectRatio} = '9:16'`),
+    check('edit_blueprints_seed_nonnegative', sql`${table.seed} >= 0`),
+  ],
+);
+
+export const editBlueprintBeats = pgTable(
+  'edit_blueprint_beats',
+  {
+    id: uuid('id').primaryKey(),
+    editBlueprintId: uuid('edit_blueprint_id')
+      .notNull()
+      .references(() => editBlueprints.id, { onDelete: 'cascade' }),
+    sequence: integer('sequence').notNull(),
+    startMs: integer('start_ms').notNull(),
+    endMs: integer('end_ms').notNull(),
+    purpose: text('purpose').notNull(),
+    narration: text('narration'),
+    dialogue: text('dialogue'),
+    requiredTags: jsonb('required_tags')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    preferredTags: jsonb('preferred_tags')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    forbiddenTags: jsonb('forbidden_tags')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    preferredShotTypes: jsonb('preferred_shot_types')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    preferredMotionTypes: jsonb('preferred_motion_types')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    minimumShotDurationMs: integer('minimum_shot_duration_ms').notNull(),
+    maximumShotDurationMs: integer('maximum_shot_duration_ms').notNull(),
+    maximumAssetReuse: integer('maximum_asset_reuse').default(1).notNull(),
+    audioPolicy: varchar('audio_policy', { length: 20 }).notNull(),
+    caption: text('caption'),
+    transitionIn: varchar('transition_in', { length: 40 }),
+    transitionOut: varchar('transition_out', { length: 40 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('edit_blueprint_beats_blueprint_sequence_unique').on(
+      table.editBlueprintId,
+      table.sequence,
+    ),
+    check('edit_blueprint_beats_sequence_positive', sql`${table.sequence} > 0`),
+    check('edit_blueprint_beats_start_nonnegative', sql`${table.startMs} >= 0`),
+    check('edit_blueprint_beats_end_after_start', sql`${table.endMs} > ${table.startMs}`),
+    check(
+      'edit_blueprint_beats_shot_duration_range',
+      sql`${table.minimumShotDurationMs} > 0 and ${table.maximumShotDurationMs} >= ${table.minimumShotDurationMs}`,
+    ),
+  ],
+);
+
+export const creativeVideoVersions = pgTable(
+  'creative_video_versions',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    editBlueprintId: uuid('edit_blueprint_id')
+      .notNull()
+      .references(() => editBlueprints.id, { onDelete: 'restrict' }),
+    videoProjectId: uuid('video_project_id')
+      .notNull()
+      .references(() => videoProjects.id, { onDelete: 'cascade' }),
+    variant: varchar('variant', { length: 1 }).notNull(),
+    seed: bigint('seed', { mode: 'number' }).notNull(),
+    scoreBasisPoints: integer('score_basis_points').notNull(),
+    hookScoreBasisPoints: integer('hook_score_basis_points').notNull(),
+    sellingPointCoverageBasisPoints: integer('selling_point_coverage_basis_points').notNull(),
+    paceScoreBasisPoints: integer('pace_score_basis_points').notNull(),
+    usedAssetIds: jsonb('used_asset_ids')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    repeatedAssetCount: integer('repeated_asset_count').default(0).notNull(),
+    recommendationReason: text('recommendation_reason').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('creative_video_versions_project_variant_unique').on(
+      table.creativeProjectId,
+      table.variant,
+    ),
+    index('creative_video_versions_project_idx').on(table.creativeProjectId),
+    check('creative_video_versions_variant_valid', sql`${table.variant} in ('A', 'B', 'C')`),
+    check('creative_video_versions_seed_nonnegative', sql`${table.seed} >= 0`),
+    check(
+      'creative_video_versions_score_ranges',
+      sql`${table.scoreBasisPoints} between 0 and 10000 and ${table.hookScoreBasisPoints} between 0 and 10000 and ${table.sellingPointCoverageBasisPoints} between 0 and 10000 and ${table.paceScoreBasisPoints} between 0 and 10000`,
+    ),
+    check(
+      'creative_video_versions_repeated_asset_nonnegative',
+      sql`${table.repeatedAssetCount} >= 0`,
+    ),
+  ],
+);
+
+export const aiReviews = pgTable(
+  'ai_reviews',
+  {
+    id: uuid('id').primaryKey(),
+    videoProjectId: uuid('video_project_id')
+      .notNull()
+      .references(() => videoProjects.id, { onDelete: 'cascade' }),
+    baseRevision: integer('base_revision').notNull(),
+    status: varchar('status', { length: 20 }).default('open').notNull(),
+    summary: text('summary').notNull(),
+    scoreBasisPoints: integer('score_basis_points').notNull(),
+    hookScoreBasisPoints: integer('hook_score_basis_points').notNull(),
+    storyScoreBasisPoints: integer('story_score_basis_points').notNull(),
+    sellingPointScoreBasisPoints: integer('selling_point_score_basis_points').notNull(),
+    paceScoreBasisPoints: integer('pace_score_basis_points').notNull(),
+    captionScoreBasisPoints: integer('caption_score_basis_points').notNull(),
+    musicScoreBasisPoints: integer('music_score_basis_points').notNull(),
+    ctaScoreBasisPoints: integer('cta_score_basis_points').notNull(),
+    findings: jsonb('findings')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    modelName: varchar('model_name', { length: 200 }),
+    promptVersion: varchar('prompt_version', { length: 100 }),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary'),
+    appliedRevision: integer('applied_revision'),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('ai_reviews_project_idx').on(table.videoProjectId),
+    check('ai_reviews_status_valid', sql`${table.status} in ('open', 'applied', 'dismissed')`),
+    check('ai_reviews_base_revision_positive', sql`${table.baseRevision} > 0`),
+    check(
+      'ai_reviews_score_ranges',
+      sql`${table.scoreBasisPoints} between 0 and 10000 and ${table.hookScoreBasisPoints} between 0 and 10000 and ${table.storyScoreBasisPoints} between 0 and 10000 and ${table.sellingPointScoreBasisPoints} between 0 and 10000 and ${table.paceScoreBasisPoints} between 0 and 10000 and ${table.captionScoreBasisPoints} between 0 and 10000 and ${table.musicScoreBasisPoints} between 0 and 10000 and ${table.ctaScoreBasisPoints} between 0 and 10000`,
+    ),
+  ],
+);
+
+export const creativeFeedbackEvents = pgTable(
+  'creative_feedback_events',
+  {
+    id: uuid('id').primaryKey(),
+    hotelId: uuid('hotel_id')
+      .notNull()
+      .references(() => hotels.id, { onDelete: 'cascade' }),
+    actorUserId: uuid('actor_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    eventType: varchar('event_type', { length: 80 }).notNull(),
+    creativeProjectId: uuid('creative_project_id').references(() => creativeProjects.id, {
+      onDelete: 'set null',
+    }),
+    videoProjectId: uuid('video_project_id').references(() => videoProjects.id, {
+      onDelete: 'set null',
+    }),
+    subjectId: uuid('subject_id'),
+    metadata: jsonb('metadata')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('creative_feedback_events_hotel_created_idx').on(table.hotelId, table.createdAt),
+    index('creative_feedback_events_project_idx').on(table.creativeProjectId),
+    check(
+      'creative_feedback_events_type_valid',
+      sql`${table.eventType} in ('creative_direction_selected', 'script_revised', 'script_selected', 'video_version_selected', 'shot_replaced', 'ai_review_applied', 'ai_review_dismissed', 'final_render_requested')`,
+    ),
+  ],
+);
+
+export const assetRequirements = pgTable(
+  'asset_requirements',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    scriptSceneId: uuid('script_scene_id').references(() => scriptScenes.id, {
+      onDelete: 'set null',
+    }),
+    description: text('description').notNull(),
+    requiredTags: jsonb('required_tags')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    preferredShotType: varchar('preferred_shot_type', { length: 40 }),
+    preferredMotionType: varchar('preferred_motion_type', { length: 40 }),
+    preferredDurationMs: integer('preferred_duration_ms').notNull(),
+    required: boolean('required').default(true).notNull(),
+    matchedAssetIds: jsonb('matched_asset_ids')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    candidateMatches: jsonb('candidate_matches')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    status: assetRequirementStatus('status').default('missing').notNull(),
+    filmingInstruction: text('filming_instruction'),
+    ...timestamps,
+  },
+  (table) => [
+    index('asset_requirements_project_idx').on(table.creativeProjectId),
+    check('asset_requirements_duration_positive', sql`${table.preferredDurationMs} > 0`),
+  ],
+);
+
+export const creativeProjectAssetLinks = pgTable(
+  'creative_project_asset_links',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id')
+      .notNull()
+      .references(() => creativeProjects.id, { onDelete: 'cascade' }),
+    assetId: uuid('asset_id')
+      .notNull()
+      .references(() => assets.id, { onDelete: 'cascade' }),
+    purpose: assetPurpose('purpose').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('creative_project_asset_links_unique').on(
+      table.creativeProjectId,
+      table.assetId,
+      table.purpose,
+    ),
+  ],
+);
+
 export const videoProjects = pgTable(
   'video_projects',
   {
@@ -411,6 +963,93 @@ export const projectRevisions = pgTable(
       table.revision,
     ),
     check('project_revisions_revision_positive', sql`${table.revision} > 0`),
+  ],
+);
+
+export const aiGenerationRuns = pgTable(
+  'ai_generation_runs',
+  {
+    id: uuid('id').primaryKey(),
+    creativeProjectId: uuid('creative_project_id').references(() => creativeProjects.id, {
+      onDelete: 'cascade',
+    }),
+    operation: varchar('operation', { length: 80 }).notNull(),
+    status: aiGenerationStatus('status').default('pending').notNull(),
+    attempt: integer('attempt').default(1).notNull(),
+    modelName: varchar('model_name', { length: 120 }).notNull(),
+    promptVersion: varchar('prompt_version', { length: 80 }).notNull(),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary').notNull(),
+    outputSummary: text('output_summary'),
+    failureReason: text('failure_reason'),
+    createdByUserId: uuid('created_by_user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('ai_generation_runs_project_idx').on(table.creativeProjectId),
+    check('ai_generation_runs_attempt_positive', sql`${table.attempt} > 0`),
+  ],
+);
+
+export const aiReviewRuns = pgTable(
+  'ai_review_runs',
+  {
+    id: uuid('id').primaryKey(),
+    videoProjectId: uuid('video_project_id')
+      .notNull()
+      .references(() => videoProjects.id, { onDelete: 'cascade' }),
+    projectRevisionId: uuid('project_revision_id')
+      .notNull()
+      .references(() => projectRevisions.id, { onDelete: 'restrict' }),
+    creativeProjectId: uuid('creative_project_id').references(() => creativeProjects.id, {
+      onDelete: 'set null',
+    }),
+    score: integer('score').notNull(),
+    summary: text('summary').notNull(),
+    issues: jsonb('issues')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    status: aiReviewStatus('status').default('generated').notNull(),
+    modelName: varchar('model_name', { length: 120 }).notNull(),
+    promptVersion: varchar('prompt_version', { length: 80 }).notNull(),
+    generationParameters: jsonb('generation_parameters')
+      .default(sql`'{}'::jsonb`)
+      .notNull(),
+    inputSummary: text('input_summary').notNull(),
+    failureReason: text('failure_reason'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('ai_review_runs_video_project_idx').on(table.videoProjectId),
+    check('ai_review_runs_score_range', sql`${table.score} >= 0 and ${table.score} <= 100`),
+  ],
+);
+
+export const aiEditCommands = pgTable(
+  'ai_edit_commands',
+  {
+    id: uuid('id').primaryKey(),
+    aiReviewRunId: uuid('ai_review_run_id')
+      .notNull()
+      .references(() => aiReviewRuns.id, { onDelete: 'cascade' }),
+    sequence: integer('sequence').notNull(),
+    command: jsonb('command').notNull(),
+    status: aiEditCommandStatus('status').default('pending').notNull(),
+    resultProjectRevisionId: uuid('result_project_revision_id').references(
+      () => projectRevisions.id,
+      { onDelete: 'set null' },
+    ),
+    appliedAt: timestamp('applied_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('ai_edit_commands_review_sequence_unique').on(table.aiReviewRunId, table.sequence),
+    check('ai_edit_commands_sequence_positive', sql`${table.sequence} > 0`),
   ],
 );
 
@@ -505,4 +1144,22 @@ export const qualityReports = pgTable(
       sql`${table.scoreBasisPoints} >= 0 and ${table.scoreBasisPoints} <= 10000`,
     ),
   ],
+);
+
+export const aiTemplates = pgTable(
+  'ai_templates',
+  {
+    id: uuid('id').primaryKey(),
+    hotelId: uuid('hotel_id')
+      .notNull()
+      .references(() => hotels.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    durationSeconds: integer('duration_seconds').notNull(),
+    spec: jsonb('spec').notNull(),
+    createdByUserId: uuid('created_by_user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index('ai_templates_hotel_id_idx').on(table.hotelId)],
 );

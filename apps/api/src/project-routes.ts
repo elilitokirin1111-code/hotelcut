@@ -1,8 +1,9 @@
 import { randomInt, randomUUID } from 'node:crypto';
 
-import { compileVideo } from '@hotelcut/compiler';
+import { buildAiTemplateCompilationTemplate, compileVideo } from '@hotelcut/compiler';
 import type { HotelCutRepository } from '@hotelcut/domain';
 import {
+  type Asset,
   createVideoProjectSchema,
   errorResponseSchema,
   generatedVideoProjectSchema,
@@ -12,6 +13,7 @@ import {
   projectTemplateSchema,
   projectRevisionSchema,
   saveProjectRevisionSchema,
+  videoProjectBatchDeleteSchema,
   videoProjectDetailSchema,
   videoProjectSchema,
 } from '@hotelcut/schemas';
@@ -52,6 +54,20 @@ function validateProjectDocument(value: unknown): HotelVideoProjectV1 {
   }
 }
 
+export function isClipAssetKindCompatible(
+  clipKind: 'audio' | 'image' | 'video',
+  assetKind: Asset['kind'],
+): boolean {
+  if (clipKind === 'image') {
+    return assetKind === 'image' || assetKind === 'logo';
+  }
+  if (clipKind === 'audio') {
+    // The compiler can extract an ambient/dialogue audio clip from a video asset.
+    return assetKind === 'audio' || assetKind === 'video';
+  }
+  return assetKind === 'video';
+}
+
 async function validateProjectAssets(
   store: HotelCutRepository,
   actorUserId: string,
@@ -66,12 +82,13 @@ async function validateProjectAssets(
       continue;
     }
     const asset = availableAssets.get(clip.assetId);
-    const compatibleKind =
-      asset &&
-      (clip.kind === 'image'
-        ? asset.kind === 'image' || asset.kind === 'logo'
-        : asset.kind === clip.kind);
-    if (!asset || asset.status !== 'ready' || !compatibleKind) {
+    const compatibleKind = asset && isClipAssetKindCompatible(clip.kind, asset.kind);
+    if (
+      !asset ||
+      asset.status !== 'ready' ||
+      asset.purpose === 'reference_video' ||
+      !compatibleKind
+    ) {
       throw new ProjectRequestError(`项目片段 ${clip.id} 引用了当前酒店不可用或类型不匹配的素材。`);
     }
   }
@@ -128,7 +145,8 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
       const brandKit = await store.getBrandKit(request.actorUserId, request.params.hotelId);
       const assets = await store.listAssets(request.actorUserId, request.params.hotelId);
       const readyAssets = assets.filter(
-        (asset) => asset.status === 'ready' && asset.kind !== 'font',
+        (asset) =>
+          asset.status === 'ready' && asset.kind !== 'font' && asset.purpose !== 'reference_video',
       );
       if (!readyAssets.some((asset) => asset.kind === 'video' || asset.kind === 'image')) {
         throw new ProjectRequestError('自动剪辑至少需要一条已经分析完成的可用视频素材。');
@@ -138,8 +156,25 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
       try {
         template = resolveProjectTemplate(request.body.templateKey);
       } catch {
-        throw new ProjectRequestError(
-          `Unknown automatic-edit template: ${request.body.templateKey}`,
+        let aiTemplate = null;
+        try {
+          aiTemplate = await store.getAiTemplate(
+            request.actorUserId,
+            request.params.hotelId,
+            request.body.templateKey,
+          );
+        } catch {
+          aiTemplate = null;
+        }
+        if (!aiTemplate) {
+          throw new ProjectRequestError(
+            `Unknown automatic-edit template: ${request.body.templateKey}`,
+          );
+        }
+        template = buildAiTemplateCompilationTemplate(
+          aiTemplate.id,
+          aiTemplate.name,
+          aiTemplate.spec,
         );
       }
 
@@ -328,6 +363,56 @@ export const projectRoutes: FastifyPluginCallback<ProjectRouteOptions> = (fastif
         schemaVersion: projectDocument.schemaVersion,
       });
       return reply.code(201).send(result);
+    },
+  );
+
+  app.delete(
+    '/v1/video-projects/:id',
+    {
+      schema: {
+        params: idParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Delete a video project, its revisions and render history',
+        tags: ['video-projects'],
+      },
+    },
+    async (request, reply) => {
+      const project = await repository().getVideoProject(request.actorUserId, request.params.id);
+      await repository().deleteVideoProjects(request.actorUserId, project.project.hotelId, [
+        request.params.id,
+      ]);
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    '/v1/hotels/:hotelId/video-projects/batch-delete',
+    {
+      schema: {
+        body: videoProjectBatchDeleteSchema,
+        params: hotelIdParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Batch-delete video projects',
+        tags: ['video-projects'],
+      },
+    },
+    async (request, reply) => {
+      await repository().deleteVideoProjects(
+        request.actorUserId,
+        request.params.hotelId,
+        request.body.projectIds,
+      );
+      return reply.code(204).send();
     },
   );
 };

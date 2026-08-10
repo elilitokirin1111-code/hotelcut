@@ -9,6 +9,7 @@ type RenderApi = Pick<
   WorkspaceApi,
   | 'cancelRenderJob'
   | 'createRenderJob'
+  | 'deleteRenderJobs'
   | 'getRenderArtifactDownload'
   | 'getRenderJob'
   | 'listRenderJobs'
@@ -107,6 +108,7 @@ function renderApi(overrides: Partial<RenderApi> = {}): RenderApi {
       cancelRequestedAt: '2026-07-30T04:00:05.000Z',
     }),
     createRenderJob: vi.fn<RenderApi['createRenderJob']>().mockResolvedValue(queuedJob),
+    deleteRenderJobs: vi.fn<RenderApi['deleteRenderJobs']>().mockResolvedValue(),
     getRenderArtifactDownload: vi.fn<RenderApi['getRenderArtifactDownload']>().mockResolvedValue({
       artifact: succeededDetail.artifacts[0]!,
       downloadUrl: 'https://downloads.test/video.mp4?ttl=900',

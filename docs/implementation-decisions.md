@@ -414,3 +414,42 @@
 - Impact: Studio edits after submission cannot mutate the render input; cancellation and retry
   continue to follow the server state machine and attempt budget; every download uses a
   short-lived membership-checked URL without exposing storage credentials.
+
+## ID-041: AI Director produces validated blueprints before compilation
+
+- Date: 2026-08-05
+- Status: accepted
+- Decision: add AI Director as a feature-flagged orchestration layer whose versioned AI results
+  terminate at `EditBlueprint`; only a Blueprint Validator and Dynamic Template Builder may adapt
+  that result into the existing `CompilationTemplate` and Compiler boundary.
+- Reason: model JSON is probabilistic and cannot be trusted as a persisted timeline, while the
+  existing Compiler already owns deterministic selection, timing and `HotelVideoProject`
+  validation.
+- Impact: fixed templates remain backward compatible; every model operation is schema validated,
+  auditable and retryable, and a dynamic project cannot bypass Compiler or timeline invariants.
+
+## ID-042: Creative and script generation are immutable audited revisions
+
+- Date: 2026-08-05
+- Status: accepted
+- Decision: retain user briefs, three AI creative directions and every script change as new rows;
+  selected IDs on `CreativeProject` are the only mutable pointers.
+- Reason: creative evaluation needs comparison and manual recovery, while a natural-language
+  revision must never overwrite an accepted storyboard or filming list.
+- Impact: generation calls reuse the saved encrypted provider configuration and write model/prompt
+  audit data, strict output validation precedes persistence, and duration tolerance is enforced
+  before downstream matching or Blueprint creation.
+
+## ID-043: Asset semantic search starts with scored keyword matching
+
+- Date: 2026-08-06
+- Status: accepted
+- Decision: the asset library search matches and ranks the already-persisted analysis metadata
+  (filename, AI short name, canonical/Chinese tags, selling points, summary and scene descriptions)
+  in the browser with deterministic weights; embedding-based retrieval is a later iteration.
+- Reason: hotels hold tens to hundreds of assets, so instant client-side ranking over loaded
+  metadata delivers the search experience now without adding a vector index and nightly
+  embedding jobs to the MVP.
+- Impact: multi-term queries require every term to match, ranking favors exact filename and short
+  name hits, and the scoring contract is unit-tested so an embedding backend can replace it later
+  behind the same `searchAssets` boundary.

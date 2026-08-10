@@ -1,7 +1,16 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { Asset, AssetDetail } from '@hotelcut/schemas';
+import type { Asset, AssetDetail, AssetPurpose } from '@hotelcut/schemas';
 
+import {
+  visionAngleLabels,
+  visionCategoryLabels,
+  visionCompositionLabels,
+  visionLightingLabels,
+  visionMotionLabels,
+  visionTagLabels,
+} from './asset-labels';
+import { searchAssets } from './asset-search';
 import { type AssetUploadProgress, type WorkspaceApi, WorkspaceApiError } from './workspace-api';
 
 type AssetListState =
@@ -62,40 +71,57 @@ const uploadPhaseLabels: Record<AssetUploadProgress['phase'], string> = {
   finalizing: '正在校验并提交分析',
 };
 
-const visionTagLabels: Record<string, string> = {
-  exterior: '酒店外观',
-  lobby: '大堂',
-  room: '客房',
-  bathroom: '卫浴',
-  facility: '设施',
-  detail: '细节',
-  service: '服务',
-  promotion: '促销',
-  host: '口播人物',
-  presenter: '出镜人物',
-  wide: '全景',
-  bright: '明亮',
-  window: '窗景',
-  clean: '整洁',
-  day: '日景',
-  night: '夜景',
-  staff: '员工',
-  pool: '泳池',
-  gym: '健身房',
-  restaurant: '餐厅',
-  breakfast: '早餐',
-  bed: '床品',
-  view: '景观',
-  design: '设计',
-  amenity: '用品',
-  travel: '旅拍',
-};
-
 function formatError(error: unknown): string {
   if (error instanceof WorkspaceApiError || error instanceof Error) {
     return error.message;
   }
   return '素材请求失败，请稍后重试';
+}
+
+function AssetCardVisual({ api, asset }: { api: WorkspaceApi; asset: Asset }) {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element || asset.kind === 'audio' || asset.status !== 'ready') return;
+    if (!('IntersectionObserver' in window)) {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '160px' },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [asset.kind, asset.status]);
+
+  useEffect(() => {
+    if (!shouldLoad) return;
+    const controller = new AbortController();
+    void api
+      .getAssetDerivativeDownload(asset.id, 'thumbnail', controller.signal)
+      .then((download) => setThumbnailUrl(download.url))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [api, asset.id, shouldLoad]);
+
+  return (
+    <span className={`asset-card-visual asset-card-${asset.kind}`} aria-hidden="true" ref={rootRef}>
+      {thumbnailUrl ? <img alt="" loading="lazy" src={thumbnailUrl} /> : null}
+      <i />
+      <i />
+      <i />
+      <em>{asset.kind === 'audio' ? 'AUDIO' : '9:16'}</em>
+    </span>
+  );
 }
 
 function formatBytes(byteSize: number): string {
@@ -137,6 +163,47 @@ function stringArray(value: unknown): string[] {
     : [];
 }
 
+function visionOf(metadata: Record<string, unknown>): Record<string, unknown> {
+  return asRecord(metadata['vision']);
+}
+
+function assetShortName(value: {
+  metadata: Record<string, unknown>;
+  originalFilename: string;
+}): string {
+  const vision = visionOf(value.metadata);
+  const shortName = typeof vision['shortName'] === 'string' ? vision['shortName'].trim() : '';
+  if (shortName) {
+    return shortName;
+  }
+  const scene = firstUsableScene(vision);
+  if (scene) {
+    const category =
+      typeof scene['category'] === 'string'
+        ? (visionCategoryLabels[scene['category']] ?? scene['category'])
+        : null;
+    const sellingPoints = Array.isArray(scene['sellingPoints'])
+      ? scene['sellingPoints'].filter((entry): entry is string => typeof entry === 'string')
+      : [];
+    const selling = sellingPoints[0]?.replace(/[，。,!?].*$/, '').slice(0, 6) ?? '';
+    return category ? (selling ? `${category}·${selling}` : category) : value.originalFilename;
+  }
+  const summary = typeof vision['summary'] === 'string' ? vision['summary'].trim() : '';
+  const clause = summary.split(/[，。,!?]/)[0]?.trim() ?? '';
+  return clause.slice(0, 14) || value.originalFilename;
+}
+
+function firstUsableScene(vision: Record<string, unknown>): Record<string, unknown> | null {
+  const scenes = Array.isArray(vision['scenes']) ? vision['scenes'] : [];
+  for (const scene of scenes) {
+    const record = asRecord(scene);
+    if (record['usable'] !== false) {
+      return record;
+    }
+  }
+  return scenes.length > 0 ? asRecord(scenes[0]) : null;
+}
+
 function AssetStatus({ status }: { status: Asset['status'] }) {
   return (
     <span className={`rounded-full px-3 py-1 text-[10px] font-black ${statusClasses[status]}`}>
@@ -145,14 +212,28 @@ function AssetStatus({ status }: { status: Asset['status'] }) {
   );
 }
 
-export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: string }) {
+export function AssetLibrary({
+  api,
+  hotelId,
+  onCreateVideo,
+}: {
+  api: WorkspaceApi;
+  hotelId: string;
+  onCreateVideo?: () => void;
+}) {
   const [listState, setListState] = useState<AssetListState>({ status: 'loading' });
   const [listVersion, setListVersion] = useState(0);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [operationMessage, setOperationMessage] = useState<string | null>(null);
   const [detailState, setDetailState] = useState<AssetDetailState>({ status: 'idle' });
   const [detailVersion, setDetailVersion] = useState(0);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<Asset['status'] | 'all'>('all');
+  const [purposeFilter, setPurposeFilter] = useState<'all' | AssetPurpose>('all');
+  const [folderFilter, setFolderFilter] = useState<string | null>(null);
+  const [folderDraft, setFolderDraft] = useState('');
+  const [organizing, setOrganizing] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileInputVersion, setFileInputVersion] = useState(0);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
@@ -193,6 +274,50 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
     const interval = window.setInterval(() => setListVersion((version) => version + 1), 5_000);
     return () => window.clearInterval(interval);
   }, [hasActiveAnalysis]);
+
+  const folders = useMemo(
+    () =>
+      listState.status === 'ready'
+        ? [
+            ...new Set(
+              listState.assets
+                .map((asset) => asset.folder)
+                .filter((folder): folder is string => Boolean(folder)),
+            ),
+          ].sort((left, right) => left.localeCompare(right, 'zh-CN'))
+        : [],
+    [listState],
+  );
+
+  const applyOrganization = async (
+    assetIds: string[],
+    input: { purpose?: AssetPurpose; folder?: string | null },
+  ) => {
+    if (assetIds.length === 0) {
+      return;
+    }
+    setOrganizing(true);
+    setOperationMessage(null);
+    try {
+      const updated = await api.organizeAssets(hotelId, assetIds, input);
+      setListState((state) =>
+        state.status === 'ready'
+          ? {
+              ...state,
+              assets: state.assets.map(
+                (asset) => updated.find((candidate) => candidate.id === asset.id) ?? asset,
+              ),
+            }
+          : state,
+      );
+      setFolderDraft('');
+      setOperationMessage('素材归类已保存');
+    } catch (error) {
+      setOperationMessage(formatError(error));
+    } finally {
+      setOrganizing(false);
+    }
+  };
 
   const selectedListAsset =
     listState.status === 'ready'
@@ -267,14 +392,15 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
     if (listState.status !== 'ready') {
       return [];
     }
-    const normalizedSearch = search.trim().toLocaleLowerCase('zh-CN');
-    return listState.assets.filter(
+    const byStatus = listState.assets.filter(
       (asset) =>
         (statusFilter === 'all' || asset.status === statusFilter) &&
-        (!normalizedSearch ||
-          asset.originalFilename.toLocaleLowerCase('zh-CN').includes(normalizedSearch)),
+        (purposeFilter === 'all' || asset.purpose === purposeFilter) &&
+        (folderFilter === null ||
+          (folderFilter === '__unfiled__' ? asset.folder === null : asset.folder === folderFilter)),
     );
-  }, [listState, search, statusFilter]);
+    return searchAssets(byStatus, search);
+  }, [folderFilter, listState, purposeFilter, search, statusFilter]);
 
   const uploadAssets = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -334,6 +460,28 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
     }
   };
 
+  const deleteSelectedAssets = async () => {
+    if (selectedAssetIds.length === 0) {
+      return;
+    }
+    if (!window.confirm(`确定删除选中的 ${selectedAssetIds.length} 个素材？删除后不可恢复。`)) {
+      return;
+    }
+    setOperationMessage(null);
+    try {
+      await api.deleteAssets(hotelId, selectedAssetIds);
+      setOperationMessage(`已删除 ${selectedAssetIds.length} 个素材`);
+      setSelectedAssetIds([]);
+      setSelectedAssetId((current) =>
+        current && selectedAssetIds.includes(current) ? null : current,
+      );
+      setListVersion((version) => version + 1);
+      setDetailVersion((version) => version + 1);
+    } catch (error) {
+      setOperationMessage(formatError(error));
+    }
+  };
+
   const createTag = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selectedAssetId) {
@@ -379,7 +527,21 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
         >
           刷新状态
         </button>
+        {selectedAssetIds.length > 0 ? (
+          <button
+            className="button-danger"
+            onClick={() => void deleteSelectedAssets()}
+            type="button"
+          >
+            删除选中（{selectedAssetIds.length}）
+          </button>
+        ) : null}
       </div>
+      {operationMessage ? (
+        <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold text-slate-600">
+          {operationMessage}
+        </p>
+      ) : null}
 
       <div className="asset-workspace-grid">
         <div className="asset-main-panel surface-card">
@@ -463,17 +625,18 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
               {listState.status === 'ready' ? (
                 <span className="text-[10px] font-black text-slate-400">
                   {listState.assets.length} 个文件
+                  {search.trim() ? `，匹配 ${filteredAssets.length} 个` : ''}
                 </span>
               ) : null}
             </div>
             <div className="asset-filter-row">
               <label>
-                <span className="sr-only">搜索素材文件名</span>
+                <span className="sr-only">搜索素材</span>
                 <input
-                  aria-label="搜索素材文件名"
+                  aria-label="搜索素材"
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs outline-none focus:border-[#d6a76d]"
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="搜索文件名"
+                  placeholder="搜索名称、标签、卖点或画面描述…"
                   type="search"
                   value={search}
                 />
@@ -498,6 +661,131 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
               </label>
             </div>
 
+            <div className="asset-purpose-row">
+              {(
+                [
+                  ['all', '全部素材'],
+                  ['production_asset', '正片素材'],
+                  ['reference_video', '参考视频'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  aria-pressed={purposeFilter === value}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-black transition ${
+                    purposeFilter === value
+                      ? 'bg-[#263138] text-white'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                  key={value}
+                  onClick={() => setPurposeFilter(value)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {[
+                [null, '全部文件夹'],
+                ['__unfiled__', '未分类'],
+                ...folders.map((folder) => [folder, folder] as const),
+              ].map(([value, label]) => (
+                <button
+                  aria-pressed={folderFilter === value}
+                  className={`rounded-full px-3 py-1.5 text-[10px] font-black transition ${
+                    folderFilter === value
+                      ? 'bg-[#9a6b3c] text-white'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                  key={value ?? (label as string)}
+                  onClick={() => setFolderFilter(value)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {selectedAssetIds.length > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div>
+                  <p className="text-xs font-black text-slate-700">
+                    已选 {selectedAssetIds.length} 个素材
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    归入文件夹或切换用途；参考视频不会参与自动选片。
+                  </p>
+                </div>
+                <label className="flex-1 min-w-44">
+                  <span className="sr-only">文件夹名称</span>
+                  <input
+                    aria-label="文件夹名称"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-xs outline-none focus:border-[#d6a76d]"
+                    list="asset-folders"
+                    onChange={(event) => setFolderDraft(event.target.value)}
+                    placeholder="输入或选择文件夹"
+                    value={folderDraft}
+                  />
+                  <datalist id="asset-folders">
+                    {folders.map((folder) => (
+                      <option key={folder} value={folder ?? ''} />
+                    ))}
+                  </datalist>
+                </label>
+                <button
+                  className="rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                  disabled={organizing || !folderDraft.trim()}
+                  onClick={() =>
+                    void applyOrganization(selectedAssetIds, { folder: folderDraft.trim() })
+                  }
+                  type="button"
+                >
+                  {organizing ? '保存中…' : '移入文件夹'}
+                </button>
+                <button
+                  className="rounded-xl bg-[#9a6b3c] px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                  disabled={organizing}
+                  onClick={() =>
+                    void applyOrganization(selectedAssetIds, { purpose: 'reference_video' })
+                  }
+                  type="button"
+                >
+                  设为参考视频
+                </button>
+                <button
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-black text-slate-600 disabled:opacity-60"
+                  disabled={organizing}
+                  onClick={() =>
+                    void applyOrganization(selectedAssetIds, { purpose: 'production_asset' })
+                  }
+                  type="button"
+                >
+                  设为正片素材
+                </button>
+              </div>
+            ) : null}
+
+            {listState.status === 'ready' &&
+            listState.assets.some((asset) => asset.status === 'ready') &&
+            onCreateVideo ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div>
+                  <p className="text-xs font-black text-emerald-800">素材已就绪，可以开始创作</p>
+                  <p className="mt-1 text-[10px] leading-4 text-emerald-700">
+                    分析完成的素材会自动进入 AI 创作与自动剪辑的候选池。
+                  </p>
+                </div>
+                <button
+                  className="rounded-xl bg-[#263138] px-4 py-2 text-xs font-black text-white"
+                  onClick={onCreateVideo}
+                  type="button"
+                >
+                  用素材开始创作
+                </button>
+              </div>
+            ) : null}
+
             {listState.status === 'loading' ? (
               <p className="mt-5 text-xs font-semibold text-slate-500">正在加载素材…</p>
             ) : null}
@@ -508,35 +796,58 @@ export function AssetLibrary({ api, hotelId }: { api: WorkspaceApi; hotelId: str
             ) : null}
             {listState.status === 'ready' && filteredAssets.length === 0 ? (
               <p className="mt-5 rounded-2xl border border-dashed border-slate-300 p-5 text-center text-xs text-slate-500">
-                {listState.assets.length === 0 ? '还没有上传素材' : '没有符合筛选条件的素材'}
+                {listState.assets.length === 0
+                  ? '还没有上传素材'
+                  : '没有匹配的素材，试试名称、标签、卖点或画面描述'}
               </p>
             ) : null}
             <div aria-label="素材列表" className="asset-card-grid">
               {filteredAssets.map((asset) => (
-                <button
-                  aria-pressed={asset.id === selectedAssetId}
-                  className={`asset-library-card ${asset.id === selectedAssetId ? 'is-selected' : ''}`}
-                  key={asset.id}
-                  onClick={() => setSelectedAssetId(asset.id)}
-                  type="button"
-                >
-                  <span className={`asset-card-visual asset-card-${asset.kind}`} aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
-                    <em>{asset.kind === 'audio' ? 'AUDIO' : '9:16'}</em>
-                  </span>
-                  <div className="asset-card-copy">
-                    <div>
-                      <strong>{asset.originalFilename}</strong>
-                      <AssetStatus status={asset.status} />
+                <div className="asset-card-wrap" key={asset.id}>
+                  <label className="asset-card-check">
+                    <input
+                      aria-label={`选择素材 ${assetShortName(asset)}`}
+                      checked={selectedAssetIds.includes(asset.id)}
+                      onChange={(event) =>
+                        setSelectedAssetIds((current) =>
+                          event.target.checked
+                            ? [...current, asset.id]
+                            : current.filter((id) => id !== asset.id),
+                        )
+                      }
+                      type="checkbox"
+                    />
+                  </label>
+                  <button
+                    aria-pressed={asset.id === selectedAssetId}
+                    className={`asset-library-card ${asset.id === selectedAssetId ? 'is-selected' : ''}`}
+                    onClick={() => setSelectedAssetId(asset.id)}
+                    type="button"
+                  >
+                    <AssetCardVisual api={api} asset={asset} />
+                    <div className="asset-card-copy">
+                      <div>
+                        <strong>{assetShortName(asset)}</strong>
+                        <AssetStatus status={asset.status} />
+                        {asset.purpose === 'reference_video' ? (
+                          <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[9px] font-black text-violet-700">
+                            参考视频
+                          </span>
+                        ) : null}
+                      </div>
+                      <small className="asset-card-file">{asset.originalFilename}</small>
+                      {asset.folder ? (
+                        <small className="text-[9px] font-black text-[#9a6b3c]">
+                          📁 {asset.folder}
+                        </small>
+                      ) : null}
+                      <p>
+                        {asset.kind === 'audio' ? '音频' : '视频'} · {formatBytes(asset.byteSize)}
+                      </p>
+                      <time>{new Date(asset.createdAt).toLocaleString('zh-CN')}</time>
                     </div>
-                    <p>
-                      {asset.kind === 'audio' ? '音频' : '视频'} · {formatBytes(asset.byteSize)}
-                    </p>
-                    <time>{new Date(asset.createdAt).toLocaleString('zh-CN')}</time>
-                  </div>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
           </div>
@@ -626,6 +937,30 @@ function AssetDetailPanel({
   const visionQuality = typeof vision['qualityScore'] === 'number' ? vision['qualityScore'] : null;
   const visionTags = stringArray(vision['tags']);
   const visionSellingPoints = stringArray(vision['sellingPoints']);
+  const usableScene = firstUsableScene(vision);
+  const shot = asRecord(usableScene?.['shot']);
+  const shotAngle =
+    typeof shot['angle'] === 'string' ? (visionAngleLabels[shot['angle']] ?? shot['angle']) : null;
+  const shotMotion =
+    typeof shot['cameraMotion'] === 'string'
+      ? (visionMotionLabels[shot['cameraMotion']] ?? shot['cameraMotion'])
+      : null;
+  const shotLighting =
+    typeof shot['lighting'] === 'string'
+      ? (visionLightingLabels[shot['lighting']] ?? shot['lighting'])
+      : null;
+  const shotComposition =
+    typeof shot['composition'] === 'string'
+      ? (visionCompositionLabels[shot['composition']] ?? shot['composition'])
+      : null;
+  const sceneShortNames = Array.isArray(vision['scenes'])
+    ? vision['scenes']
+        .map((scene) => {
+          const value = asRecord(scene)['shortName'];
+          return typeof value === 'string' && value.trim() ? value.trim() : null;
+        })
+        .filter((value): value is string => value !== null)
+    : [];
 
   return (
     <>
@@ -634,7 +969,8 @@ function AssetDetailPanel({
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#9a6b3c]">
             Asset Detail
           </p>
-          <h3 className="mt-2 truncate text-xl font-black">{detail.originalFilename}</h3>
+          <h3 className="mt-2 truncate text-xl font-black">{assetShortName(detail)}</h3>
+          <p className="mt-1 truncate text-[10px] text-slate-400">{detail.originalFilename}</p>
           <p className="mt-2 text-xs text-slate-500">
             {formatBytes(detail.byteSize)}
             {durationMs ? ` · ${formatDuration(durationMs)}` : ''}
@@ -706,6 +1042,22 @@ function AssetDetailPanel({
           </div>
           {visionSummary ? (
             <p className="mt-4 text-xs leading-6 text-slate-600">{visionSummary}</p>
+          ) : null}
+          {usableScene ? (
+            <div className="mt-4 space-y-1.5 rounded-2xl bg-white/70 p-3 text-[10px] leading-5 text-slate-600">
+              <p className="font-black text-indigo-900">镜头分析</p>
+              <p>
+                {[
+                  shotAngle && `角度：${shotAngle}`,
+                  shotMotion && `运镜：${shotMotion}`,
+                  shotLighting && `光线：${shotLighting}`,
+                  shotComposition && `构图：${shotComposition}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              {sceneShortNames.length > 0 ? <p>分镜：{sceneShortNames.join(' / ')}</p> : null}
+            </div>
           ) : null}
           {visionTags.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-1.5">

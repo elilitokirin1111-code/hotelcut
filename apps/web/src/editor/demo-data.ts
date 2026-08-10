@@ -1,6 +1,6 @@
 import { parseHotelVideoProject } from '@hotelcut/timeline';
 
-import type { EditorAsset } from './editor-asset';
+import type { EditorAsset } from './editor-asset.js';
 
 export const editorAssets: readonly EditorAsset[] = [
   {

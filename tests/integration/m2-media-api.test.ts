@@ -8,7 +8,13 @@ import {
   PostgresHotelCutRepository,
   type DatabaseClient,
 } from '../../packages/database/src/index.js';
-import { hotels, memberships, organizations, users } from '../../packages/database/src/schema.js';
+import {
+  assetDerivatives,
+  hotels,
+  memberships,
+  organizations,
+  users,
+} from '../../packages/database/src/schema.js';
 import type { AnalysisQueue } from '../../packages/job-queue/src/index.js';
 import type { AnalysisJobData } from '../../packages/media/src/index.js';
 import type {
@@ -23,6 +29,7 @@ const checksum = 'a'.repeat(64);
 
 class FakeObjectStorage implements MultipartObjectStorage {
   completedParts: MultipartPart[] = [];
+  deletedObjects: Array<{ bucket: string; key: string }> = [];
   startedUploads = 0;
 
   startMultipartUpload(input: MultipartUploadInput): Promise<string> {
@@ -71,6 +78,11 @@ class FakeObjectStorage implements MultipartObjectStorage {
     void reference;
     void expiresInSeconds;
     return Promise.resolve('https://downloads.test/derivative');
+  }
+
+  deleteObjects(objects: readonly { bucket: string; key: string }[]): Promise<void> {
+    this.deletedObjects.push(...objects);
+    return Promise.resolve();
   }
 
   putObject(input: {
@@ -343,5 +355,127 @@ describeWithDatabase('M2 media API integration', () => {
       assetKind: 'audio',
       pipelineVersion: 'm2-v3',
     });
+  });
+
+  it('deletes asset rows and their object-storage references together', async () => {
+    const registrationResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/uploads`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        kind: 'video',
+        originalFilename: 'to-delete.mp4',
+        contentType: 'video/mp4',
+        byteSize: 35_687,
+        checksumSha256: checksum,
+        partSize: 5 * 1024 * 1024,
+      },
+    });
+    expect(registrationResponse.statusCode, registrationResponse.body).toBe(201);
+    const registration = registrationResponse.json<{
+      asset: { id: string; storageKey: string };
+      upload: { providerUploadId: string };
+    }>();
+    const assetId = registration.asset.id;
+    const completionResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${assetId}/uploads/complete`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        uploadId: registration.upload.providerUploadId,
+        parts: [{ partNumber: 1, etag: '"delete-etag"' }],
+      },
+    });
+    expect(completionResponse.statusCode, completionResponse.body).toBe(202);
+    await client.db.insert(assetDerivatives).values({
+      id: randomUUID(),
+      assetId,
+      kind: 'proxy',
+      storageBucket: 'hotelcut-local',
+      storageKey: `hotels/${hotelId}/assets/${assetId}/proxy.mp4`,
+      contentType: 'video/mp4',
+      byteSize: 8_192,
+      checksumSha256: null,
+    });
+
+    const deleteResponse = await app.inject({
+      method: 'DELETE',
+      url: `/v1/assets/${assetId}`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(deleteResponse.statusCode, deleteResponse.body).toBe(204);
+
+    const remainingAssets = await client.sql`select id from assets where id = ${assetId}`;
+    expect(remainingAssets).toHaveLength(0);
+    const remainingDerivatives =
+      await client.sql`select id from asset_derivatives where asset_id = ${assetId}`;
+    expect(remainingDerivatives).toHaveLength(0);
+    expect(storage.deletedObjects).toEqual(
+      expect.arrayContaining([
+        { bucket: 'hotelcut-local', key: registration.asset.storageKey },
+        {
+          bucket: 'hotelcut-local',
+          key: `hotels/${hotelId}/assets/${assetId}/proxy.mp4`,
+        },
+      ]),
+    );
+  });
+
+  it('organizes assets into folders and switches their purpose', async () => {
+    const registrationResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/uploads`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        kind: 'video',
+        originalFilename: 'organize-me.mp4',
+        contentType: 'video/mp4',
+        byteSize: 35_687,
+        checksumSha256: checksum,
+        partSize: 5 * 1024 * 1024,
+      },
+    });
+    expect(registrationResponse.statusCode, registrationResponse.body).toBe(201);
+    const registration = registrationResponse.json<{
+      asset: { id: string };
+      upload: { providerUploadId: string };
+    }>();
+    const completionResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/assets/${registration.asset.id}/uploads/complete`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        uploadId: registration.upload.providerUploadId,
+        parts: [{ partNumber: 1, etag: '"organize-etag"' }],
+      },
+    });
+    expect(completionResponse.statusCode, completionResponse.body).toBe(202);
+
+    const organizeResponse = await app.inject({
+      method: 'POST',
+      url: `/v1/hotels/${hotelId}/assets/organize`,
+      headers: { 'x-user-id': ownerUserId },
+      payload: {
+        assetIds: [registration.asset.id],
+        folder: '客房',
+        purpose: 'reference_video',
+      },
+    });
+    expect(organizeResponse.statusCode, organizeResponse.body).toBe(200);
+    expect(organizeResponse.json<Array<{ folder: string; purpose: string }>>()[0]).toMatchObject({
+      folder: '客房',
+      purpose: 'reference_video',
+    });
+
+    const listResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/hotels/${hotelId}/assets`,
+      headers: { 'x-user-id': ownerUserId },
+    });
+    expect(listResponse.statusCode, listResponse.body).toBe(200);
+    const organized = listResponse
+      .json<Array<{ folder: string | null; id: string; purpose: string }>>()
+      .find((asset) => asset.id === registration.asset.id);
+    expect(organized).toMatchObject({ folder: '客房', purpose: 'reference_video' });
   });
 });

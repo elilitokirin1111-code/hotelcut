@@ -16,8 +16,11 @@ export const templateSlotSchema = z
     acceptedKinds: z.array(z.enum(['video', 'image'])).min(1),
     requiredTags: z.array(z.string().min(1).max(80)).default([]),
     preferredTags: z.array(z.string().min(1).max(80)).default([]),
+    caption: z.string().min(1).max(240).nullable().optional(),
+    captionGroup: stableKeySchema.optional(),
     required: z.boolean().default(true),
     allowAssetReuse: z.boolean().default(false),
+    reuseCandidateRanges: z.boolean().default(false),
     audioPolicy: z.enum(['keep', 'duck', 'mute']),
     transition: z.enum(['cut', 'dissolve', 'fade']).default('cut'),
   })
@@ -132,7 +135,9 @@ export const compilationTemplateSchema = z
 export type TemplateSlot = z.infer<typeof templateSlotSchema>;
 export type CompilationTemplate = z.infer<typeof compilationTemplateSchema>;
 
-export function defineCompilationTemplate(input: CompilationTemplate): CompilationTemplate {
+export function defineCompilationTemplate(
+  input: z.input<typeof compilationTemplateSchema>,
+): CompilationTemplate {
   return Object.freeze(compilationTemplateSchema.parse(input));
 }
 

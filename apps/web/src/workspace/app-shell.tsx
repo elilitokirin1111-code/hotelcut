@@ -2,16 +2,16 @@ import type { Hotel } from '@hotelcut/schemas';
 import {
   Boxes,
   ChevronDown,
-  CircleHelp,
   Clapperboard,
   FileClock,
   Film,
   Gauge,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Palette,
   Plus,
-  Search,
   Settings,
   Sparkles,
   WandSparkles,
@@ -21,7 +21,15 @@ import {
 import { useState, type ReactNode } from 'react';
 
 export type WorkspaceSection =
-  'assets' | 'audit' | 'brand' | 'dashboard' | 'projects' | 'renders' | 'settings' | 'templates';
+  | 'ai-director'
+  | 'assets'
+  | 'audit'
+  | 'brand'
+  | 'dashboard'
+  | 'projects'
+  | 'renders'
+  | 'settings'
+  | 'templates';
 
 interface AppShellProps {
   activeSection: WorkspaceSection;
@@ -33,6 +41,7 @@ interface AppShellProps {
   onNavigate: (section: WorkspaceSection) => void;
   organizationName: string;
   projectCount: number | null;
+  templatesEnabled?: boolean;
   userEmail?: string;
 }
 
@@ -44,16 +53,20 @@ interface NavigationItem {
   section: WorkspaceSection;
 }
 
-const creationNavigation: NavigationItem[] = [
+const primaryNavigation: NavigationItem[] = [
   { ariaLabel: '打开工作台', icon: Gauge, label: '工作台', section: 'dashboard' },
+  { ariaLabel: '打开 AI 创作', icon: WandSparkles, label: 'AI 创作', section: 'ai-director' },
   { ariaLabel: '打开视频项目', icon: Film, label: '视频项目', section: 'projects' },
   { ariaLabel: '打开素材库', icon: Boxes, label: '素材库', section: 'assets' },
-  { ariaLabel: '打开模板中心', icon: Sparkles, label: '模板中心', section: 'templates' },
+  { ariaLabel: '打开渲染中心', icon: Clapperboard, label: '渲染与交付', section: 'renders' },
 ];
 
-const operationsNavigation: NavigationItem[] = [
-  { ariaLabel: '打开酒店配置', icon: Palette, label: '酒店与品牌', section: 'brand' },
-  { ariaLabel: '打开渲染中心', icon: Clapperboard, label: '渲染中心', section: 'renders' },
+const libraryNavigation: NavigationItem[] = [
+  { ariaLabel: '打开模板中心', icon: Sparkles, label: '模板中心', section: 'templates' },
+  { ariaLabel: '打开酒店配置', icon: Palette, label: '品牌资产', section: 'brand' },
+];
+
+const utilityNavigation: NavigationItem[] = [
   { ariaLabel: '打开操作记录', icon: FileClock, label: '操作记录', section: 'audit' },
   { ariaLabel: '打开设置', icon: Settings, label: '设置', section: 'settings' },
 ];
@@ -82,6 +95,7 @@ function NavigationGroup({
               className={`shell-nav-item ${activeSection === item.section ? 'is-active' : ''}`}
               key={item.section}
               onClick={() => onNavigate(item.section)}
+              title={item.label}
               type="button"
             >
               <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
@@ -107,25 +121,34 @@ export function AppShell({
   onNavigate,
   organizationName,
   projectCount,
+  templatesEnabled = true,
   userEmail,
 }: AppShellProps) {
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
-  const creationItems = creationNavigation.map((item) => ({
-    ...item,
-    ...(item.section === 'assets'
-      ? { badge: assetCount }
-      : item.section === 'projects'
-        ? { badge: projectCount }
-        : {}),
-  }));
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const withCounts = (items: NavigationItem[]) =>
+    items.map((item) => ({
+      ...item,
+      ...(item.section === 'assets'
+        ? { badge: assetCount }
+        : item.section === 'projects'
+          ? { badge: projectCount }
+          : {}),
+    }));
 
   const navigate = (section: WorkspaceSection) => {
     onNavigate(section);
     setIsMobileNavigationOpen(false);
   };
+  const visibleLibraryNavigation = libraryNavigation.filter(
+    (item) => templatesEnabled || item.section !== 'templates',
+  );
+  const allNavigation = [...primaryNavigation, ...visibleLibraryNavigation, ...utilityNavigation];
+  const activeLabel =
+    allNavigation.find((item) => item.section === activeSection)?.label ?? '工作台';
 
   return (
-    <main className="hotelcut-shell">
+    <main className={`hotelcut-shell ${isSidebarCollapsed ? 'is-sidebar-collapsed' : ''}`}>
       <button
         aria-label="关闭导航"
         className={`shell-scrim ${isMobileNavigationOpen ? 'is-visible' : ''}`}
@@ -152,6 +175,15 @@ export function AppShell({
           >
             <X size={18} />
           </button>
+          <button
+            aria-label={isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+            className="shell-collapse-button"
+            onClick={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
+            title={isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+            type="button"
+          >
+            {isSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
         </div>
 
         <button
@@ -172,14 +204,20 @@ export function AppShell({
 
         <NavigationGroup
           activeSection={activeSection}
-          items={creationItems}
-          label="创作工作区"
+          items={withCounts(primaryNavigation)}
+          label="主要工作区"
           onNavigate={navigate}
         />
         <NavigationGroup
           activeSection={activeSection}
-          items={operationsNavigation}
-          label="酒店运营"
+          items={visibleLibraryNavigation}
+          label="资源与品牌"
+          onNavigate={navigate}
+        />
+        <NavigationGroup
+          activeSection={activeSection}
+          items={utilityNavigation}
+          label="系统"
           onNavigate={navigate}
         />
 
@@ -228,39 +266,14 @@ export function AppShell({
             <i>/</i>
             <strong>{hotel.name}</strong>
           </div>
+          <div className="shell-view-title" aria-live="polite">
+            <span>当前工作区</span>
+            <strong>{activeLabel}</strong>
+          </div>
           <div className="shell-topbar-spacer" />
-          <label className="shell-global-search">
-            <Search aria-hidden="true" size={14} />
-            <span className="sr-only">全局搜索</span>
-            <input
-              disabled
-              placeholder="全局搜索待索引服务接入"
-              title="全局搜索将在索引服务接入后开放"
-              type="search"
-            />
-            <kbd>⌘ K</kbd>
-          </label>
-          <button
-            aria-label="帮助（待接入）"
-            className="shell-icon-button"
-            disabled
-            title="帮助中心待接入"
-            type="button"
-          >
-            <CircleHelp size={17} />
-          </button>
-          <button
-            aria-label="AI 助手（待接入）"
-            className="shell-icon-button shell-ai-button"
-            disabled
-            title="AI 助手待接入"
-            type="button"
-          >
-            <WandSparkles size={17} />
-          </button>
           <button
             className="shell-create-button"
-            onClick={() => navigate('projects')}
+            onClick={() => navigate('ai-director')}
             type="button"
           >
             <Plus size={15} />

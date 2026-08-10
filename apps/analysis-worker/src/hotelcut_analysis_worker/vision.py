@@ -23,12 +23,16 @@ from hotelcut_analysis_worker.models import (
     VisionUsage,
 )
 
-PROMPT_VERSION = "hotel-video-vision-v1"
+PROMPT_VERSION = "hotel-video-vision-v2"
 
 SYSTEM_PROMPT = """You are a senior editor selecting footage for Chinese hotel short videos.
 Analyze each supplied image as the representative frame for its stated scene range.
 
 Success criteria:
+- give every scene a concise Chinese shortName (4-10 characters, no filename suffixes)
+  and give the whole asset one shortName that captures its dominant usable content
+- fill shot details honestly: angle, camera motion, lighting, composition and visible
+  subjects; choose recommendedTemplateTags only from the schema's tag vocabulary
 - classify hotel scenes conservatively; never claim an amenity or selling point not visible
 - use only the schema's English tags and choose tags useful for automatic shot matching
 - score editorial usability, composition, focus, exposure, cleanliness, and visual appeal
@@ -39,8 +43,10 @@ Success criteria:
 Use room for bedrooms and guest-room interiors, bathroom for toilets/showers/sinks,
 exterior for facade/entrance/signage, facility for pools/gyms/restaurants/public amenities,
 detail for close-ups of design or amenities, service for visible staff/service actions,
-lobby for reception/public lobby, promotion only when a visible offer is present, and host
-only when a person is clearly presenting to camera. Stop after producing the schema."""
+lobby for reception/public lobby, welcome only when a guest is being greeted at the entrance,
+booking only when a visible reservation/offer prompt exists, promotion only when a visible
+offer is present, and host only when a person is clearly presenting to camera.
+Keep shortName in Simplified Chinese and stop after producing the schema."""
 
 
 class VisualAnalyzer(Protocol):
@@ -289,6 +295,7 @@ class OpenAIVisualAnalyzer:
             promptVersion=PROMPT_VERSION,
             model=str(getattr(response, "model", self._configuration.model)),
             responseId=cast(str | None, getattr(response, "id", None)),
+            shortName=output.shortName,
             summary=output.summary,
             tags=overall_tags,
             sellingPoints=output.sellingPoints,

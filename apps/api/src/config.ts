@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
 const environmentSchema = z.object({
+  AI_DIRECTOR_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
+  AI_REVIEW_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   ALLOW_DEVELOPMENT_IDENTITY: z
     .enum(['true', 'false'])
     .default('true')
@@ -15,8 +23,16 @@ const environmentSchema = z.object({
     .transform((value) => value === 'true'),
   GUEST_USER_ID: z.uuid().default('20000000-0000-4000-8000-000000000001'),
   MODEL_API_CONFIG_SECRET: z.string().min(16).default('hotelcut-local-model-secret'),
+  DYNAMIC_BLUEPRINT_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   REDIS_URL: z.url().default('redis://localhost:6379'),
+  REFERENCE_ANALYSIS_ENABLED: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((value) => value === 'true'),
   S3_ACCESS_KEY_ID: z.string().min(1).default('hotelcut'),
   S3_BUCKET: z.string().min(1).default('hotelcut-local'),
   S3_ENDPOINT: z.url().default('http://localhost:9000'),

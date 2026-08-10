@@ -60,6 +60,30 @@ export const transformSchema = z
   })
   .strict();
 
+/** Color controls are intentionally renderer-neutral and map to the output renderer's filter pipeline. */
+export const colorAdjustmentsSchema = z
+  .object({
+    brightness: z.number().min(-1).max(1).default(0),
+    contrast: z.number().min(0).max(3).default(1),
+    saturation: z.number().min(0).max(3).default(1),
+    hueRotateDegrees: z.number().min(-180).max(180).default(0),
+    blurPx: z.number().min(0).max(40).default(0),
+  })
+  .strict();
+
+/** A complete transform snapshot at a timeline-local frame. */
+export const transformKeyframeSchema = z
+  .object({
+    frame: frameSchema,
+    x: normalizedSchema,
+    y: normalizedSchema,
+    scaleX: z.number().positive().max(20),
+    scaleY: z.number().positive().max(20),
+    rotationDegrees: z.number().min(-360).max(360),
+    opacity: normalizedSchema,
+  })
+  .strict();
+
 export const transitionSchema = z
   .object({
     type: z.enum(['cut', 'dissolve', 'fade', 'wipe']),
@@ -181,6 +205,14 @@ const visualClipBaseShape = {
   }),
   transitionIn: transitionSchema.nullable().default(null),
   transitionOut: transitionSchema.nullable().default(null),
+  colorAdjustments: colorAdjustmentsSchema.default({
+    brightness: 0,
+    contrast: 1,
+    saturation: 1,
+    hueRotateDegrees: 0,
+    blurPx: 0,
+  }),
+  keyframes: z.array(transformKeyframeSchema).default([]),
   metadata: metadataSchema,
 };
 
@@ -456,6 +488,26 @@ export const hotelVideoProjectV1Schema = z
             });
           }
         }
+        if ('keyframes' in clip) {
+          let previousKeyframe = -1;
+          clip.keyframes.forEach((keyframe, keyframeIndex) => {
+            if (keyframe.frame >= clip.durationFrames) {
+              context.addIssue({
+                code: 'custom',
+                path: [...clipPath, 'keyframes', keyframeIndex, 'frame'],
+                message: 'A keyframe must be inside the clip duration',
+              });
+            }
+            if (keyframe.frame <= previousKeyframe) {
+              context.addIssue({
+                code: 'custom',
+                path: [...clipPath, 'keyframes', keyframeIndex, 'frame'],
+                message: 'Keyframes must be strictly ordered by frame',
+              });
+            }
+            previousKeyframe = keyframe.frame;
+          });
+        }
         if (clip.kind === 'audio') {
           if (clip.fadeInFrames + clip.fadeOutFrames > clip.durationFrames) {
             context.addIssue({
@@ -541,6 +593,8 @@ export const hotelVideoProjectV1Schema = z
 export type FrameRange = z.infer<typeof frameRangeSchema>;
 export type VideoOutput = z.infer<typeof videoOutputSchema>;
 export type Transform = z.infer<typeof transformSchema>;
+export type ColorAdjustments = z.infer<typeof colorAdjustmentsSchema>;
+export type TransformKeyframe = z.infer<typeof transformKeyframeSchema>;
 export type Transition = z.infer<typeof transitionSchema>;
 export type SafeArea = z.infer<typeof safeAreaSchema>;
 export type BrandToken = z.infer<typeof brandTokenSchema>;

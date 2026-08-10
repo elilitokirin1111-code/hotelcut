@@ -79,8 +79,16 @@
               "hotelcut": {
                 "clip": {
                   "assetId": "66666666-6666-4666-8666-666666666666",
+                  "colorAdjustments": {
+                    "blurPx": 0,
+                    "brightness": 0,
+                    "contrast": 1,
+                    "hueRotateDegrees": 0,
+                    "saturation": 1
+                  },
                   "durationFrames": 450,
                   "id": "44444444-4444-4444-8444-444444444444",
+                  "keyframes": [],
                   "kind": "video",
                   "metadata": {
                     "shot": "lobby"
@@ -170,8 +178,16 @@
               "hotelcut": {
                 "clip": {
                   "assetId": "77777777-7777-4777-8777-777777777777",
+                  "colorAdjustments": {
+                    "blurPx": 0,
+                    "brightness": 0,
+                    "contrast": 1,
+                    "hueRotateDegrees": 0,
+                    "saturation": 1
+                  },
                   "durationFrames": 450,
                   "id": "55555555-5555-4555-8555-555555555555",
+                  "keyframes": [],
                   "kind": "image",
                   "metadata": {
                     "shot": "guest-room"
@@ -353,8 +369,16 @@
               "hotelcut": {
                 "clip": {
                   "assetId": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+                  "colorAdjustments": {
+                    "blurPx": 0,
+                    "brightness": 0,
+                    "contrast": 1,
+                    "hueRotateDegrees": 0,
+                    "saturation": 1
+                  },
                   "durationFrames": 120,
                   "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+                  "keyframes": [],
                   "kind": "image",
                   "metadata": {
                     "role": "logo"
@@ -466,8 +490,16 @@
             "metadata": {
               "hotelcut": {
                 "clip": {
+                  "colorAdjustments": {
+                    "blurPx": 0,
+                    "brightness": 0,
+                    "contrast": 1,
+                    "hueRotateDegrees": 0,
+                    "saturation": 1
+                  },
                   "durationFrames": 180,
                   "id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+                  "keyframes": [],
                   "kind": "text",
                   "metadata": {},
                   "safeAreaId": "safe.caption",
@@ -587,8 +619,16 @@
             "metadata": {
               "hotelcut": {
                 "clip": {
+                  "colorAdjustments": {
+                    "blurPx": 0,
+                    "brightness": 0,
+                    "contrast": 1,
+                    "hueRotateDegrees": 0,
+                    "saturation": 1
+                  },
                   "durationFrames": 180,
                   "id": "12121212-1212-4212-8212-121212121212",
+                  "keyframes": [],
                   "kind": "caption",
                   "metadata": {},
                   "safeAreaId": "safe.caption",
@@ -692,8 +732,16 @@
             "metadata": {
               "hotelcut": {
                 "clip": {
+                  "colorAdjustments": {
+                    "blurPx": 0,
+                    "brightness": 0,
+                    "contrast": 1,
+                    "hueRotateDegrees": 0,
+                    "saturation": 1
+                  },
                   "durationFrames": 210,
                   "id": "13131313-1313-4313-8313-131313131313",
+                  "keyframes": [],
                   "kind": "caption",
                   "metadata": {},
                   "safeAreaId": "safe.caption",

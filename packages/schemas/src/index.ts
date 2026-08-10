@@ -9,6 +9,7 @@ export const hexColorSchema = z
 export const organizationRoleSchema = z.enum(['owner', 'admin', 'member']);
 export const userStatusSchema = z.enum(['active', 'disabled']);
 export const assetKindSchema = z.enum(['video', 'image', 'audio', 'logo', 'font']);
+export const assetPurposeSchema = z.enum(['production_asset', 'reference_video']);
 export const assetStatusSchema = z.enum(['registered', 'uploaded', 'analyzing', 'ready', 'failed']);
 export const assetUploadStatusSchema = z.enum(['initiated', 'completed', 'aborted', 'expired']);
 export const assetDerivativeKindSchema = z.enum(['proxy', 'thumbnail', 'audio']);
@@ -22,6 +23,9 @@ export const analysisJobStatusSchema = z.enum([
   'cancelled',
 ]);
 export const videoProjectStatusSchema = z.enum(['draft', 'rendering', 'completed', 'archived']);
+export const videoProjectBatchDeleteSchema = z
+  .object({ projectIds: z.array(idSchema).min(1).max(100) })
+  .strict();
 export const renderJobStatusSchema = z.enum([
   'queued',
   'preprocessing',
@@ -31,6 +35,15 @@ export const renderJobStatusSchema = z.enum([
   'failed',
   'cancelled',
 ]);
+export const renderJobBatchDeleteSchema = z
+  .object({ renderJobIds: z.array(idSchema).min(1).max(100) })
+  .strict();
+export const assetBatchDeleteSchema = z
+  .object({ assetIds: z.array(idSchema).min(1).max(100) })
+  .strict();
+export const aiTemplateBatchDeleteSchema = z
+  .object({ aiTemplateIds: z.array(idSchema).min(1).max(100) })
+  .strict();
 export const renderArtifactKindSchema = z.enum([
   'video',
   'thumbnail',
@@ -185,6 +198,8 @@ export const assetSchema = z.object({
     .string()
     .regex(/^[0-9A-Fa-f]{64}$/)
     .nullable(),
+  purpose: assetPurposeSchema.optional(),
+  folder: z.string().max(80).nullable().optional(),
   metadata: z.record(z.string(), z.unknown()),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
@@ -610,6 +625,7 @@ export type UpsertBrandKitInput = z.infer<typeof upsertBrandKitSchema>;
 export type VideoBrief = z.infer<typeof videoBriefSchema>;
 export type CreateVideoBriefInput = z.infer<typeof createVideoBriefSchema>;
 export type Asset = z.infer<typeof assetSchema>;
+export type AssetPurpose = z.infer<typeof assetPurposeSchema>;
 export type AssetSegment = z.infer<typeof assetSegmentSchema>;
 export type AssetUpload = z.infer<typeof assetUploadSchema>;
 export type AssetDerivative = z.infer<typeof assetDerivativeSchema>;
@@ -645,3 +661,6 @@ export type UpsertModelProviderSettingsInput = z.infer<typeof upsertModelProvide
 export type ModelProviderConnectionResult = z.infer<typeof modelProviderConnectionResultSchema>;
 export type AiEditPlanInput = z.infer<typeof aiEditPlanInputSchema>;
 export type AiEditPlan = z.infer<typeof aiEditPlanSchema>;
+
+export * from './ai-director.js';
+export * from './ai-template.js';

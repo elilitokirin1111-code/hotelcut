@@ -2,10 +2,12 @@ import type {
   AudioClip,
   CaptionClip,
   Clip,
+  ColorAdjustments,
   HotelVideoProjectV1,
   ImageClip,
   SafeArea,
   TextClip,
+  Transform,
   VideoClip,
 } from '@hotelcut/timeline';
 import type { CSSProperties, ReactNode } from 'react';
@@ -43,6 +45,33 @@ function tokenValue(
   return String(token.value);
 }
 
+type VisualClip = VideoClip | ImageClip | TextClip | CaptionClip;
+
+function animatedTransform(clip: VisualClip, localFrame: number): Transform {
+  const keyframes = clip.keyframes ?? [];
+  if (keyframes.length === 0) {
+    return clip.transform;
+  }
+  const frames = [0, ...keyframes.map((keyframe) => keyframe.frame), clip.durationFrames];
+  const values = [clip.transform, ...keyframes, keyframes.at(-1) ?? clip.transform];
+  const animate = (key: 'x' | 'y' | 'scaleX' | 'scaleY' | 'rotationDegrees' | 'opacity') =>
+    interpolate(
+      localFrame,
+      frames,
+      values.map((value) => value[key]),
+      { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+    );
+  return {
+    ...clip.transform,
+    x: animate('x'),
+    y: animate('y'),
+    scaleX: animate('scaleX'),
+    scaleY: animate('scaleY'),
+    rotationDegrees: animate('rotationDegrees'),
+    opacity: animate('opacity'),
+  };
+}
+
 function transitionOpacity(
   clip: VideoClip | ImageClip | TextClip | CaptionClip,
   localFrame: number,
@@ -65,30 +94,59 @@ function transitionOpacity(
           { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
         )
       : 1;
-  return Math.min(entering, exiting) * clip.transform.opacity;
+  const fades = [clip.transitionIn, clip.transitionOut].some(
+    (transition) => transition?.type === 'fade' || transition?.type === 'dissolve',
+  );
+  return (fades ? Math.min(entering, exiting) : 1) * animatedTransform(clip, localFrame).opacity;
+}
+
+function transitionClipPath(
+  clip: VisualClip,
+  localFrame: number,
+  transform: Transform,
+): string | undefined {
+  const crop = transform.crop;
+  const entering = clip.transitionIn;
+  const exiting = clip.transitionOut;
+  if (entering?.type === 'wipe' && localFrame < entering.durationFrames) {
+    const progress = interpolate(localFrame, [0, entering.durationFrames], [0, 1], {
+      extrapolateLeft: 'clamp',
+      extrapolateRight: 'clamp',
+    });
+    return `inset(0 ${(1 - progress) * 100}% 0 0)`;
+  }
+  if (exiting?.type === 'wipe' && localFrame >= clip.durationFrames - exiting.durationFrames) {
+    const progress = interpolate(
+      localFrame,
+      [clip.durationFrames - exiting.durationFrames, clip.durationFrames],
+      [0, 1],
+      { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+    );
+    return `inset(0 0 0 ${progress * 100}%)`;
+  }
+  return crop
+    ? `inset(${crop.y * 100}% ${(1 - crop.x - crop.width) * 100}% ${(1 - crop.y - crop.height) * 100}% ${crop.x * 100}%)`
+    : undefined;
+}
+
+function colorFilter(adjustments: ColorAdjustments): string {
+  return `brightness(${1 + adjustments.brightness}) contrast(${adjustments.contrast}) saturate(${adjustments.saturation}) hue-rotate(${adjustments.hueRotateDegrees}deg) blur(${adjustments.blurPx}px)`;
 }
 
 function visualStyle(
   clip: VideoClip | ImageClip | TextClip | CaptionClip,
   localFrame: number,
 ): CSSProperties {
-  const crop = clip.transform.crop;
+  const transform = animatedTransform(clip, localFrame);
   return {
     position: 'absolute',
     inset: 0,
     opacity: transitionOpacity(clip, localFrame),
-    transform: `translate(${(clip.transform.x - 0.5) * 100}%, ${
-      (clip.transform.y - 0.5) * 100
-    }%) scale(${clip.transform.scaleX}, ${clip.transform.scaleY}) rotate(${
-      clip.transform.rotationDegrees
-    }deg)`,
+    transform: `translate(${(transform.x - 0.5) * 100}%, ${(transform.y - 0.5) * 100}%) scale(${transform.scaleX}, ${transform.scaleY}) rotate(${transform.rotationDegrees}deg)`,
     transformOrigin: 'center',
     overflow: 'hidden',
-    clipPath: crop
-      ? `inset(${crop.y * 100}% ${(1 - crop.x - crop.width) * 100}% ${
-          (1 - crop.y - crop.height) * 100
-        }% ${crop.x * 100}%)`
-      : undefined,
+    clipPath: transitionClipPath(clip, localFrame, transform),
+    filter: colorFilter(clip.colorAdjustments),
   };
 }
 
@@ -323,7 +381,7 @@ export function HotelCutComposition({ project, assets }: HotelCutCompositionProp
   return (
     <AbsoluteFill style={{ backgroundColor: project.output.backgroundColor }}>
       {orderedTracks.map((track) =>
-        track.clips.map((clip) => (
+        (track.muted && track.kind === 'audio' ? [] : track.clips).map((clip) => (
           <Sequence
             durationInFrames={clip.durationFrames}
             from={clip.startFrame}

@@ -7,8 +7,8 @@ quality report.
 ## Milestone status
 
 M0 through M6 were completed and locally accepted on 2026-07-28. M7 is in progress through
-small, reviewable workspace slices, including the production render-delivery center. The
-repository now includes:
+small, reviewable workspace slices, including the production render-delivery center. AI Director
+Phase 0 is implemented as an additive, feature-flagged foundation. The repository now includes:
 
 - pnpm and Turborepo monorepo
 - React and Vite web application
@@ -61,6 +61,12 @@ repository now includes:
 - production-backed asset upload, analysis monitoring, filtering, preview, retry and manual tags
 - production VideoBrief, template selection, deterministic automatic compilation and revision-one
   project preview
+- tenant-scoped CreativeProject persistence and API operations
+- four AI creation entry modes gated independently from reference analysis, dynamic blueprint and
+  AI review rollout
+- an additive AI Director data model that preserves the existing Compiler and fixed templates
+- versioned AI creative directions, scripts, storyboards and filming shot lists backed by the
+  configured model provider and strict Zod/JSON-Schema validation
 
 ## Prerequisites
 
@@ -115,6 +121,10 @@ password: hotelcut-local
 
 Set `ALLOW_DEVELOPMENT_IDENTITY=false` to disable the legacy `x-user-id` integration-test path
 and exercise only server-owned sessions.
+
+AI Director rollout is controlled by `AI_DIRECTOR_ENABLED`, `REFERENCE_ANALYSIS_ENABLED`,
+`DYNAMIC_BLUEPRINT_ENABLED` and `AI_REVIEW_ENABLED`. See
+`docs/ai-director/architecture.md` for the compatibility and validation boundary.
 
 The seeded organization is `云栖酒店集团（演示）`. To manage the database manually:
 

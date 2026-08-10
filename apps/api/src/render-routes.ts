@@ -11,6 +11,7 @@ import {
   renderArtifactDownloadSchema,
   renderJobDetailSchema,
   renderJobSchema,
+  renderJobBatchDeleteSchema,
 } from '@hotelcut/schemas';
 import type { MultipartObjectStorage } from '@hotelcut/storage';
 
@@ -20,6 +21,13 @@ interface RenderRouteOptions {
   renderQueue?: RenderQueue | undefined;
   repository?: HotelCutRepository | undefined;
 }
+
+const renderJobDeleteParamsSchema = z
+  .object({
+    projectId: z.uuid(),
+    renderJobId: z.uuid(),
+  })
+  .strict();
 
 export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify, options) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -78,11 +86,9 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
       },
     },
     async (request, reply) => {
-      const job = await repository().createRenderJob(
-        request.actorUserId,
-        request.params.id,
-        request.body,
-      );
+      const store = repository();
+      const project = await store.getVideoProject(request.actorUserId, request.params.id);
+      const job = await store.createRenderJob(request.actorUserId, request.params.id, request.body);
       try {
         await renderQueue().enqueue({
           attempt: job.attempt + 1,
@@ -90,12 +96,18 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
           renderJobId: job.id,
         });
       } catch (error) {
-        await repository().markRenderQueueFailure(
+        await store.markRenderQueueFailure(
           job.id,
           error instanceof Error ? error.message : 'Unknown queue publish error',
         );
         throw error;
       }
+      await store.createCreativeFeedbackEvent(request.actorUserId, project.project.hotelId, {
+        eventType: 'final_render_requested',
+        videoProjectId: project.project.id,
+        subjectId: job.id,
+        metadata: { projectRevisionId: job.projectRevisionId, attempt: job.attempt },
+      });
       return reply.code(201).send(job);
     },
   );
@@ -199,6 +211,57 @@ export const renderRoutes: FastifyPluginCallback<RenderRouteOptions> = (fastify,
         downloadUrl,
         expiresAt: new Date(Date.now() + options.downloadUrlTtlSeconds * 1_000).toISOString(),
       };
+    },
+  );
+
+  app.delete(
+    '/v1/video-projects/:projectId/render-jobs/:renderJobId',
+    {
+      schema: {
+        params: renderJobDeleteParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Delete a finished render job and its delivery artifacts',
+        tags: ['render-jobs'],
+      },
+    },
+    async (request, reply) => {
+      await repository().deleteRenderJobs(request.actorUserId, request.params.projectId, [
+        request.params.renderJobId,
+      ]);
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    '/v1/video-projects/:projectId/render-jobs/batch-delete',
+    {
+      schema: {
+        body: renderJobBatchDeleteSchema,
+        params: idParamsSchema,
+        response: {
+          204: z.void(),
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+        security: [{ sessionCookie: [] }, { developmentUser: [] }],
+        summary: 'Batch-delete finished render jobs',
+        tags: ['render-jobs'],
+      },
+    },
+    async (request, reply) => {
+      await repository().deleteRenderJobs(
+        request.actorUserId,
+        request.params.id,
+        request.body.renderJobIds,
+      );
+      return reply.code(204).send();
     },
   );
 };

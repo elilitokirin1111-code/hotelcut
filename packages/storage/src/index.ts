@@ -2,6 +2,7 @@ import {
   AbortMultipartUploadCommand,
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -56,6 +57,7 @@ export interface MultipartObjectStorage {
     reference: Pick<StoredObjectReference, 'bucket' | 'key'>,
     expiresInSeconds: number,
   ): Promise<string>;
+  deleteObjects(objects: readonly Pick<StoredObjectReference, 'bucket' | 'key'>[]): Promise<void>;
   putObject(input: {
     bucket: string;
     key: string;
@@ -189,6 +191,34 @@ export class S3MultipartObjectStorage implements MultipartObjectStorage {
       }),
       { expiresIn: expiresInSeconds },
     );
+  }
+
+  async deleteObjects(
+    objects: readonly Pick<StoredObjectReference, 'bucket' | 'key'>[],
+  ): Promise<void> {
+    const byBucket = new Map<string, string[]>();
+    for (const object of objects) {
+      const keys = byBucket.get(object.bucket);
+      if (keys) {
+        keys.push(object.key);
+      } else {
+        byBucket.set(object.bucket, [object.key]);
+      }
+    }
+    for (const [bucket, keys] of byBucket) {
+      // S3 DeleteObjects accepts at most 1000 keys per request.
+      for (let offset = 0; offset < keys.length; offset += 1_000) {
+        await this.client.send(
+          new DeleteObjectsCommand({
+            Bucket: bucket,
+            Delete: {
+              Objects: keys.slice(offset, offset + 1_000).map((Key) => ({ Key })),
+              Quiet: true,
+            },
+          }),
+        );
+      }
+    }
   }
 
   async putObject(input: {

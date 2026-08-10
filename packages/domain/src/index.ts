@@ -1,17 +1,33 @@
 import type {
   AnalysisJob,
+  AiReview,
+  AiReviewGeneration,
+  AiTemplate,
   Asset,
   AssetDerivative,
   AssetDerivativeKind,
   AssetDetail,
+  AssetMatchCandidate,
+  AssetPurpose,
+  AssetRequirement,
   AssetSegment,
   AssetUpload,
   BrandKit,
   CompleteAssetUploadInput,
+  CreativeProject,
+  CreativeFeedbackEvent,
+  CreateCreativeFeedbackEventInput,
+  CreativeVideoVersion,
+  CreativeBriefRevision,
+  CreateCreativeBriefRevisionInput,
+  CreateCreativeProjectInput,
   CreateAssetUploadInput,
   CreateHotelInput,
+  CreateAiTemplateInput,
   CreateManualSegmentInput,
   CreateRenderJobInput,
+  EditBlueprint,
+  EditBlueprintGeneration,
   CreateVideoProjectInput,
   CreateVideoBriefInput,
   Hotel,
@@ -28,7 +44,12 @@ import type {
   RenderLogEntry,
   SaveProjectRevisionInput,
   RenderJobStatus,
+  ReferenceVideoProfile,
+  ReferenceVideoProfileGeneration,
+  ScriptGeneration,
+  ScriptPackage,
   UpdateHotelInput,
+  UpdateCreativeProjectInput,
   UpsertBrandKitInput,
   User,
   VideoBrief,
@@ -45,6 +66,11 @@ export interface RegisterAssetUploadInput extends CreateAssetUploadInput {
   expiresAt: string;
 }
 
+export interface UpdateAssetOrganizationInput {
+  purpose?: AssetPurpose;
+  folder?: string | null;
+}
+
 export interface RegisteredAssetUpload {
   asset: Asset;
   upload: AssetUpload;
@@ -57,6 +83,11 @@ export interface AssetUploadContext extends RegisteredAssetUpload {
 export interface QueuedAssetAnalysis {
   asset: Asset;
   analysisJob: AnalysisJob;
+}
+
+export interface StorageObjectReference {
+  bucket: string;
+  key: string;
 }
 
 export interface PersistVideoProjectInput extends CreateVideoProjectInput {
@@ -160,6 +191,87 @@ export interface PersistModelProviderSettingsInput {
   enabled: boolean;
 }
 
+export interface PersistCreativeBriefRevisionInput extends CreateCreativeBriefRevisionInput {
+  createdBy: 'user' | 'ai';
+  direction?: string | null;
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
+export interface PersistScriptPackageInput extends ScriptGeneration {
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
+export interface CreateAiGenerationRunInput {
+  operation: string;
+  modelName: string;
+  promptVersion: string;
+  generationParameters: Record<string, unknown>;
+  inputSummary: string;
+}
+
+export interface PersistReferenceVideoProfileInput extends ReferenceVideoProfileGeneration {
+  assetId: string;
+  durationMs: number;
+  averageShotDurationMs: number;
+  shotCount: number;
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
+export interface CreateAssetRequirementInput {
+  scriptSceneId: string | null;
+  description: string;
+  requiredTags: string[];
+  preferredShotType: string | null;
+  preferredMotionType: string | null;
+  preferredDurationMs: number;
+  required: boolean;
+  candidateMatches: AssetMatchCandidate[];
+  status: AssetRequirement['status'];
+  filmingInstruction: string | null;
+}
+
+export interface PersistEditBlueprintInput extends EditBlueprintGeneration {
+  seed: number;
+  compilerVersion: string;
+  sourceAssetIds: string[];
+  referenceProfileIds: string[];
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
+export interface PersistCreativeVideoVersionInput {
+  editBlueprintId: string;
+  videoProjectId: string;
+  variant: CreativeVideoVersion['variant'];
+  seed: number;
+  scoreBasisPoints: number;
+  hookScoreBasisPoints: number;
+  sellingPointCoverageBasisPoints: number;
+  paceScoreBasisPoints: number;
+  usedAssetIds: string[];
+  repeatedAssetCount: number;
+  recommendationReason: string;
+}
+
+export interface PersistAiReviewInput extends AiReviewGeneration {
+  baseRevision: number;
+  modelName?: string | null;
+  promptVersion?: string | null;
+  generationParameters?: Record<string, unknown>;
+  inputSummary?: string | null;
+}
+
 export interface AuthRepository {
   findPasswordCredentialByEmail(email: string): Promise<PasswordCredential | null>;
   createUserSession(input: CreateUserSessionInput): Promise<void>;
@@ -189,6 +301,123 @@ export interface HotelCutRepository {
     hotelId: string,
     input: PersistModelProviderSettingsInput,
   ): Promise<StoredModelProviderSettings>;
+  listCreativeProjects(actorUserId: string, hotelId: string): Promise<CreativeProject[]>;
+  listAiTemplates(actorUserId: string, hotelId: string): Promise<AiTemplate[]>;
+  createAiTemplate(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateAiTemplateInput,
+  ): Promise<AiTemplate>;
+  getAiTemplate(actorUserId: string, hotelId: string, aiTemplateId: string): Promise<AiTemplate>;
+  deleteAiTemplate(actorUserId: string, hotelId: string, aiTemplateId: string): Promise<void>;
+  deleteAiTemplates(actorUserId: string, hotelId: string, aiTemplateIds: string[]): Promise<void>;
+  deleteAssets(actorUserId: string, hotelId: string, assetIds: string[]): Promise<void>;
+  updateAssetOrganization(
+    actorUserId: string,
+    hotelId: string,
+    assetIds: string[],
+    input: UpdateAssetOrganizationInput,
+  ): Promise<Asset[]>;
+  listAssetStorageReferences(
+    actorUserId: string,
+    hotelId: string,
+    assetIds: string[],
+  ): Promise<StorageObjectReference[]>;
+  deleteRenderJobs(actorUserId: string, projectId: string, renderJobIds: string[]): Promise<void>;
+  deleteVideoProjects(actorUserId: string, hotelId: string, projectIds: string[]): Promise<void>;
+  createCreativeProject(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateCreativeProjectInput,
+  ): Promise<CreativeProject>;
+  getCreativeProject(actorUserId: string, projectId: string): Promise<CreativeProject>;
+  updateCreativeProject(
+    actorUserId: string,
+    projectId: string,
+    input: UpdateCreativeProjectInput,
+  ): Promise<CreativeProject>;
+  listCreativeBriefRevisions(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<CreativeBriefRevision[]>;
+  createCreativeBriefRevision(
+    actorUserId: string,
+    projectId: string,
+    input: PersistCreativeBriefRevisionInput,
+  ): Promise<CreativeBriefRevision>;
+  listScriptPackages(actorUserId: string, projectId: string): Promise<ScriptPackage[]>;
+  getScriptPackage(actorUserId: string, scriptId: string): Promise<ScriptPackage>;
+  createScriptPackage(
+    actorUserId: string,
+    projectId: string,
+    input: PersistScriptPackageInput,
+  ): Promise<ScriptPackage>;
+  createAiGenerationRun(
+    actorUserId: string,
+    projectId: string,
+    input: CreateAiGenerationRunInput,
+  ): Promise<string>;
+  finishAiGenerationRun(
+    runId: string,
+    outcome: { failureReason?: string; outputSummary?: string },
+  ): Promise<void>;
+  listReferenceVideoProfiles(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<ReferenceVideoProfile[]>;
+  createReferenceVideoProfile(
+    actorUserId: string,
+    projectId: string,
+    input: PersistReferenceVideoProfileInput,
+  ): Promise<ReferenceVideoProfile>;
+  replaceAssetRequirements(
+    actorUserId: string,
+    projectId: string,
+    input: CreateAssetRequirementInput[],
+  ): Promise<AssetRequirement[]>;
+  listAssetRequirements(actorUserId: string, projectId: string): Promise<AssetRequirement[]>;
+  assignAssetRequirement(
+    actorUserId: string,
+    projectId: string,
+    requirementId: string,
+    assetId: string,
+  ): Promise<AssetRequirement>;
+  createEditBlueprint(
+    actorUserId: string,
+    projectId: string,
+    input: PersistEditBlueprintInput,
+  ): Promise<EditBlueprint>;
+  listEditBlueprints(actorUserId: string, projectId: string): Promise<EditBlueprint[]>;
+  createCreativeVideoVersion(
+    actorUserId: string,
+    projectId: string,
+    input: PersistCreativeVideoVersionInput,
+  ): Promise<CreativeVideoVersion>;
+  listCreativeVideoVersions(
+    actorUserId: string,
+    projectId: string,
+  ): Promise<CreativeVideoVersion[]>;
+  createAiReview(
+    actorUserId: string,
+    videoProjectId: string,
+    input: PersistAiReviewInput,
+  ): Promise<AiReview>;
+  listAiReviews(actorUserId: string, videoProjectId: string): Promise<AiReview[]>;
+  getAiReview(actorUserId: string, reviewId: string): Promise<AiReview>;
+  updateAiReviewStatus(
+    actorUserId: string,
+    reviewId: string,
+    update: { status: 'applied'; appliedRevision: number } | { status: 'dismissed' },
+  ): Promise<AiReview>;
+  createCreativeFeedbackEvent(
+    actorUserId: string,
+    hotelId: string,
+    input: CreateCreativeFeedbackEventInput,
+  ): Promise<CreativeFeedbackEvent>;
+  listCreativeFeedbackEvents(
+    actorUserId: string,
+    hotelId: string,
+  ): Promise<CreativeFeedbackEvent[]>;
   listVideoBriefs(actorUserId: string, hotelId: string): Promise<VideoBrief[]>;
   createVideoBrief(
     actorUserId: string,

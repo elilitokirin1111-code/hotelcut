@@ -17,6 +17,7 @@
     "@hotelcut/compiler": "workspace:*",
     "@hotelcut/database": "workspace:*",
     "@hotelcut/domain": "workspace:*",
+    "@hotelcut/editor": "workspace:*",
     "@hotelcut/job-queue": "workspace:*",
     "@hotelcut/media": "workspace:*",
     "@hotelcut/schemas": "workspace:*",

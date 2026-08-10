@@ -53,6 +53,38 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _reference_features(
+    probe: dict[str, object], transcript: TranscriptResult, scenes: list[SceneRange]
+) -> dict[str, object]:
+    """Persist non-generative editing signals reusable by reference-video profiling."""
+    duration_value = probe.get("durationMs", 0)
+    duration_ms = int(duration_value) if isinstance(duration_value, (int, float, str)) else 0
+    scene_lengths = [scene.endMs - scene.startMs for scene in scenes]
+    average_shot_ms = (
+        round(sum(scene_lengths) / len(scene_lengths)) if scene_lengths else duration_ms
+    )
+    opening_limit = min(duration_ms, 3_000)
+    opening_cuts = sum(1 for scene in scenes if scene.startMs < opening_limit)
+    speech_ms = sum(end - start for start, end in transcript.vad)
+    return {
+        "sceneCount": len(scenes),
+        "averageShotDurationMs": max(1, average_shot_ms),
+        "openingCutCount": opening_cuts,
+        "paceCurve": [
+            {
+                "startMs": scene.startMs,
+                "endMs": scene.endMs,
+                "durationMs": scene.endMs - scene.startMs,
+            }
+            for scene in scenes
+        ],
+        "speechCoverageBasisPoints": round((speech_ms / duration_ms) * 10_000)
+        if duration_ms > 0
+        else 0,
+        "vad": [{"startMs": start, "endMs": end} for start, end in transcript.vad],
+    }
+
+
 def _error_code(error: Exception) -> str:
     message = str(error)
     return message if message.isidentifier() else type(error).__name__
@@ -333,6 +365,7 @@ class AnalysisProcessor:
             "probe": probe,
             "transcript": transcript.model_dump(),
             "vision": vision.model_dump(mode="json"),
+            "referenceFeatures": _reference_features(probe, transcript, scenes),
         }
         vision_scenes = {scene.sceneIndex: scene for scene in vision.scenes}
         with self._connect() as connection, connection.cursor() as cursor:

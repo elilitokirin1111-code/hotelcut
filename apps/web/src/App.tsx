@@ -78,6 +78,40 @@ export function ProjectStudio({
     return () => window.clearInterval(interval);
   }, [editor.project.output.durationFrames, editor.project.output.frameRate, isPlaying]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+      const hasCommandKey = event.metaKey || event.ctrlKey;
+      if (event.code === 'Space') {
+        event.preventDefault();
+        setIsPlaying((playing) => !playing);
+      } else if (hasCommandKey && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        void editor.saveNow();
+      } else if (hasCommandKey && event.key.toLowerCase() === 'z' && event.shiftKey) {
+        event.preventDefault();
+        editor.redo();
+      } else if (hasCommandKey && event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        editor.undo();
+      } else if ((event.key === 'Delete' || event.key === 'Backspace') && selectedClipId) {
+        event.preventDefault();
+        editor.execute({ type: 'delete-clip', clipId: selectedClipId });
+        setSelectedClipId(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editor, selectedClipId]);
+
   const selectClip = (clip: Clip) => {
     setSelectedClipId(clip.id);
     setCurrentFrame(clip.startFrame);
@@ -130,8 +164,11 @@ export function ProjectStudio({
                 <span className="truncate text-slate-500">{editor.project.name}</span>
               </div>
               <div className="mt-1 flex items-center gap-3">
-                <h1 className="truncate text-xl font-black tracking-[-0.025em] text-[#263138]">
-                  HotelCut Studio
+                <h1
+                  aria-label="HotelCut Studio"
+                  className="truncate text-xl font-black tracking-[-0.025em] text-[#263138]"
+                >
+                  {editor.project.name}
                 </h1>
                 <span className="rounded-full bg-[#edf6f3] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-[#3f7c73]">
                   {embedded ? 'Production Editor' : 'M5 Editor'}
@@ -209,6 +246,38 @@ export function ProjectStudio({
           </header>
 
           <div className="studio-workspace p-3 xl:p-4">
+            <div className="studio-commandbar" aria-label="剪辑快捷工具">
+              <div>
+                <button onClick={() => setIsPlaying((playing) => !playing)} type="button">
+                  <Icon className="h-4 w-4" name={isPlaying ? 'pause' : 'play'} />
+                  {isPlaying ? '暂停' : '播放'}
+                </button>
+                <span />
+                <button
+                  disabled={!selectedClipId}
+                  onClick={() => {
+                    if (!selectedClipId) return;
+                    editor.execute({ type: 'delete-clip', clipId: selectedClipId });
+                    setSelectedClipId(null);
+                  }}
+                  type="button"
+                >
+                  <Icon className="h-4 w-4" name="scissors" />
+                  删除片段
+                </button>
+              </div>
+              <div className="studio-commandbar-shortcuts">
+                <span>
+                  <kbd>Space</kbd> 播放
+                </span>
+                <span>
+                  <kbd>⌘ Z</kbd> 撤销
+                </span>
+                <span>
+                  <kbd>⌘ S</kbd> 保存
+                </span>
+              </div>
+            </div>
             <div className="studio-editor-grid grid min-h-[590px] gap-3 xl:grid-cols-[264px_minmax(360px,1fr)_316px]">
               <SceneRail
                 assets={assets}
@@ -242,6 +311,10 @@ export function ProjectStudio({
               <SimpleTimeline
                 assets={assets}
                 currentFrame={currentFrame}
+                onMoveClip={(clip, startFrame) => {
+                  editor.execute({ type: 'move-clip', clipId: clip.id, startFrame });
+                  setCurrentFrame(startFrame);
+                }}
                 onScrub={setCurrentFrame}
                 onSelectClip={selectClip}
                 project={editor.project}

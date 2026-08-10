@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assetSegmentSchema,
+  aiTemplateSchema,
+  aiTemplateSpecSchema,
   createAssetUploadSchema,
+  createCreativeProjectSchema,
+  creativeProjectSchema,
   createHotelSchema,
   createVideoProjectSchema,
   createVideoBriefSchema,
@@ -10,10 +14,121 @@ import {
   generateVideoProjectSchema,
   projectTemplateSchema,
   renderJobSchema,
+  scriptGenerationSchema,
   saveProjectRevisionSchema,
   upsertBrandKitSchema,
   upsertModelProviderSettingsSchema,
 } from './index.js';
+
+describe('AI template schemas', () => {
+  it('accepts a valid generated template', () => {
+    const parsed = aiTemplateSchema.parse({
+      id: '50000000-0000-4000-8000-000000000001',
+      hotelId: '30000000-0000-4000-8000-000000000001',
+      name: '湖景周末礼遇',
+      description: '以湖景开场，突出客房与服务。',
+      durationSeconds: 20,
+      spec: {
+        durationSeconds: 20,
+        globalRules: ['CTA_EMPHASIS'],
+        beats: [
+          {
+            sequence: 1,
+            startMs: 0,
+            endMs: 20_000,
+            purpose: '开场抓注意力',
+            visual: '湖景大远景',
+            requiredTags: ['exterior'],
+            preferredTags: ['wide', 'day'],
+            preferredShotTypes: [],
+            preferredMotionTypes: [],
+            maximumShotDurationMs: 5_000,
+            maximumAssetReuse: 1,
+            audioPolicy: 'ambient',
+            caption: '周末住进湖景房',
+            transitionOut: 'dissolve',
+          },
+        ],
+      },
+      createdByUserId: '20000000-0000-4000-8000-000000000001',
+      createdAt: '2026-08-05T08:00:00.000Z',
+      updatedAt: '2026-08-05T08:00:00.000Z',
+    });
+    expect(parsed.spec.beats).toHaveLength(1);
+  });
+
+  it('rejects beats that do not start the timeline at zero', () => {
+    expect(() =>
+      aiTemplateSpecSchema.parse({
+        durationSeconds: 20,
+        globalRules: [],
+        beats: [
+          {
+            sequence: 1,
+            startMs: 500,
+            endMs: 20_000,
+            purpose: '开场',
+            visual: '湖景',
+            requiredTags: [],
+            preferredTags: [],
+            preferredShotTypes: [],
+            preferredMotionTypes: [],
+            maximumShotDurationMs: 5_000,
+            maximumAssetReuse: 1,
+            audioPolicy: 'ambient',
+            caption: null,
+            transitionOut: 'cut',
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+});
+
+describe('script scene information carriers', () => {
+  it('allows caption-only scenes for visual-led scripts', () => {
+    const parsed = scriptGenerationSchema.parse({
+      title: '纯画面脚本',
+      hook: '先看画面，再看字幕',
+      storySummary: '用画面和字幕完成叙事',
+      narrativePattern: '视觉叙事',
+      voiceoverScript: null,
+      dialogue: [],
+      captions: [],
+      callToAction: null,
+      filmingTips: [],
+      requiredAssets: [],
+      totalDurationMs: 12_000,
+      scenes: [1, 2, 3].map((sequence) => ({
+        sequence,
+        title: `镜头 ${sequence}`,
+        purpose: '氛围铺垫',
+        visual: '酒店外景空镜',
+        action: '缓慢推近',
+        narration: null,
+        dialogue: null,
+        caption: `字幕 ${sequence}：湖景与晨光`,
+        durationMs: 4_000,
+        shotType: 'wide',
+        motionType: 'push-in',
+        filmingInstruction: null,
+      })),
+      shotList: [1, 2, 3].map((sequence) => ({
+        sequence,
+        description: `拍摄要求 ${sequence}`,
+        requiredTags: ['exterior'],
+        preferredShotType: null,
+        preferredMotionType: null,
+        preferredDurationMs: 4_000,
+        required: true,
+        filmingInstruction: null,
+        sceneSequence: sequence,
+      })),
+    });
+
+    expect(parsed.scenes.every((scene) => Boolean(scene.caption))).toBe(true);
+  });
+});
 
 describe('shared input schemas', () => {
   it('accepts standard UTC offsets from cross-language workers', () => {
@@ -76,6 +191,103 @@ describe('shared input schemas', () => {
     });
 
     expect(brief).toMatchObject({ aspectRatio: '9:16', language: 'zh-CN' });
+  });
+
+  it('validates the CreativeProject lifecycle without accepting arbitrary modes or states', () => {
+    const project = {
+      id: '91000000-0000-4000-8000-000000000001',
+      hotelId: '30000000-0000-4000-8000-000000000001',
+      title: '酒店前台反差视频',
+      mode: 'idea',
+      status: 'draft',
+      selectedBriefRevisionId: null,
+      selectedScriptRevisionId: null,
+      selectedBlueprintId: null,
+      selectedVideoProjectId: null,
+      createdByUserId: '20000000-0000-4000-8000-000000000001',
+      metadata: {},
+      deletedAt: null,
+      createdAt: '2026-08-05T08:00:00.000Z',
+      updatedAt: '2026-08-05T08:00:00.000Z',
+    };
+
+    expect(createCreativeProjectSchema.parse({ mode: 'idea', title: '  前台反差  ' })).toEqual({
+      mode: 'idea',
+      title: '前台反差',
+    });
+    expect(creativeProjectSchema.parse(project)).toEqual(project);
+    expect(() => createCreativeProjectSchema.parse({ mode: 'unknown', title: '无效' })).toThrow();
+    expect(() => creativeProjectSchema.parse({ ...project, status: 'rendering' })).toThrow();
+  });
+
+  it('requires a complete duration-consistent AI script, storyboard and shot list', () => {
+    const scene = {
+      sequence: 1,
+      title: '前台误解',
+      purpose: '前三秒建立反差',
+      visual: '客人看向前台等待登记',
+      action: '前台抬头微笑',
+      narration: null,
+      dialogue: '她只是普通前台吗？',
+      caption: null,
+      durationMs: 5_000,
+      shotType: 'medium',
+      motionType: 'push_in',
+      filmingInstruction: '保持人物视线连续',
+    };
+    const script = {
+      title: '前台不只会登记',
+      hook: '你还觉得她只是普通前台吗？',
+      storySummary: '以误解、反差和 CTA 完成 16 秒短片。',
+      narrativePattern: '误解-反转-转化',
+      voiceoverScript: null,
+      dialogue: [{ speaker: '客人', text: '她只是普通前台吗？' }],
+      captions: [{ text: '不只是登记', emphasis: ['不只是'] }],
+      callToAction: '查看酒店团购',
+      filmingTips: ['使用快速切换'],
+      requiredAssets: ['英语接待镜头'],
+      totalDurationMs: 15_000,
+      scenes: [scene, { ...scene, sequence: 2 }, { ...scene, sequence: 3 }],
+      shotList: [
+        {
+          sequence: 1,
+          sceneSequence: 1,
+          description: '前台登记的中景',
+          requiredTags: ['front_desk'],
+          preferredShotType: 'medium',
+          preferredMotionType: 'push_in',
+          preferredDurationMs: 1_500,
+          required: true,
+          filmingInstruction: '稳定镜头',
+        },
+        {
+          sequence: 2,
+          sceneSequence: 2,
+          description: '英语接待',
+          requiredTags: ['front_desk', 'guest'],
+          preferredShotType: 'closeup',
+          preferredMotionType: 'cut',
+          preferredDurationMs: 1_500,
+          required: true,
+          filmingInstruction: '保留口型',
+        },
+        {
+          sequence: 3,
+          sceneSequence: 3,
+          description: 'CTA',
+          requiredTags: ['front_desk'],
+          preferredShotType: 'medium',
+          preferredMotionType: 'static',
+          preferredDurationMs: 1_500,
+          required: true,
+          filmingInstruction: '预留字幕安全区',
+        },
+      ],
+    };
+    expect(scriptGenerationSchema.parse(script)).toMatchObject({ totalDurationMs: 15_000 });
+    expect(() => scriptGenerationSchema.parse({ ...script, totalDurationMs: 16_000 })).toThrow(
+      'Scene durations must match totalDurationMs',
+    );
   });
 
   it('accepts video and audio production uploads while rejecting mismatched media types', () => {
