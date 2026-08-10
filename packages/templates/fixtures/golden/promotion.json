@@ -99,6 +99,14 @@
             },
             "transitionIn": null,
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "promo.exterior",
               "role": "montage",
@@ -130,6 +138,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "promo.room",
               "role": "montage",
@@ -161,6 +177,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "promo.service",
               "role": "montage",
@@ -192,6 +216,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "promo.offer",
               "role": "montage",
@@ -235,6 +267,14 @@
             },
             "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-out" },
             "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": { "generatedFrom": "brief.title" },
             "kind": "text",
             "text": "云栖酒店周末礼遇",

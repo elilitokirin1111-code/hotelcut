@@ -99,6 +99,14 @@
             },
             "transitionIn": null,
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.intro",
               "role": "a-roll",
@@ -130,6 +138,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.body",
               "role": "a-roll",
@@ -161,6 +177,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.close",
               "role": "a-roll",
@@ -204,6 +228,14 @@
             },
             "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "broll.lobby",
               "role": "b-roll",
@@ -235,6 +267,14 @@
             },
             "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "broll.room",
               "role": "b-roll",
@@ -266,6 +306,14 @@
             },
             "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "broll.service",
               "role": "b-roll",
@@ -309,6 +357,14 @@
             },
             "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-out" },
             "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": { "generatedFrom": "brief.title" },
             "kind": "text",
             "text": "云栖酒店周末短片",
@@ -350,6 +406,14 @@
             },
             "transitionIn": null,
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.intro",
               "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0"
@@ -383,6 +447,14 @@
             },
             "transitionIn": null,
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.intro",
               "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000001:0"
@@ -416,6 +488,14 @@
             },
             "transitionIn": null,
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.body",
               "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0"
@@ -449,6 +529,14 @@
             },
             "transitionIn": null,
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.body",
               "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000002:0"
@@ -482,6 +570,14 @@
             },
             "transitionIn": null,
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.close",
               "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0"
@@ -515,6 +611,14 @@
             },
             "transitionIn": null,
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "host.close",
               "generatedFrom": "10000000-0000-4000-8000-000000000001:11000000-0000-4000-8000-000000000003:0"

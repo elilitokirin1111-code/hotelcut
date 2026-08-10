@@ -99,6 +99,14 @@
             },
             "transitionIn": null,
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "room.exterior",
               "role": "montage",
@@ -130,6 +138,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "room.hero",
               "role": "montage",
@@ -161,6 +177,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "room.bathroom",
               "role": "montage",
@@ -187,6 +211,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "room.facility",
               "role": "montage",
@@ -218,6 +250,14 @@
             },
             "transitionIn": { "type": "dissolve", "durationFrames": 12, "easing": "ease-in-out" },
             "transitionOut": null,
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": {
               "slotId": "room.detail",
               "role": "montage",
@@ -256,6 +296,14 @@
             },
             "transitionIn": { "type": "fade", "durationFrames": 12, "easing": "ease-out" },
             "transitionOut": { "type": "fade", "durationFrames": 12, "easing": "ease-in" },
+            "colorAdjustments": {
+              "brightness": 0,
+              "contrast": 1,
+              "saturation": 1,
+              "hueRotateDegrees": 0,
+              "blurPx": 0
+            },
+            "keyframes": [],
             "metadata": { "generatedFrom": "brief.title" },
             "kind": "text",
             "text": "云栖酒店客房卖点",
