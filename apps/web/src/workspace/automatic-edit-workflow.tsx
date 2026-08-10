@@ -76,6 +76,10 @@ const preferredDurations: Record<string, number> = {
   'hotel.room-montage': 25,
 };
 
+export function isStudioEligibleAsset(asset: Pick<Asset, 'purpose' | 'status'>): boolean {
+  return asset.status === 'ready' && asset.purpose !== 'reference_video';
+}
+
 const tagLabels: Record<string, string> = {
   bathroom: '卫浴',
   booking: '预订结尾',
@@ -308,10 +312,7 @@ export function AutomaticEditWorkflow({
         null)
       : null;
   const readyAssets = useMemo(
-    () =>
-      loadState.status === 'ready'
-        ? loadState.data.assets.filter((asset) => asset.status === 'ready')
-        : [],
+    () => (loadState.status === 'ready' ? loadState.data.assets.filter(isStudioEligibleAsset) : []),
     [loadState],
   );
   const studioAssets = useMemo(
