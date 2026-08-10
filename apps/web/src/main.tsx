@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import './design-system.css';
 import './styles.css';
 import { WorkspaceApp } from './workspace/workspace-app';
 

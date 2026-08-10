@@ -5,9 +5,12 @@ import {
   Check,
   Clapperboard,
   Film,
+  FolderOpen,
   RefreshCw,
+  Scissors,
   Sparkles,
   Upload,
+  WandSparkles,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -177,35 +180,77 @@ export function WorkspaceDashboard({
         ? {
             action: '创建首条视频',
             copy: `已有 ${readyAssets} 份素材完成分析，可以进入 AI 成片向导。`,
-            section: 'projects' as const,
+            section: 'ai-director' as const,
             title: '素材已就绪，开始自动成片',
           }
         : {
             action: '继续创建视频',
             copy: '现有素材与项目均已就绪，可继续创建不同平台和主题的成片。',
-            section: 'projects' as const,
+            section: 'ai-director' as const,
             title: '继续扩充酒店内容资产',
           };
 
   return (
     <div className="dashboard-page">
-      <div className="page-heading-row">
+      <div className="page-heading-row dashboard-welcome">
         <div>
-          <p className="page-eyebrow">HOTEL CONTENT OPERATIONS</p>
-          <h2>下午好，今天继续产出好内容。</h2>
-          <p>从酒店资料、素材分析到 AI 成片与质检，所有环节都在同一工作区完成。</p>
+          <p className="page-eyebrow">今日工作台</p>
+          <h2>{hotel.name}</h2>
+          <p>用 AI 创建初剪，在 Studio 精修时间线，然后完成渲染与交付。</p>
         </div>
         <div className="page-heading-actions">
           <button className="button-secondary" onClick={() => onNavigate('assets')} type="button">
             <Upload size={15} />
             上传新素材
           </button>
-          <button className="button-primary" onClick={() => onNavigate('projects')} type="button">
-            <Film size={15} />
-            创建新视频
+          <button
+            className="button-primary"
+            onClick={() => onNavigate('ai-director')}
+            type="button"
+          >
+            <WandSparkles size={15} />
+            AI 创建视频
           </button>
         </div>
       </div>
+
+      <section className="dashboard-launchpad" aria-label="快速开始">
+        <button
+          className="dashboard-launchpad-primary"
+          onClick={() => onNavigate('ai-director')}
+          type="button"
+        >
+          <span className="launchpad-icon">
+            <WandSparkles size={24} />
+          </span>
+          <span>
+            <small>推荐工作流</small>
+            <strong>让 AI 生成剪辑方案</strong>
+            <em>从创意、脚本、素材匹配到可编辑时间线</em>
+          </span>
+          <ArrowRight size={18} />
+        </button>
+        <button onClick={() => onNavigate('projects')} type="button">
+          <span className="launchpad-icon">
+            <Scissors size={20} />
+          </span>
+          <span>
+            <strong>打开剪辑工作台</strong>
+            <em>继续精修现有项目</em>
+          </span>
+          <ArrowRight size={16} />
+        </button>
+        <button onClick={() => onNavigate('assets')} type="button">
+          <span className="launchpad-icon">
+            <FolderOpen size={20} />
+          </span>
+          <span>
+            <strong>管理酒店素材</strong>
+            <em>{readyAssets} 份素材可用于剪辑</em>
+          </span>
+          <ArrowRight size={16} />
+        </button>
+      </section>
 
       <section className="dashboard-metrics" aria-label="酒店内容生产指标">
         <article>

@@ -396,36 +396,61 @@ export function AiDirectorWorkspace({
   }
 
   return (
-    <section className="space-y-6" aria-label="AI 创作工作台">
-      <header className="surface-card p-7">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9a6b3c]">
-          AI Director
-        </p>
-        <h2 className="mt-2 text-3xl font-black tracking-[-0.04em]">创建专属剪辑方案</h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-          AI 先生成可版本化的创意、脚本与 EditBlueprint；校验通过后才会交给现有 Compiler
-          生成合法时间线。
-        </p>
-        {onQuickEdit ? (
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button className="button-primary" onClick={onQuickEdit} type="button">
-              直接开始剪辑（素材自动成片）
-            </button>
-            <span className="text-[10px] text-slate-400">
-              不想走 AI 策划？用现有素材直接进入自动剪辑。
-            </span>
-          </div>
-        ) : null}
+    <section className="ai-director-page space-y-6" aria-label="AI 创作工作台">
+      <header className="ai-director-hero surface-card p-7">
+        <div className="ai-director-hero-copy">
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9a6b3c]">
+            AI Director
+          </p>
+          <h2 aria-label="创建专属剪辑方案" className="mt-2 text-3xl font-black tracking-[-0.04em]">
+            描述想法，获得可精修的初剪
+          </h2>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+            AI 先生成可版本化的创意、脚本与 EditBlueprint；校验通过后才会交给现有 Compiler
+            生成合法时间线。
+          </p>
+          {onQuickEdit ? (
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                aria-label="直接开始剪辑（素材自动成片）"
+                className="button-primary"
+                onClick={onQuickEdit}
+                type="button"
+              >
+                直接打开剪辑工作台
+              </button>
+              <span className="text-[10px] text-slate-400">
+                已有思路时，可跳过 AI 策划直接自动成片。
+              </span>
+            </div>
+          ) : null}
+        </div>
+        <div className="ai-director-hero-visual" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+          <i>AI</i>
+        </div>
       </header>
 
-      <form className="surface-card p-7" onSubmit={(event) => void createProject(event)}>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <form
+        className="ai-entry-panel surface-card p-7"
+        onSubmit={(event) => void createProject(event)}
+      >
+        <div className="ai-entry-heading">
+          <div>
+            <span>新建创作</span>
+            <h3>选择最接近你的起点</h3>
+          </div>
+          <p>后续所有 AI 结果都会保留版本，可回退并继续人工修改。</p>
+        </div>
+        <div className="ai-entry-grid grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {entryModes.map((entry) => {
             const Icon = entry.icon;
             return (
               <button
                 aria-pressed={mode === entry.mode}
-                className={`rounded-2xl border p-5 text-left transition ${
+                className={`ai-entry-card rounded-2xl border p-5 text-left transition ${
                   mode === entry.mode
                     ? 'border-[#d09a59] bg-[#fff8ef] shadow-sm'
                     : 'border-slate-200 bg-white hover:border-slate-300'
@@ -471,8 +496,14 @@ export function AiDirectorWorkspace({
         </p>
       </form>
 
-      <section className="surface-card p-7">
-        <h3 className="text-lg font-black">最近创作项目</h3>
+      <section className="ai-recent-projects surface-card p-7">
+        <div className="ai-entry-heading">
+          <div>
+            <span>最近项目</span>
+            <h3>继续上次创作</h3>
+          </div>
+          <p>{loadState.projects.length} 个 AI 创作项目</p>
+        </div>
         {loadState.projects.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500">尚无 AI 创作项目，请从上方入口开始。</p>
         ) : (

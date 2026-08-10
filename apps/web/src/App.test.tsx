@@ -30,6 +30,19 @@ describe('M5 editor workspace', () => {
     expect(screen.getByText('修订 1')).toBeInTheDocument();
   });
 
+  it('supports desktop playback and edit keyboard shortcuts', () => {
+    render(<App {...appProps} />);
+
+    expect(screen.getByLabelText('剪辑快捷工具')).toBeInTheDocument();
+    fireEvent.keyDown(window, { code: 'Space' });
+    expect(screen.getAllByRole('button', { name: '暂停预览' })).toHaveLength(1);
+
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled();
+    fireEvent.keyDown(window, { ctrlKey: true, key: 'z' });
+    expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled();
+  });
+
   it('replaces a selected shot without editing JSON', () => {
     render(<App {...appProps} />);
 
